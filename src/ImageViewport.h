@@ -43,7 +43,6 @@ class ImageViewport : public QLabel
 	QMatrix transform;
 	double zoom;
 	QSize image_size;
-	bool prevent_recursion;
 
 	QMatrix get_final_transform() const{
 		auto ret = this->transform;

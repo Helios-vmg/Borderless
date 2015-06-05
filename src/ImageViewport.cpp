@@ -35,8 +35,7 @@ DEFINE_SETTING_STRING(transform);
 
 ImageViewport::ImageViewport(QWidget *parent) :
 		QLabel(parent),
-		zoom(1),
-		prevent_recursion(false){
+		zoom(1){
 	this->transform.reset();
 	this->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
@@ -63,20 +62,6 @@ QMatrix translate(const QMatrix &m, const QPointF &offset){
 }
 
 void ImageViewport::paintEvent(QPaintEvent *ev){
-	if (!this->prevent_recursion){
-		struct AutomaticFlip{
-			bool &x;
-			AutomaticFlip(bool &x, bool new_value) : x(x){
-				x = new_value;
-			}
-			~AutomaticFlip(){
-				this->x = !this->x;
-			}
-		};
-		AutomaticFlip af(this->prevent_recursion, true);
-		this->repaint();
-	}
-
 	QPainter painter(this);
 	painter.setRenderHint(or_flags(QPainter::SmoothPixmapTransform, QPainter::Antialiasing));
 	painter.setClipping(false);
