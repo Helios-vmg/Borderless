@@ -61,7 +61,7 @@ class MainWindow : public QMainWindow{
 		first_label_pos,
 		image_pos;
 	QSize first_window_size;
-	std::shared_ptr<LoadedImage> displayed_image;
+	std::shared_ptr<LoadedGraphics> displayed_image;
 	std::vector<int> horizontal_clampers,
 		vertical_clampers;
 	QString current_directory,
@@ -143,7 +143,7 @@ protected:
 	void resizeEvent(QResizeEvent *ev);
 	void changeEvent(QEvent *ev);
 	void closeEvent(QCloseEvent * event);
-	void display_image(const QPixmap &);
+	void display_image(std::shared_ptr<LoadedGraphics>);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);

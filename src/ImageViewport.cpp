@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ImageViewport.h"
+#include "LoadedImage.h"
 #include <QPaintEvent>
 #include <QPainter>
 
@@ -34,7 +35,8 @@ DEFINE_SETTING_STRING(transform);
 
 ImageViewport::ImageViewport(QWidget *parent) :
 		QLabel(parent),
-		zoom(1){
+		zoom(1),
+		prevent_recursion(false){
 	this->transform.reset();
 	this->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
@@ -61,18 +63,34 @@ QMatrix translate(const QMatrix &m, const QPointF &offset){
 }
 
 void ImageViewport::paintEvent(QPaintEvent *ev){
-	QRectF dst = ev->rect();
+	if (!this->prevent_recursion){
+		struct AutomaticFlip{
+			bool &x;
+			AutomaticFlip(bool &x, bool new_value) : x(x){
+				x = new_value;
+			}
+			~AutomaticFlip(){
+				this->x = !this->x;
+			}
+		};
+		AutomaticFlip af(this->prevent_recursion, true);
+		this->repaint();
+	}
 
 	QPainter painter(this);
 	painter.setRenderHint(or_flags(QPainter::SmoothPixmapTransform, QPainter::Antialiasing));
-	//painter.setClipRect(dst);
+	painter.setClipping(false);
 
 	auto transform = this->get_final_transform();
 	auto src_quad = this->compute_quad();
 	auto offset = src_quad.move_to_origin();
 	transform = translate(transform, offset);
 	painter.setMatrix(transform);
-	painter.drawPixmap(this->pixmap()->rect(), *this->pixmap());
+	auto temp = painter.clipRegion().boundingRect();
+	if (this->pixmap())
+		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), *this->pixmap());
+	else if (this->movie())
+		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
 }
 
 void ImageViewport::save_state(SettingsTree &tree){
@@ -92,4 +110,9 @@ void ImageViewport::transform_changed(){
 void ImageViewport::set_transform(const QMatrix &m){
 	this->transform = m;
 	this->transform_changed();
+}
+
+void ImageViewport::set_image(LoadedGraphics &li){
+	this->image_size = li.get_size();
+	li.assign_to_QLabel(*this);
 }

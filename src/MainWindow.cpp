@@ -100,7 +100,7 @@ void MainWindow::set_zoom(){
 	auto ds = this->desktop_size.size();
 	if (this->fullscreen)
 		ds = this->screen_size.size();
-	auto ps = this->displayed_image->get_image().size();
+	auto ps = this->displayed_image->get_size();
 	this->ui->label->compute_size_no_zoom(ps);
 	double dr = (double)ds.width() / (double)ds.height();
 	double pr = (double)ps.width() / (double)ps.height();
@@ -127,15 +127,13 @@ void MainWindow::set_zoom(){
 }
 
 void MainWindow::apply_zoom(const double &old_zoom){
-	auto im = this->displayed_image->get_image();
-
 	auto label_pos = this->ui->label->pos();
 	auto center = to_QPoint(this->size()) / 2;
 	auto center_at = center - label_pos;
 
 	auto zoom = this->get_current_zoom();
 
-	this->display_image(im);
+	this->display_image(this->displayed_image);
 
 	this->move_image(center - center_at * (zoom / old_zoom));
 }
@@ -271,13 +269,13 @@ void MainWindow::move_in_direction(bool forward){
 }
 
 void MainWindow::display_image(QString path){
-	std::shared_ptr<LoadedImage> li;
+	std::shared_ptr<LoadedGraphics> li;
 	size_t i = 0;
 	auto &label = this->ui->label;
 	if (!!this->directory_iterator)
 		i = this->directory_iterator->pos();
 	while (true){
-		li.reset(new LoadedImage(path));
+		li = LoadedGraphics::create(path);
 		qDebug() << path;
 		if (!li->is_null())
 			break;
@@ -307,13 +305,14 @@ void MainWindow::display_image(QString path){
 	if (this->get_current_zoom() != 1)
 		this->apply_zoom();
 	else
-		this->display_image(li->get_image());
+		this->display_image(li);
 }
 
-void MainWindow::display_image(const QPixmap &pixmap){
+void MainWindow::display_image(std::shared_ptr<LoadedGraphics> graphics){
 	auto zoom = this->get_current_zoom();
 	auto &label = this->ui->label;
-	label->setPixmap(pixmap);
+	label->set_image(*graphics);
+	//label->setPixmap(pixmap);
 	label->set_zoom(zoom);
 	auto size = label->get_size();
 	int mindim = std::min(size.width(), size.height());
@@ -346,6 +345,7 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 
 void MainWindow::build_context_menu(QMenu &menu){
 	menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
+	menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *ev){

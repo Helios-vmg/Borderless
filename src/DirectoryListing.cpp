@@ -38,7 +38,7 @@ QStringList get_entries(QString path){
 	directory.setFilter(QDir::Files | QDir::Hidden);
 	directory.setSorting(QDir::Name);
 	QStringList filters;
-	filters << "*.bmp" << "*.jpg" << "*.jpeg" << "*.png";
+	filters << "*.bmp" << "*.jpg" << "*.jpeg" << "*.png" << "*.gif";
 	directory.setNameFilters(filters);
 	return directory.entryList();
 }
