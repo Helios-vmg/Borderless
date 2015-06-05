@@ -131,9 +131,6 @@ class MainWindow : public QMainWindow{
 	void reposition_image();
 	QPoint get_image_pos() const;
 	void set_image_pos(const QPoint &);
-	bool current_zoom_mode_is_auto() const{
-		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
-	}
 	void rotate(bool right, bool fine = false);
 	void fix_positions_and_zoom();
 
@@ -164,9 +161,14 @@ public:
 	void move_window_rect(const QPoint &);
 	void set_window_rect(const QRect &);
 	QMatrix get_image_transform() const;
-	void set_image_transform(const QMatrix &);
+	double get_image_zoom() const;
+	void set_image_zoom(double);
+	double set_image_transform(const QMatrix &);
 	void setup_shortcuts();
 	void build_context_menu(QMenu &);
+	bool current_zoom_mode_is_auto() const{
+		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
+	}
 
 public slots:
 	void label_transform_updated();

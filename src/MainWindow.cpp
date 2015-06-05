@@ -345,7 +345,7 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 }
 
 void MainWindow::build_context_menu(QMenu &menu){
-	menu.addAction("Rotate...", this, SLOT(show_rotate_dialog()));
+	menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *ev){
@@ -437,7 +437,21 @@ QMatrix MainWindow::get_image_transform() const{
 	return this->ui->label->get_transform();
 }
 
-void MainWindow::set_image_transform(const QMatrix &m){
+double MainWindow::set_image_transform(const QMatrix &m){
 	this->ui->label->set_transform(m);
 	this->fix_positions_and_zoom();
+	return this->zoom;
+}
+
+double MainWindow::get_image_zoom() const{
+	return this->zoom;
+}
+
+void MainWindow::set_image_zoom(double x){
+	double &zoom = this->get_current_zoom();
+	double last = zoom;
+	zoom = x;
+	this->apply_zoom(last);
+	this->ui->label->set_zoom(this->zoom = x);
+	this->get_current_zoom_mode() = ZoomMode::Normal;
 }
