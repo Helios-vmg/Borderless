@@ -113,7 +113,7 @@ void MainWindow::background_swap_slot(){
 }
 
 void MainWindow::close_slot(){
-	this->close();
+	this->app->postEvent(this, new QCloseEvent());
 }
 
 void MainWindow::zoom_in_slot(){
@@ -169,7 +169,7 @@ void MainWindow::reset_zoom_slot(){
 	this->get_current_zoom_mode() = ZoomMode::Normal;
 	this->ui->label->reset_transform();
 	this->set_zoom();
-	this->apply_zoom(zoom);
+	this->apply_zoom(false, zoom);
 }
 
 void cycle_zoom_mode(ZoomMode &mode){
@@ -191,7 +191,7 @@ void MainWindow::cycle_zoom_mode_slot(){
 	cycle_zoom_mode(this->get_current_zoom_mode());
 	auto zoom = this->get_current_zoom();
 	this->set_zoom();
-	this->apply_zoom(zoom);
+	this->apply_zoom(false, zoom);
 	this->set_background_sizes();
 }
 
@@ -231,13 +231,13 @@ void MainWindow::toggle_fullscreen(){
 	auto zoom = this->get_current_zoom();
 	this->fullscreen = !this->fullscreen;
 	if (!this->fullscreen){
-		this->apply_zoom(zoom);
+		this->apply_zoom(false, zoom);
 		this->setGeometry(this->window_rect);
 		this->set_image_pos(this->image_pos);
 	}else{
 		this->image_pos = this->get_image_pos();
 		this->set_zoom();
-		this->apply_zoom(zoom);
+		this->apply_zoom(false, zoom);
 		this->resolution_to_window_size();
 		this->reposition_image();
 		//this->move_image(QPoint(0, 0));

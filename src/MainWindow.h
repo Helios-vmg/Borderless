@@ -46,8 +46,6 @@ namespace Ui {
 class MainWindow;
 }
 
-class SingleInstanceApplication;
-
 class MainWindow : public QMainWindow{
 	Q_OBJECT
 
@@ -119,7 +117,7 @@ class MainWindow : public QMainWindow{
 	void setup_shortcut(const QKeySequence &sequence, const char *slot);
 	void show_context_menu(QMouseEvent *);
 	void change_zoom(bool in);
-	void apply_zoom(const double & = 1);
+	void apply_zoom(bool, double);
 	void offset_image(const QPoint &);
 	void set_desktop_size(int screen = -1);
 	void set_iterator();
@@ -135,14 +133,16 @@ class MainWindow : public QMainWindow{
 	void fix_positions_and_zoom();
 
 protected:
-	void mousePressEvent(QMouseEvent *ev);
-	void mouseReleaseEvent(QMouseEvent *ev);
-	void mouseMoveEvent(QMouseEvent *ev);
-	//void keyPressEvent(QKeyEvent *ev);
-	void keyReleaseEvent(QKeyEvent *ev);
-	void resizeEvent(QResizeEvent *ev);
-	void changeEvent(QEvent *ev);
-	void closeEvent(QCloseEvent * event);
+	void mousePressEvent(QMouseEvent *ev) override;
+	void mouseReleaseEvent(QMouseEvent *ev) override;
+	void mouseMoveEvent(QMouseEvent *ev) override;
+	//void keyPressEvent(QKeyEvent *ev) override;
+	//void keyReleaseEvent(QKeyEvent *ev) override;
+	void resizeEvent(QResizeEvent *ev) override;
+	void changeEvent(QEvent *ev) override;
+	void closeEvent(QCloseEvent *event) override;
+	void contextMenuEvent(QContextMenuEvent *) override;
+	//bool event(QEvent *) override;
 	void display_image(std::shared_ptr<LoadedGraphics>);
 
 public:

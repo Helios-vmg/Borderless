@@ -33,12 +33,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const Qt::CaseSensitivity platorm_case = Qt::CaseInsensitive;
 
+static const char *supported_extensions[] = {
+	"*.bmp",
+	"*.jpg",
+	"*.jpeg",
+	"*.png",
+	"*.gif",
+	"*.svg",
+	"*.webp",
+	"*.ico",
+	"*.tga",
+	"*.tiff",
+	"*.jp2",
+};
+
 QStringList get_entries(QString path){
 	QDir directory(path);
 	directory.setFilter(QDir::Files | QDir::Hidden);
 	directory.setSorting(QDir::Name);
 	QStringList filters;
-	filters << "*.bmp" << "*.jpg" << "*.jpeg" << "*.png" << "*.gif";
+	for (auto p : supported_extensions)
+		filters << p;
 	directory.setNameFilters(filters);
 	return directory.entryList();
 }

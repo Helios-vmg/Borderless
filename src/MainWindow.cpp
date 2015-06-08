@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QMetaEnum>
 #include <QDir>
 #include <exception>
+#include <cassert>
 
 const ZoomMode MainWindow::default_zoom_mode = ZoomMode::Normal;
 const ZoomMode MainWindow::default_fullscreen_zoom_mode = ZoomMode::AutoFit;
@@ -126,7 +127,7 @@ void MainWindow::set_zoom(){
 	}
 }
 
-void MainWindow::apply_zoom(const double &old_zoom){
+void MainWindow::apply_zoom(bool first_display, double old_zoom){
 	auto label_pos = this->ui->label->pos();
 	auto center = to_QPoint(this->size()) / 2;
 	auto center_at = center - label_pos;
@@ -135,7 +136,18 @@ void MainWindow::apply_zoom(const double &old_zoom){
 
 	this->display_image(this->displayed_image);
 
-	this->move_image(center - center_at * (zoom / old_zoom));
+	auto new_location = center - center_at * (zoom / old_zoom);
+
+	if (first_display){
+		if (!this->app->get_center_when_displayed()){
+			if (new_location.x() < 0)
+				new_location.setX(0);
+			if (new_location.y() < 0)
+				new_location.setY(0);
+		}
+	}
+
+	this->move_image(new_location);
 }
 
 void MainWindow::change_zoom(bool in){
@@ -151,7 +163,7 @@ void MainWindow::change_zoom(bool in){
 #else
 	zoom *= in ? 1.25 : (1.0 / 1.25);
 #endif
-	this->apply_zoom(old_zoom);
+	this->apply_zoom(false, old_zoom);
 	if (this->current_zoom_mode_is_auto())
 		this->get_current_zoom_mode() = ZoomMode::Normal;
 }
@@ -299,11 +311,11 @@ void MainWindow::display_image(QString path){
 		this->directory_iterator = this->app->request_directory(this->current_directory);
 	this->displayed_image = li;
 
-	this->set_zoom();
 	label->reset_transform();
+	this->set_zoom();
 
 	if (this->get_current_zoom() != 1)
-		this->apply_zoom();
+		this->apply_zoom(true, 1);
 	else
 		this->display_image(li);
 }
@@ -337,10 +349,7 @@ void MainWindow::show_rotate_dialog(){
 }
 
 void MainWindow::show_context_menu(QMouseEvent *ev){
-	this->not_moved = false;
-	auto menu = this->app->build_context_menu(this);
-	menu->move(ev->screenPos().toPoint());
-	menu->exec();
+	this->app->postEvent(this, new QContextMenuEvent(QContextMenuEvent::Mouse, ev->screenPos().toPoint()));
 }
 
 void MainWindow::build_context_menu(QMenu &menu){
@@ -348,9 +357,9 @@ void MainWindow::build_context_menu(QMenu &menu){
 	menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
-void MainWindow::keyReleaseEvent(QKeyEvent *ev){
-	QMainWindow::keyReleaseEvent(ev);
-}
+//void MainWindow::keyReleaseEvent(QKeyEvent *ev){
+//	QMainWindow::keyReleaseEvent(ev);
+//}
 
 void MainWindow::resizeEvent(QResizeEvent *){
 	this->set_background_sizes();
@@ -371,6 +380,17 @@ void MainWindow::closeEvent(QCloseEvent *){
 	this->cleanup();
 	emit closing(this);
 }
+
+void MainWindow::contextMenuEvent(QContextMenuEvent *ev){
+	this->not_moved = false;
+	auto menu = this->app->build_context_menu(this);
+	menu->move(ev->pos());
+	menu->exec();
+}
+
+//bool MainWindow::event(QEvent *event){
+//
+//}
 
 void MainWindow::cleanup(){
 	this->app->release_directory(this->directory_iterator);
@@ -394,7 +414,7 @@ void MainWindow::fix_positions_and_zoom(){
 	if (this->current_zoom_mode_is_auto()){
 		auto zoom = this->get_current_zoom();
 		this->set_zoom();
-		this->apply_zoom(zoom);
+		this->apply_zoom(false, zoom);
 	}
 	this->reposition_window();
 	this->reposition_image();
@@ -451,7 +471,7 @@ void MainWindow::set_image_zoom(double x){
 	double &zoom = this->get_current_zoom();
 	double last = zoom;
 	zoom = x;
-	this->apply_zoom(last);
+	this->apply_zoom(false, last);
 	this->ui->label->set_zoom(this->zoom = x);
 	this->get_current_zoom_mode() = ZoomMode::Normal;
 }
