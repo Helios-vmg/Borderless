@@ -349,7 +349,7 @@ void MainWindow::show_rotate_dialog(){
 }
 
 void MainWindow::show_context_menu(QMouseEvent *ev){
-	this->app->postEvent(this, new QContextMenuEvent(QContextMenuEvent::Mouse, ev->screenPos().toPoint()));
+	this->app->postEvent(this, new QContextMenuEvent(QContextMenuEvent::Other, ev->screenPos().toPoint()));
 }
 
 void MainWindow::build_context_menu(QMenu &menu){
@@ -382,6 +382,8 @@ void MainWindow::closeEvent(QCloseEvent *){
 }
 
 void MainWindow::contextMenuEvent(QContextMenuEvent *ev){
+	if (ev->reason() != QContextMenuEvent::Other)
+		return;
 	this->not_moved = false;
 	auto menu = this->app->build_context_menu(this);
 	menu->move(ev->pos());
