@@ -30,3 +30,4 @@ _ReSharper*/
 *.sdf
 bin64/
 Borderless/GeneratedFiles/
+*.opendb
