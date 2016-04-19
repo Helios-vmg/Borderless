@@ -156,12 +156,12 @@ std::shared_ptr<SettingsItem> add_sub(const T &key, QJsonValueRef &item){
 	if (item.isArray())
 		return key, read_array(item.toArray());
 	if (item.isString())
-		return std::shared_ptr<SettingsItem>(new SettingsValue(item.toString()));
+		return std::make_shared<SettingsValue>(item.toString());
 	return std::shared_ptr<SettingsItem>();
 }
 
 std::shared_ptr<SettingsArray> read_array(QJsonArray &arr){
-	std::shared_ptr<SettingsArray> ret(new SettingsArray);
+	auto ret = std::make_shared<SettingsArray>();
 	auto size = arr.size();
 	for (int i = 0; i < size; i++){
 		auto item = add_sub(i, arr[i]);
@@ -173,7 +173,7 @@ std::shared_ptr<SettingsArray> read_array(QJsonArray &arr){
 }
 
 std::shared_ptr<SettingsTree> read_obj(QJsonObject &obj){
-	std::shared_ptr<SettingsTree> ret(new SettingsTree);
+	auto ret = std::make_shared<SettingsTree>();
 	auto keys = obj.keys();
 	for (auto &key : keys){
 		auto item = add_sub(key, obj[key]);
@@ -187,14 +187,14 @@ std::shared_ptr<SettingsTree> read_obj(QJsonObject &obj){
 
 std::shared_ptr<SettingsTree> Settings::read(){
 #ifdef USE_JSON
-	std::shared_ptr<SettingsTree> ret;
+	std::shared_ptr<SettingsTree> null;
 	QFile file(this->path);
 	file.open(QFile::ReadOnly);
 	if (!file.isOpen())
-		return ret;
+		return null;
 	auto doc = QJsonDocument::fromJson(file.readAll());
 	if (doc.isNull())
-		return ret;
+		return null;
 	return ::read_obj(doc.object());
 #endif
 }

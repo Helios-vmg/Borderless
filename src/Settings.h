@@ -219,7 +219,7 @@ public:
 	AssociativeTree(bool is_array): SettingsItem(false, is_array){}
 	template <typename T>
 	void set_value(const KeyT &key, const T &val){
-		this->tree[key] = std::shared_ptr<SettingsItem>(new SettingsValue(val));
+		this->tree[key] = std::make_shared<SettingsItem>(val);
 	}
 	template <typename T>
 	void add_tree(const KeyT &key, const T &subtree){
@@ -253,7 +253,7 @@ public:
 	std::shared_ptr<SettingsItem> operator[](const KeyT &key){
 		auto it = this->find(key);
 		if (!it)
-			return std::shared_ptr<SettingsItem();
+			return std::shared_ptr<SettingsItem>();
 		return it->second;
 	}
 	std::shared_ptr<SettingsTree> get_tree(const KeyT &key) const;
@@ -306,24 +306,24 @@ public:
 
 template <typename KeyT, typename MapT>
 std::shared_ptr<SettingsTree> AssociativeTree<KeyT, MapT>::create_tree(){
-	return std::shared_ptr<SettingsTree>(new SettingsTree);
+	return std::make_shared<SettingsTree>();
 }
 
 template <typename KeyT, typename MapT>
 std::shared_ptr<SettingsArray> AssociativeTree<KeyT, MapT>::create_array(){
-	return std::shared_ptr<SettingsArray>(new SettingsArray);
+	return std::make_shared<SettingsArray>();
 }
 
 template <typename KeyT, typename MapT>
 std::shared_ptr<SettingsTree> AssociativeTree<KeyT, MapT>::get_tree(const KeyT &key) const{
 	auto it = this->tree.find(key);
-	return it == this->tree.end() || it->second->is_value() || it->second->is_array() ? nullptr : std::static_pointer_cast<SettingsTree >(it->second);
+	return it == this->tree.end() || it->second->is_value() || it->second->is_array() ? nullptr : std::static_pointer_cast<SettingsTree>(it->second);
 }
 
 template <typename KeyT, typename MapT>
 std::shared_ptr<SettingsArray> AssociativeTree<KeyT, MapT>::get_array(const KeyT &key) const{
 	auto it = this->tree.find(key);
-	return it == this->tree.end() || it->second->is_value() || !it->second->is_array() ? nullptr : std::static_pointer_cast<SettingsArray >(it->second);
+	return it == this->tree.end() || it->second->is_value() || !it->second->is_array() ? nullptr : std::static_pointer_cast<SettingsArray>(it->second);
 }
 /*
 template <typename KeyT, typename MapT>
