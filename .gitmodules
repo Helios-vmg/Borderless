@@ -1,0 +1,4 @@
+[submodule "serialization"]
+	path = serialization
+	url = https://github.com/Helios-vmg/cppserialization.git
+	branch = master
