@@ -219,7 +219,7 @@ public:
 	AssociativeTree(bool is_array): SettingsItem(false, is_array){}
 	template <typename T>
 	void set_value(const KeyT &key, const T &val){
-		this->tree[key] = std::make_shared<SettingsItem>(val);
+		this->tree[key] = std::make_shared<SettingsValue>(val);
 	}
 	template <typename T>
 	void add_tree(const KeyT &key, const T &subtree){
