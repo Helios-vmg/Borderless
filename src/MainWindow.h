@@ -46,8 +46,6 @@ namespace Ui {
 class MainWindow;
 }
 
-class SingleInstanceApplication;
-
 class MainWindow : public QMainWindow{
 	Q_OBJECT
 
@@ -61,7 +59,7 @@ class MainWindow : public QMainWindow{
 		first_label_pos,
 		image_pos;
 	QSize first_window_size;
-	std::shared_ptr<LoadedImage> displayed_image;
+	std::shared_ptr<LoadedGraphics> displayed_image;
 	std::vector<int> horizontal_clampers,
 		vertical_clampers;
 	QString current_directory,
@@ -119,7 +117,7 @@ class MainWindow : public QMainWindow{
 	void setup_shortcut(const QKeySequence &sequence, const char *slot);
 	void show_context_menu(QMouseEvent *);
 	void change_zoom(bool in);
-	void apply_zoom(const double & = 1);
+	void apply_zoom(bool, double);
 	void offset_image(const QPoint &);
 	void set_desktop_size(int screen = -1);
 	void set_iterator();
@@ -131,22 +129,21 @@ class MainWindow : public QMainWindow{
 	void reposition_image();
 	QPoint get_image_pos() const;
 	void set_image_pos(const QPoint &);
-	bool current_zoom_mode_is_auto() const{
-		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
-	}
 	void rotate(bool right, bool fine = false);
 	void fix_positions_and_zoom();
 
 protected:
-	void mousePressEvent(QMouseEvent *ev);
-	void mouseReleaseEvent(QMouseEvent *ev);
-	void mouseMoveEvent(QMouseEvent *ev);
-	//void keyPressEvent(QKeyEvent *ev);
-	void keyReleaseEvent(QKeyEvent *ev);
-	void resizeEvent(QResizeEvent *ev);
-	void changeEvent(QEvent *ev);
-	void closeEvent(QCloseEvent * event);
-	void display_image(const QPixmap &);
+	void mousePressEvent(QMouseEvent *ev) override;
+	void mouseReleaseEvent(QMouseEvent *ev) override;
+	void mouseMoveEvent(QMouseEvent *ev) override;
+	//void keyPressEvent(QKeyEvent *ev) override;
+	//void keyReleaseEvent(QKeyEvent *ev) override;
+	void resizeEvent(QResizeEvent *ev) override;
+	void changeEvent(QEvent *ev) override;
+	void closeEvent(QCloseEvent *event) override;
+	void contextMenuEvent(QContextMenuEvent *) override;
+	//bool event(QEvent *) override;
+	void display_image(std::shared_ptr<LoadedGraphics>);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
@@ -164,9 +161,14 @@ public:
 	void move_window_rect(const QPoint &);
 	void set_window_rect(const QRect &);
 	QMatrix get_image_transform() const;
-	void set_image_transform(const QMatrix &);
+	double get_image_zoom() const;
+	void set_image_zoom(double);
+	double set_image_transform(const QMatrix &);
 	void setup_shortcuts();
 	void build_context_menu(QMenu &);
+	bool current_zoom_mode_is_auto() const{
+		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
+	}
 
 public slots:
 	void label_transform_updated();

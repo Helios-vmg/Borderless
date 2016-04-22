@@ -35,11 +35,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Quadrangular.h"
 #include "Settings.h"
 
+class LoadedGraphics;
+
 class ImageViewport : public QLabel
 {
 	Q_OBJECT
 	QMatrix transform;
 	double zoom;
+	QSize image_size;
 
 	QMatrix get_final_transform() const{
 		auto ret = this->transform;
@@ -53,7 +56,7 @@ class ImageViewport : public QLabel
 		return Quadrangular(size) * this->transform;
 	}
 	Quadrangular compute_quad() const{
-		return this->compute_quad(this->pixmap()->size());
+		return this->compute_quad(this->image_size);
 	}
 	void transform_changed();
 public:
@@ -75,7 +78,7 @@ public:
 		size = this->compute_quad_no_zoom(size).get_bounding_box().size().toSize();
 	}
 	QSize get_size() const{
-		auto ret = this->pixmap()->size();
+		auto ret = this->image_size;
 		this->compute_size(ret);
 		return ret;
 	}
@@ -94,6 +97,7 @@ public:
 	void load_state(const SettingsTree &tree);
 
 	void paintEvent(QPaintEvent *) override;
+	void set_image(LoadedGraphics &li);
 
 signals:
 	void transform_updated();

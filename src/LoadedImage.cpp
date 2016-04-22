@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LoadedImage.h"
 #include <QImage>
 #include <QtConcurrent/QtConcurrentRun>
+#include <QLabel>
 
 LoadedImage::LoadedImage(const QString &path){
 	QImage img(path);
@@ -80,4 +81,28 @@ QColor background_color_parallel_function(QImage img){
 
 void LoadedImage::compute_average_color(QImage img){
 	this->background_color = QtConcurrent::run(background_color_parallel_function, img);
+}
+
+void LoadedImage::assign_to_QLabel(QLabel &label){
+	label.setPixmap(this->image);
+}
+
+LoadedAnimation::LoadedAnimation(const QString &path): animation(path){
+	this->null = !this->animation.isValid();
+	if (!this->null){
+		bool ok = this->animation.jumpToNextFrame();
+		this->size = this->animation.currentPixmap().size();
+		this->alpha = true;
+	}
+}
+
+void LoadedAnimation::assign_to_QLabel(QLabel &label){
+	label.setMovie(&this->animation);
+	this->animation.start();
+}
+
+std::shared_ptr<LoadedGraphics> LoadedGraphics::create(const QString &path){
+	if (path.endsWith(".gif", Qt::CaseInsensitive))
+		return std::shared_ptr<LoadedGraphics>(new LoadedAnimation(path));
+	return std::shared_ptr<LoadedGraphics>(new LoadedImage(path));
 }

@@ -40,6 +40,15 @@ class RotateDialog : public QDialog{
 	MainWindow &main_window;
 	QMatrix transform;
 	bool result;
+	double rotation,
+		original_scale,
+		last_scale,
+		scale;
+	bool in_do_transform;
+
+	void do_transform(bool = false);
+	void set_scale();
+	void set_scale_label();
 public:
 	RotateDialog(MainWindow &parent);
 	bool accepted() const{
@@ -49,7 +58,8 @@ public:
 signals:
 
 public slots :
-	void slider_changed(int);
+	void rotation_slider_changed(int);
+	void scale_slider_changed(int);
 	void rejected_slot();
 };
 

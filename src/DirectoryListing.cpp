@@ -33,14 +33,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const Qt::CaseSensitivity platorm_case = Qt::CaseInsensitive;
 
+static const char *supported_extensions[] = {
+	"*.bmp",
+	"*.jpg",
+	"*.jpeg",
+	"*.png",
+	"*.gif",
+	"*.svg",
+	"*.webp",
+	"*.ico",
+	"*.tga",
+	"*.tiff",
+	"*.jp2",
+};
+
+template <Qt::CaseSensitivity CS>
+bool strcmpci(const QString &a, const QString &b){
+	return a.compare(a, b, CS) < 0;
+}
+
 QStringList get_entries(QString path){
 	QDir directory(path);
 	directory.setFilter(QDir::Files | QDir::Hidden);
 	directory.setSorting(QDir::Name);
 	QStringList filters;
-	filters << "*.bmp" << "*.jpg" << "*.jpeg" << "*.png";
+	for (auto p : supported_extensions)
+		filters << p;
 	directory.setNameFilters(filters);
-	return directory.entryList();
+	auto ret = directory.entryList();
+	auto f = strcmpci<platorm_case>;
+	std::sort(ret.begin(), ret.end(), f);
+	return ret;
 }
 
 bool check_and_clean_path(QString &path){
@@ -78,11 +101,6 @@ QString DirectoryListing::operator[](size_t i) const{
 	ret += QDir::separator();
 	ret += this->entries.result()[i];
 	return ret;
-}
-
-template <Qt::CaseSensitivity CS>
-bool strcmpci(const QString &a, const QString &b){
-	return a.compare(a, b, CS) < 0;
 }
 
 bool DirectoryListing::find(size_t &dst, const QString &s) const{
