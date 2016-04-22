@@ -160,17 +160,18 @@ void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 
 	auto label_rect = this->ui->label->rect();
 
-	if (rect.width() < this->border_size){
+	auto border_size = this->window_state->get_border_size();
+	if (rect.width() < border_size){
 		if (right)
-			rect.setWidth(this->border_size);
+			rect.setWidth(border_size);
 		else
-			rect.setLeft(rect.right() - this->border_size + 1);
+			rect.setLeft(rect.right() - border_size + 1);
 	}
-	if (rect.height() < this->border_size){
+	if (rect.height() < border_size){
 		if (bottom)
-			rect.setHeight(this->border_size);
+			rect.setHeight(border_size);
 		else
-			rect.setTop(rect.bottom() - this->border_size + 1);
+			rect.setTop(rect.bottom() - border_size + 1);
 	}
 
 	if (rect.width() > label_rect.width()){
@@ -304,7 +305,7 @@ MainWindow::ResizeMode MainWindow::get_resize_mode(const QPoint &pos){
 	if (this->fullscreen || this->current_zoom_mode_is_auto())
 		return ResizeMode::None;
 
-	for (int border = this->border_size; border >= 0; border -= 5){
+	for (int border = this->window_state->get_border_size(); border >= 0; border -= 5){
 		bool left = false,
 			top = false,
 			right = false,

@@ -31,8 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QPaintEvent>
 #include <QPainter>
 
-DEFINE_SETTING_STRING(transform);
-
 ImageViewport::ImageViewport(QWidget *parent) :
 		QLabel(parent),
 		zoom(1){
@@ -78,13 +76,10 @@ void ImageViewport::paintEvent(QPaintEvent *ev){
 		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
 }
 
-void ImageViewport::save_state(SettingsTree &tree){
-	tree.set_value(transform_setting, this->transform);
+void ImageViewport::save_state(){
 }
 
-void ImageViewport::load_state(const SettingsTree &tree){
-	tree.get_value(this->transform, transform_setting);
-	this->transform_changed();
+void ImageViewport::load_state(){
 }
 
 void ImageViewport::transform_changed(){

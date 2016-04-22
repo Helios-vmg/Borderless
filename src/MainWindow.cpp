@@ -17,9 +17,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <exception>
 #include <cassert>
 
-const ZoomMode MainWindow::default_zoom_mode = ZoomMode::Normal;
-const ZoomMode MainWindow::default_fullscreen_zoom_mode = ZoomMode::AutoFit;
-
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
@@ -29,12 +26,11 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		this->display_image(arguments[1]);
 }
 
-MainWindow::MainWindow(ImageViewerApplication &app, const SettingsTree &tree, QWidget *parent):
+MainWindow::MainWindow(ImageViewerApplication &app, const WindowState &state, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
 	this->init();
-	this->restore_state(tree);
 	this->set_background();
 }
 
@@ -144,7 +140,7 @@ void MainWindow::change_zoom(bool in){
 #endif
 	this->apply_zoom(false, old_zoom);
 	if (this->current_zoom_mode_is_auto())
-		this->get_current_zoom_mode() = ZoomMode::Normal;
+		this->set_current_zoom_mode(ZoomMode::Normal);
 }
 
 void MainWindow::setup_backgrounds(){
@@ -172,18 +168,18 @@ void MainWindow::set_solid(const QColor &col){
 
 void MainWindow::set_background(bool force){
 	bool b = this->use_checkerboard_pattern;
-	if (this->using_checkerboard_pattern == b && !force)
+	if (this->window_state->get_using_checkerboard_pattern() == b && !force)
 		return;
 
-	if (!b)
-		this->set_solid(this->displayed_image->get_background_color());
 	QWidget *p1 = this->ui->checkerboard;
 	QWidget *p2 = this->ui->solid;
-	if (!b)
+	if (!b){
+		this->set_solid(this->displayed_image->get_background_color());
 		std::swap(p1, p2);
+	}
 	p1->show();
 	p2->hide();
-	this->using_checkerboard_pattern = b;
+	this->window_state->set_using_checkerboard_pattern(b);
 }
 
 void MainWindow::set_background_sizes(){
@@ -203,7 +199,7 @@ void MainWindow::show_nothing(){
 	this->set_solid(Qt::black);
 	this->resize(800, 600);
 	this->ui->label->resize(this->size());
-	this->border_size = this->default_border_size;
+	this->window_state->reset_border_size();
 }
 
 void MainWindow::resize_to_max(){
@@ -239,12 +235,15 @@ double &MainWindow::get_current_zoom(){
 	return !this->fullscreen ? this->zoom : this->fullscreen_zoom;
 }
 
-ZoomMode &MainWindow::get_current_zoom_mode(){
-	return const_cast<ZoomMode &>(const_cast<const MainWindow *>(this)->get_current_zoom_mode());
+void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
+	if (!this->fullscreen)
+		this->window_state->set_zoom_mode(mode);
+	else
+		this->window_state->set_fullscreen_zoom_mode(mode);
 }
 
-const ZoomMode &MainWindow::get_current_zoom_mode() const{
-	return !this->fullscreen ? this->zoom_mode : this->fullscreen_zoom_mode;
+ZoomMode MainWindow::get_current_zoom_mode() const{
+	return !this->fullscreen ? this->window_state->get_zoom_mode() : this->window_state->get_fullscreen_zoom_mode();
 }
 
 void MainWindow::move_in_direction(bool forward){
@@ -307,10 +306,11 @@ void MainWindow::display_image(std::shared_ptr<LoadedGraphics> graphics){
 	label->set_zoom(zoom);
 	auto size = label->get_size();
 	int mindim = std::min(size.width(), size.height());
-	if (mindim < this->default_border_size * 3)
-		this->border_size = mindim / 3;
-	else
-		this->border_size = this->default_border_size;
+	this->window_state->set_border_size(
+		mindim < this->window_state->default_border_size * 3 ?
+		mindim / 3 :
+		this->window_state->default_border_size
+	);
 	label->resize(size);
 
 	if (!this->color_calculated && this->displayed_image->has_alpha()){
@@ -454,5 +454,5 @@ void MainWindow::set_image_zoom(double x){
 	zoom = x;
 	this->apply_zoom(false, last);
 	this->ui->label->set_zoom(this->zoom = x);
-	this->get_current_zoom_mode() = ZoomMode::Normal;
+	this->set_current_zoom_mode(ZoomMode::Normal);
 }

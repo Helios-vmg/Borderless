@@ -15,17 +15,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <sstream>
 #include <cassert>
 
-const ZoomMode ImageViewerApplication::default_zoom_mode_for_new_windows = ZoomMode::Normal;
-const ZoomMode ImageViewerApplication::default_fullscreen_zoom_mode_for_new_windows = ZoomMode::AutoFit;
-
 ImageViewerApplication::ImageViewerApplication(int argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false){
-	this->reset_settings();
 	this->restore_settings();
-	this->setQuitOnLastWindowClosed(!this->keep_application_in_background);
+	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
 	this->new_instance(this->args);
-	if (!this->windows.size() && !this->keep_application_in_background)
+	if (!this->windows.size() && !this->settings->get_keep_application_in_background())
 		throw NoWindowsException();
 
 	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
@@ -102,75 +98,21 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	}
 }
 
-void ImageViewerApplication::reset_settings(){
-	RESET_SETTING(use_checkerboard_pattern);
-	RESET_SETTING(clamp_strength);
-	RESET_SETTING(clamp_to_edges);
-	RESET_SETTING(center_when_displayed);
-	RESET_SETTING(keep_application_in_background);
-	RESET_SETTING(zoom_mode_for_new_windows);
-	RESET_SETTING(fullscreen_zoom_mode_for_new_windows);
-	this->shortcuts.reset_settings();
-}
-
-DEFINE_SETTING_STRING(clamp_strength);
-DEFINE_SETTING_STRING(clamp_to_edges);
-DEFINE_SETTING_STRING(use_checkerboard_pattern);
-DEFINE_SETTING_STRING(last_state);
-DEFINE_SETTING_STRING(windows);
-DEFINE_SETTING_STRING(window);
-DEFINE_SETTING_STRING(center_when_displayed);
-DEFINE_SETTING_STRING(zoom_mode_for_new_windows);
-DEFINE_SETTING_STRING(fullscreen_zoom_mode_for_new_windows);
-DEFINE_SETTING_STRING(shortcuts);
-DEFINE_SETTING_STRING(keep_application_in_background);
-
 #define SAVE_SETTING(x) tree.set_value(#x, this->x)
 
-void ImageViewerApplication::save_current_state(SettingsTree &tree){
-	auto last_state = tree.create_tree();
-	this->save_current_windows(*last_state);
-	tree.add_tree(last_state_setting, last_state);
+void ImageViewerApplication::save_current_state(){
 }
 
-void ImageViewerApplication::save_current_windows(SettingsTree &tree){
-	auto windows = tree.create_array();
-	int i = 0;
-	for (auto &w : this->windows)
-		windows->push_back(w.second->save_state());
-	tree.add_tree(windows_setting, windows);
+void ImageViewerApplication::save_current_windows(){
 }
 
 void ImageViewerApplication::save_settings(bool with_state){
-	if (this->do_not_save)
-		return;
-	SettingsTree tree;
-	SAVE_SETTING(clamp_strength);
-	SAVE_SETTING(clamp_to_edges);
-	SAVE_SETTING(use_checkerboard_pattern);
-	SAVE_SETTING(center_when_displayed);
-	SAVE_SETTING(zoom_mode_for_new_windows);
-	SAVE_SETTING(fullscreen_zoom_mode_for_new_windows);
-	SAVE_SETTING(keep_application_in_background);
-	if (with_state)
-		this->save_current_state(tree);
-	tree.add_tree(shortcuts_setting, this->shortcuts.save_settings());
-	this->settings.write(tree);
-	this->do_not_save = true;
 }
 
-void ImageViewerApplication::restore_current_state(const SettingsTree &tree){
-	auto subtree = tree.get_array(windows_setting);
-	if (subtree)
-		this->restore_current_windows(*subtree);
+void ImageViewerApplication::restore_current_state(){
 }
 
-void ImageViewerApplication::restore_current_windows(const SettingsArray &tree){
-	this->windows.clear();
-	tree.iterate([this](int, const SettingsItem &item){
-		if (!item.is_value() && !item.is_array())
-			this->add_window(sharedp_t(new MainWindow(*this, static_cast<const SettingsTree &>(item))));
-	});
+void ImageViewerApplication::restore_current_windows(){
 }
 
 std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *caller){
@@ -185,28 +127,8 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	return ret;
 }
 
-OptionsPack ImageViewerApplication::get_option_values() const{
-	OptionsPack ret;
-	ret.center_images = this->center_when_displayed;
-	ret.use_checkerboard = this->use_checkerboard_pattern;
-	ret.clamp_to_edges = this->clamp_to_edges;
-	ret.keep_in_background = this->keep_application_in_background;
-	ret.clamp_strength = this->clamp_strength;
-	ret.windowed_zoom_mode = this->zoom_mode_for_new_windows;
-	ret.fullscreen_zoom_mode = this->fullscreen_zoom_mode_for_new_windows;
-	return ret;
-}
-
-void ImageViewerApplication::set_option_values(const OptionsPack &options){
-	this->center_when_displayed = options.center_images;
-	this->use_checkerboard_pattern = options.use_checkerboard;
-	this->clamp_to_edges = options.clamp_to_edges;
-	this->keep_application_in_background = options.keep_in_background;
-	this->clamp_strength = options.clamp_strength;
-	this->zoom_mode_for_new_windows = options.windowed_zoom_mode;
-	this->fullscreen_zoom_mode_for_new_windows = options.fullscreen_zoom_mode;
-
-	this->setQuitOnLastWindowClosed(!this->keep_application_in_background);
+void ImageViewerApplication::set_option_values(){
+	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
 }
 
 void ImageViewerApplication::show_options(){
@@ -222,27 +144,6 @@ void ImageViewerApplication::quit_and_discard_state(){
 #define RESTORE_SETTING(key) tree->get_value(this->key, key##_setting)
 
 void ImageViewerApplication::restore_settings(){
-	auto tree = this->settings.read();
-	if (!tree)
-		return;
-	RESTORE_SETTING(clamp_strength);
-	RESTORE_SETTING(clamp_to_edges);
-	RESTORE_SETTING(use_checkerboard_pattern);
-	RESTORE_SETTING(keep_application_in_background);
-	RESTORE_SETTING(center_when_displayed);
-	RESTORE_SETTING(zoom_mode_for_new_windows);
-	RESTORE_SETTING(fullscreen_zoom_mode_for_new_windows);
-
-	std::shared_ptr<SettingsTree> subtree;
-
-	subtree = tree->get_tree(shortcuts_setting);
-	if (subtree)
-		this->shortcuts.restore_settings(*subtree);
-
-	subtree = tree->get_tree(last_state_setting);
-	if (subtree)
-		this->restore_current_state(*subtree);
-
 }
 
 void ImageViewerApplication::resolution_change(int screen){

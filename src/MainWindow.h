@@ -14,12 +14,12 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "LoadedImage.h"
 #include "DirectoryListing.h"
 #include "ImageViewerApplication.h"
-#include "Settings.h"
 #include "Rational.h"
 #include <QStringList>
 #include <QShortcut>
 #include <vector>
 #include <memory>
+#include "Misc.h"
 
 namespace Ui {
 class MainWindow;
@@ -66,11 +66,7 @@ class MainWindow : public QMainWindow{
 	};
 	ResizeMode resize_mode;
 
-	DEFINE_SETTING(int, border_size, 50);
-	DEFINE_SETTING(int, movement_size, 100);
-	DEFINE_SETTING2(ZoomMode, zoom_mode);
-	DEFINE_SETTING2(ZoomMode, fullscreen_zoom_mode);
-	bool using_checkerboard_pattern;
+	std::shared_ptr<WindowState> window_state;
 	bool use_checkerboard_pattern;
 
 	bool move_image(const QPoint &new_position);
@@ -101,8 +97,8 @@ class MainWindow : public QMainWindow{
 	void set_desktop_size(int screen = -1);
 	void set_iterator();
 	double &get_current_zoom();
-	ZoomMode &get_current_zoom_mode();
-	const ZoomMode &get_current_zoom_mode() const;
+	void set_current_zoom_mode(const ZoomMode &);
+	ZoomMode get_current_zoom_mode() const;
 	void resolution_to_window_size();
 	void reposition_window();
 	void reposition_image();
@@ -126,11 +122,11 @@ protected:
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
-	explicit MainWindow(ImageViewerApplication &app, const SettingsTree &tree, QWidget *parent = 0);
+	explicit MainWindow(ImageViewerApplication &app, const WindowState &state, QWidget *parent = 0);
 	~MainWindow();
 	void display_image(QString path);
-	std::shared_ptr<SettingsTree> save_state() const;
-	void restore_state(const SettingsTree &tree);
+	void save_state() const;
+	void restore_state();
 	bool is_null() const{
 		return !this->displayed_image || this->displayed_image->is_null();
 	}

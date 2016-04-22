@@ -13,7 +13,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <map>
 #include <vector>
 #include <memory>
-#include "Settings.h"
+#include "serialization/settings.generated.h"
+#include "ShortcutInfo.h"
 
 #define DECLARE_COMMAND_INTERNAL_NAME(x) extern const char *x##_command
 
@@ -54,27 +55,6 @@ struct ShortcutSetting{
 	std::vector<QKeySequence> sequences;
 };
 
-struct ShortcutInfo{
-	const char *display_name;
-	const char *internal_name;
-	QKeySequence default_sequences[4];
-	size_t sequences_count;
-	ShortcutInfo(){}
-	ShortcutInfo(const char *display_name, const char *internal_name) : display_name(display_name), internal_name(internal_name), sequences_count(0){}
-	ShortcutInfo(const char *display_name, const char *internal_name, const char *s1) : display_name(display_name), internal_name(internal_name), sequences_count(0){
-		*this << s1;
-	}
-	ShortcutInfo(const char *display_name, const char *internal_name, const char *s1, const char *s2) : display_name(display_name), internal_name(internal_name), sequences_count(0){
-		*this << s1 << s2;
-	}
-	ShortcutInfo &operator<<(const char *s){
-		this->sequences_count %= 4;
-		this->default_sequences[this->sequences_count] = QKeySequence((QString)s);
-		this->sequences_count++;
-		return *this;
-	}
-};
-
 struct ShortcutTriple{
 	QString command;
 	QString display_name;
@@ -86,9 +66,9 @@ class ApplicationShortcuts{
 	std::map<QString, std::shared_ptr<ShortcutSetting> > current_shortcuts;
 public:
 	ApplicationShortcuts();
-	void restore_settings(const SettingsTree &tree);
+	void restore_settings(const Settings &tree);
 	void reset_settings();
-	std::shared_ptr<SettingsTree> save_settings();
+	void save_settings(Settings &);
 	const ShortcutInfo *get_shortcut_info(const QString &command) const;
 	QString get_display_name(const QString &command) const;
 	const ShortcutSetting *get_shortcut_setting(const QString &command) const;

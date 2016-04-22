@@ -50,14 +50,14 @@ class OptionsDialog : public QDialog{
 	std::shared_ptr<SimpleItemSelectionModel> sl_selmodel;
 	ImageViewerApplication *app;
 	bool no_changes;
-	OptionsPack options;
+	std::shared_ptr<MainSettings> options;
 
 	void setup_command_input();
 	void setup_shortcuts_list_view();
 	void setup_signals();
 	bool sequence_exists_in_model(const QKeySequence &);
 	void setup_general_options();
-	OptionsPack build_options();
+	std::shared_ptr<MainSettings> build_options();
 public:
 	OptionsDialog(ImageViewerApplication &app);
 

@@ -207,13 +207,13 @@ void OptionsDialog::setup_shortcuts_list_view(){
 }
 
 void OptionsDialog::setup_general_options(){
-	this->ui->center_when_displayed_cb->setChecked(this->options.center_images);
-	this->ui->use_checkerboard_pattern_cb->setChecked(this->options.use_checkerboard);
-	this->ui->clamp_to_edges_cb->setChecked(this->options.clamp_to_edges);
-    this->ui->keep_application_running_cb->setChecked(this->options.keep_in_background);
-	this->ui->clamp_strength_spinbox->setValue(this->options.clamp_strength);
-	this->ui->zoom_mode_for_new_windows_cb->set_selected_item(this->options.windowed_zoom_mode);
-	this->ui->fullscreen_zoom_mode_for_new_windows_cb->set_selected_item(this->options.fullscreen_zoom_mode);
+	this->ui->center_when_displayed_cb->setChecked(this->options->get_center_when_displayed());
+	this->ui->use_checkerboard_pattern_cb->setChecked(this->options->get_use_checkerboard_pattern());
+	this->ui->clamp_to_edges_cb->setChecked(this->options->get_clamp_to_edges());
+    this->ui->keep_application_running_cb->setChecked(this->options->get_keep_application_in_background());
+	this->ui->clamp_strength_spinbox->setValue(this->options->get_clamp_strength());
+	this->ui->zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_zoom_mode_for_new_windows());
+	this->ui->fullscreen_zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_fullscreen_zoom_mode_for_new_windows());
 }
 
 void OptionsDialog::setup_signals(){
@@ -280,22 +280,22 @@ void OptionsDialog::item_inserted_into_shortcut_model(size_t index){
 	this->ui->add_button->setEnabled(false);
 }
 
-OptionsPack OptionsDialog::build_options(){
-	OptionsPack ret;
-	ret.center_images = this->ui->center_when_displayed_cb->isChecked();
-	ret.use_checkerboard = this->ui->use_checkerboard_pattern_cb->isChecked();
-	ret.clamp_to_edges = this->ui->clamp_to_edges_cb->isChecked();
-	ret.keep_in_background = this->ui->keep_application_running_cb->isChecked();
-	ret.clamp_strength = this->ui->clamp_strength_spinbox->value();
-	ret.windowed_zoom_mode = this->ui->zoom_mode_for_new_windows_cb->get_selected_item();
-	ret.fullscreen_zoom_mode = this->ui->fullscreen_zoom_mode_for_new_windows_cb->get_selected_item();
+std::shared_ptr<MainSettings> OptionsDialog::build_options(){
+	auto ret = std::make_shared<MainSettings>();
+	ret->set_center_when_displayed(this->ui->center_when_displayed_cb->isChecked());
+	ret->set_use_checkerboard_pattern(this->ui->use_checkerboard_pattern_cb->isChecked());
+	ret->set_clamp_to_edges(this->ui->clamp_to_edges_cb->isChecked());
+	ret->set_keep_application_in_background(this->ui->keep_application_running_cb->isChecked());
+	ret->set_clamp_strength(this->ui->clamp_strength_spinbox->value());
+	ret->set_zoom_mode_for_new_windows(this->ui->zoom_mode_for_new_windows_cb->get_selected_item());
+	ret->set_fullscreen_zoom_mode_for_new_windows(this->ui->fullscreen_zoom_mode_for_new_windows_cb->get_selected_item());
 	return ret;
 }
 
 void OptionsDialog::accept(){
 	auto options = this->build_options();
-	if (options != this->options)
-		this->app->set_option_values(options);
+	if (*options != *this->options)
+		this->app->set_option_values();
 	if (!this->no_changes)
 		this->app->options_changed(this->sl_model->get_items());
 	this->hide();

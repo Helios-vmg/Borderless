@@ -31,3 +31,5 @@ _ReSharper*/
 bin64/
 Borderless/GeneratedFiles/
 *.opendb
+*.ipch
+*.generated.*

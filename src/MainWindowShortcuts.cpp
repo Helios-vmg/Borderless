@@ -104,19 +104,19 @@ void MainWindow::zoom_out_slot(){
 }
 
 void MainWindow::up_slot(){
-	this->offset_image(QPoint(0, this->movement_size));
+	this->offset_image(QPoint(0, this->window_state->get_movement_size()));
 }
 
 void MainWindow::down_slot(){
-	this->offset_image(QPoint(0, -this->movement_size));
+	this->offset_image(QPoint(0, -this->window_state->get_movement_size()));
 }
 
 void MainWindow::left_slot(){
-	this->offset_image(QPoint(this->movement_size, 0));
+	this->offset_image(QPoint(this->window_state->get_movement_size(), 0));
 }
 
 void MainWindow::right_slot(){
-	this->offset_image(QPoint(-this->movement_size, 0));
+	this->offset_image(QPoint(-this->window_state->get_movement_size(), 0));
 }
 
 void MainWindow::up_big_slot(){
@@ -145,7 +145,7 @@ void MainWindow::offset_image(const QPoint &offset){
 
 void MainWindow::reset_zoom_slot(){
 	int zoom = this->get_current_zoom();
-	this->get_current_zoom_mode() = ZoomMode::Normal;
+	this->set_current_zoom_mode(ZoomMode::Normal);
 	this->ui->label->reset_transform();
 	this->set_zoom();
 	this->apply_zoom(false, zoom);
@@ -167,7 +167,9 @@ void cycle_zoom_mode(ZoomMode &mode){
 }
 
 void MainWindow::cycle_zoom_mode_slot(){
-	cycle_zoom_mode(this->get_current_zoom_mode());
+	auto mode = this->get_current_zoom_mode();
+	cycle_zoom_mode(mode);
+	this->set_current_zoom_mode(mode);
 	auto zoom = this->get_current_zoom();
 	this->set_zoom();
 	this->apply_zoom(false, zoom);
@@ -179,7 +181,9 @@ void toggle_lock_zoom(ZoomMode &mode){
 }
 
 void MainWindow::toggle_lock_zoom_slot(){
-	toggle_lock_zoom(this->zoom_mode);
+	auto mode = this->window_state->get_zoom_mode();
+	toggle_lock_zoom(mode);
+	this->window_state->set_zoom_mode(mode);
 }
 
 void MainWindow::go_to_start(){
