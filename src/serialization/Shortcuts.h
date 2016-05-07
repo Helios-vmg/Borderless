@@ -1,2 +1,3 @@
 public:
-	Shortcuts();
+	Shortcuts(){}
+	void initialize_to_defaults();

@@ -83,7 +83,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 		return;
 
 	if (left){
-		if (this->fullscreen)
+		if (this->window_state->get_fullscreen())
 			return;
 		if (this->resize_mode == ResizeMode::None)
 			this->move_window(this->first_window_pos + ev->globalPos() - this->first_mouse_pos);
@@ -292,7 +292,7 @@ QPoint MainWindow::compute_movement(const QPoint &_new_position){
 
 void MainWindow::reposition_window(){
 	this->resize_to_max();
-	if (this->fullscreen)
+	if (this->window_state->get_fullscreen())
 		this->resolution_to_window_size();
 	this->reposition_image();
 }
@@ -302,7 +302,7 @@ void MainWindow::reposition_image(){
 }
 
 MainWindow::ResizeMode MainWindow::get_resize_mode(const QPoint &pos){
-	if (this->fullscreen || this->current_zoom_mode_is_auto())
+	if (this->window_state->get_fullscreen() || this->current_zoom_mode_is_auto())
 		return ResizeMode::None;
 
 	for (int border = this->window_state->get_border_size(); border >= 0; border -= 5){

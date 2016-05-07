@@ -15,49 +15,41 @@ ApplicationShortcuts::ApplicationShortcuts(){
 }
 
 
-void ApplicationShortcuts::restore_settings(const Settings &settings){
-#if 0
-	auto &shortcuts = this->current_shortcuts;
-	shortcuts.clear();
-	tree.iterate([&shortcuts](const QString &key, const SettingsItem &subtree){
-		if (subtree.is_value() || !subtree.is_array())
-			return;
-		auto array = static_cast<const SettingsArray &>(subtree);
-		std::shared_ptr<ShortcutSetting> ss(new ShortcutSetting);
+void ApplicationShortcuts::restore_settings(const Shortcuts &shortcuts){
+	this->current_shortcuts.clear();
+	for (auto &s : shortcuts.shortcuts){
+		auto ss = std::make_shared<ShortcutSetting>();
+		auto key = QString::fromStdString(s.first);
 		ss->command = key;
-		shortcuts[key] = ss;
+		this->current_shortcuts[key] = ss;
 
-		auto f = [&](int key, const SettingsItem &item){
-			if (!item.is_value())
-				return;
-			auto value = static_cast<const SettingsValue &>(item);
-			QKeySequence sequence;
-			value.to(sequence);
-			ss->sequences.push_back(sequence);
-		};
-
-		array.iterate(f);
-	});
-#endif
+		for (auto &s2 : s.second)
+			ss->sequences.emplace_back(QKeySequence(QString::fromStdWString(s2)));
+	}
 }
 
 void ApplicationShortcuts::reset_settings(){
-	//TODO
-	abort();
+	auto &map = this->current_shortcuts;
+	map.clear();
+	for (auto &p : this->default_shortcuts) {
+		auto key = p.second.internal_name;
+		std::shared_ptr<ShortcutSetting> ss(new ShortcutSetting);
+		ss->command = key;
+		map[key] = ss;
+		for (size_t i = 0; i < p.second.sequences_count; i++)
+			ss->sequences.push_back(p.second.default_sequences_seq[i]);
+	}
 }
 
-void ApplicationShortcuts::save_settings(Settings &settings){
-#if 0
-	std::shared_ptr<SettingsTree> ret(new SettingsTree);
+std::shared_ptr<Shortcuts> ApplicationShortcuts::save_settings() const{
+	auto ret = std::make_shared<Shortcuts>();
 	for (auto &s : this->current_shortcuts){
-		std::shared_ptr<SettingsArray> array(new SettingsArray);
-		int i = 0;
+		auto key = s.first.toStdString();
+		auto &shortcuts = ret->shortcuts[key];
 		for (auto &seq : s.second->sequences)
-			array->push_back(std::shared_ptr<SettingsValue>(new SettingsValue(seq)));
-		ret->add_tree(s.first, array);
+			shortcuts.push_back(seq.toString().toStdWString());
 	}
 	return ret;
-#endif
 }
 
 const ShortcutInfo *ApplicationShortcuts::get_shortcut_info(const QString &command) const{

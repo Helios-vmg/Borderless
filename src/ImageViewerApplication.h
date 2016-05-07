@@ -34,10 +34,10 @@ class ImageViewerApplication : public SingleInstanceApplication
 
 	std::shared_ptr<MainSettings> settings;
 
-	void save_current_state();
-	void save_current_windows();
-	void restore_current_state();
-	void restore_current_windows();
+	void save_current_state(std::shared_ptr<ApplicationState> &);
+	void save_current_windows(std::vector<std::shared_ptr<WindowState>> &);
+	void restore_current_state(const ApplicationState &);
+	void restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &);
 	void propagate_shortcuts();
 
 protected:
@@ -59,7 +59,7 @@ public:
 		return this->settings->get_use_checkerboard_pattern();
 	}
 	void save_settings(bool with_state = true);
-	void restore_settings();
+	bool restore_settings();
 	void quit_and_discard_state();
 	bool toggle_center_when_displayed(){
 		this->settings->set_center_when_displayed(!this->settings->get_center_when_displayed());

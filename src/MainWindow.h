@@ -41,16 +41,13 @@ class MainWindow : public QMainWindow{
 	std::shared_ptr<LoadedGraphics> displayed_image;
 	std::vector<int> horizontal_clampers,
 		vertical_clampers;
-	QString current_directory,
-		current_filename;
+	//QString current_directory,
+	//	current_filename;
 	std::shared_ptr<DirectoryIterator> directory_iterator;
 	bool moving_forward;
 	std::vector<std::shared_ptr<QShortcut> > shortcuts;
 	bool not_moved;
-	double zoom,
-		fullscreen_zoom;
 	bool color_calculated;
-	bool fullscreen;
 	std::vector<QMetaObject::Connection> connections;
 
 	enum class ResizeMode{
@@ -67,7 +64,6 @@ class MainWindow : public QMainWindow{
 	ResizeMode resize_mode;
 
 	std::shared_ptr<WindowState> window_state;
-	bool use_checkerboard_pattern;
 
 	bool move_image(const QPoint &new_position);
 	QPoint compute_movement(const QPoint &new_position);
@@ -96,7 +92,8 @@ class MainWindow : public QMainWindow{
 	void offset_image(const QPoint &);
 	void set_desktop_size(int screen = -1);
 	void set_iterator();
-	double &get_current_zoom();
+	double get_current_zoom() const;
+	void set_current_zoom(double);
 	void set_current_zoom_mode(const ZoomMode &);
 	ZoomMode get_current_zoom_mode() const;
 	void resolution_to_window_size();
@@ -122,11 +119,11 @@ protected:
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
-	explicit MainWindow(ImageViewerApplication &app, const WindowState &state, QWidget *parent = 0);
+	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
 	~MainWindow();
 	void display_image(QString path);
-	void save_state() const;
-	void restore_state();
+	std::shared_ptr<WindowState> save_state() const;
+	void restore_state(const std::shared_ptr<WindowState> &);
 	bool is_null() const{
 		return !this->displayed_image || this->displayed_image->is_null();
 	}

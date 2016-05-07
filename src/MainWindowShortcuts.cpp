@@ -87,7 +87,7 @@ void MainWindow::back_slot(){
 }
 
 void MainWindow::background_swap_slot(){
-	this->use_checkerboard_pattern = !this->use_checkerboard_pattern;
+	this->window_state->flip_using_checkerboard_pattern();
 	this->set_background();
 }
 
@@ -212,8 +212,8 @@ void MainWindow::go_to_end(){
 
 void MainWindow::toggle_fullscreen(){
 	auto zoom = this->get_current_zoom();
-	this->fullscreen = !this->fullscreen;
-	if (!this->fullscreen){
+	this->window_state->set_fullscreen(!this->window_state->get_fullscreen());
+	if (!this->window_state->get_fullscreen()){
 		this->apply_zoom(false, zoom);
 		this->setGeometry(this->window_rect);
 		this->set_image_pos(this->image_pos);

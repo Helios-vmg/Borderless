@@ -12,6 +12,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QImage>
 #include <QMatrix>
 #include "Quadrangular.h"
+#include "serialization/settings.generated.h"
 
 class LoadedGraphics;
 
@@ -71,8 +72,8 @@ public:
 	void set_transform(const QMatrix &);
 	void flip(bool hor);
 
-	void save_state();
-	void load_state();
+	void save_state(WindowState &) const;
+	void load_state(const WindowState &);
 
 	void paintEvent(QPaintEvent *) override;
 	void set_image(LoadedGraphics &li);

@@ -66,9 +66,9 @@ class ApplicationShortcuts{
 	std::map<QString, std::shared_ptr<ShortcutSetting> > current_shortcuts;
 public:
 	ApplicationShortcuts();
-	void restore_settings(const Settings &tree);
+	void restore_settings(const Shortcuts &);
 	void reset_settings();
-	void save_settings(Settings &);
+	std::shared_ptr<Shortcuts> save_settings() const;
 	const ShortcutInfo *get_shortcut_info(const QString &command) const;
 	QString get_display_name(const QString &command) const;
 	const ShortcutSetting *get_shortcut_setting(const QString &command) const;

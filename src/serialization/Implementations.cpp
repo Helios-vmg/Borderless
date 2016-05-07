@@ -13,7 +13,12 @@ DEFINE_TRIVIAL_IMPLEMENTATIONS(IntPair)
 DEFINE_TRIVIAL_IMPLEMENTATIONS(UintPair)
 DEFINE_TRIVIAL_IMPLEMENTATIONS(DoubleQuadTuple)
 DEFINE_TRIVIAL_IMPLEMENTATIONS(WindowState)
-DEFINE_TRIVIAL_IMPLEMENTATIONS(WindowsState)
+DEFINE_TRIVIAL_IMPLEMENTATIONS(ApplicationState)
 DEFINE_TRIVIAL_IMPLEMENTATIONS(Settings)
 DEFINE_TRIVIAL_IMPLEMENTATIONS(MainSettings)
 DEFINE_TRIVIAL_IMPLEMENTATIONS(Shortcuts)
+
+void WindowState::set_using_checkerboard_pattern(bool b){
+	this->using_checkerboard_pattern = b;
+	this->using_checkerboard_pattern_updated = true;
+}

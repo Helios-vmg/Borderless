@@ -24,6 +24,7 @@ cpp settings{
 		wstring current_directory;
 		wstring current_filename;
 		double zoom;
+		double fullscreen_zoom;
 		bool fullscreen;
 		uint32_t zoom_mode;
 		uint32_t fullscreen_zoom_mode;
@@ -42,17 +43,18 @@ cpp settings{
 		bool keep_application_in_background;
 		#include "MainSettings.h"
 	}
-	class WindowsState{
-		vector<WindowState> windows;
-		#include "WindowsState.h"
+	class ApplicationState{
+		vector<shared_ptr<WindowState>> windows;
+		#include "ApplicationState.h"
 	}
 	class Shortcuts{
+	public:
 		map<string, vector<wstring>> shortcuts;
 		#include "Shortcuts.h"
 	}
 	struct Settings{
 		shared_ptr<MainSettings> main;
-		shared_ptr<WindowsState> state;
+		shared_ptr<ApplicationState> state;
 		shared_ptr<Shortcuts> shortcuts;
 		#include "Settings.h"
 	}

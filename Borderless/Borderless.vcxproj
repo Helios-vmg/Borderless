@@ -222,6 +222,22 @@
     <ClCompile Include="..\src\serialization\Implementations.cpp" />
     <ClCompile Include="..\src\serialization\Inlining.cpp" />
     <ClCompile Include="..\src\serialization\MainSettings.cpp" />
+    <ClCompile Include="..\src\serialization\settings.aux.generated.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\serialization\settings.generated.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\serialization\ShortcutsSettings.cpp" />
     <ClCompile Include="..\src\serialization\WindowState.cpp" />
     <ClCompile Include="GeneratedFiles\DebugRelease\moc_ImageViewerApplication.cpp">
@@ -352,6 +368,7 @@
     <ClInclude Include="$(SolutionDir)\src\ZoomModeDropDown.h" />
     <ClInclude Include="$(SolutionDir)\src\LoadedImage.h" />
     <ClInclude Include="$(SolutionDir)\src\Misc.h" />
+    <ClInclude Include="..\src\serialization\settings.generated.h" />
     <ClInclude Include="ShortcutInfo.h" />
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing OptionsDialog.h...</Message>
@@ -651,23 +668,89 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">false</ExcludedFromBuild>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cd "$(SolutionDir)src\serialization"
-"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)src\serialization\settings.aux.cpp;$(SolutionDir)src\serialization\settings.cpp;$(SolutionDir)src\serialization\settings.h;%(Outputs)</Outputs>
+set file1=settings.txt
+set file2=settings.generated.h
+for /f %%i in ('dir /b /o:d %file1% %file2%') do set newest=%%i
+if "%newest%"=="%file2%" goto end
+
+echo Processing %(Filename)%(Extension)...
+"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul
+
+:end</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)src\serialization\settings.aux.generated.cpp;$(SolutionDir)src\serialization\settings.generated.cpp;$(SolutionDir)src\serialization\settings.generated.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cd "$(SolutionDir)src\serialization"
-"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)src\serialization\settings.aux.cpp;$(SolutionDir)src\serialization\settings.cpp;$(SolutionDir)src\serialization\settings.h;%(Outputs)</Outputs>
+set file1=settings.txt
+set file2=settings.generated.h
+for /f %%i in ('dir /b /o:d %file1% %file2%') do set newest=%%i
+if "%newest%"=="%file2%" goto end
+
+echo Processing %(Filename)%(Extension)...
+"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul
+
+:end</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)src\serialization\settings.aux.generated.cpp;$(SolutionDir)src\serialization\settings.generated.cpp;$(SolutionDir)src\serialization\settings.generated.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">cd "$(SolutionDir)src\serialization"
-"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">$(SolutionDir)src\serialization\settings.aux.cpp;$(SolutionDir)src\serialization\settings.cpp;$(SolutionDir)src\serialization\settings.h;%(Outputs)</Outputs>
+set file1=settings.txt
+set file2=settings.generated.h
+for /f %%i in ('dir /b /o:d %file1% %file2%') do set newest=%%i
+if "%newest%"=="%file2%" goto end
+
+echo Processing %(Filename)%(Extension)...
+"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul
+
+:end</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">$(SolutionDir)src\serialization\settings.aux.generated.cpp;$(SolutionDir)src\serialization\settings.generated.cpp;$(SolutionDir)src\serialization\settings.generated.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cd "$(SolutionDir)src\serialization"
-"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)src\serialization\settings.aux.cpp;$(SolutionDir)src\serialization\settings.cpp;$(SolutionDir)src\serialization\settings.h;%(Outputs)</Outputs>
+set file1=settings.txt
+set file2=settings.generated.h
+for /f %%i in ('dir /b /o:d %file1% %file2%') do set newest=%%i
+if "%newest%"=="%file2%" goto end
+
+echo Processing %(Filename)%(Extension)...
+"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul
+
+:end</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)src\serialization\settings.aux.generated.cpp;$(SolutionDir)src\serialization\settings.generated.cpp;$(SolutionDir)src\serialization\settings.generated.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cd "$(SolutionDir)src\serialization"
-"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)src\serialization\settings.aux.cpp;$(SolutionDir)src\serialization\settings.cpp;$(SolutionDir)src\serialization\settings.h;%(Outputs)</Outputs>
+set file1=settings.txt
+set file2=settings.generated.h
+for /f %%i in ('dir /b /o:d %file1% %file2%') do set newest=%%i
+if "%newest%"=="%file2%" goto end
+
+echo Processing %(Filename)%(Extension)...
+"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul
+
+:end</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)src\serialization\settings.aux.generated.cpp;$(SolutionDir)src\serialization\settings.generated.cpp;$(SolutionDir)src\serialization\settings.generated.h</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">cd "$(SolutionDir)src\serialization"
-"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">$(SolutionDir)src\serialization\settings.aux.cpp;$(SolutionDir)src\serialization\settings.cpp;$(SolutionDir)src\serialization\settings.h;%(Outputs)</Outputs>
+set file1=settings.txt
+set file2=settings.generated.h
+for /f %%i in ('dir /b /o:d %file1% %file2%') do set newest=%%i
+if "%newest%"=="%file2%" goto end
+
+echo Processing %(Filename)%(Extension)...
+"$(SolutionDir)bin\LAS.exe" "%(FullPath)" &gt; nul
+
+:end</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">$(SolutionDir)src\serialization\settings.aux.generated.cpp;$(SolutionDir)src\serialization\settings.generated.cpp;$(SolutionDir)src\serialization\settings.generated.h</Outputs>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">false</DeploymentContent>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Processing %(Filename)%(Extension) serializer definition...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Processing %(Filename)%(Extension) serializer definition...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">Processing %(Filename)%(Extension) serializer definition...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Processing %(Filename)%(Extension) serializer definition...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Processing %(Filename)%(Extension) serializer definition...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">Processing %(Filename)%(Extension) serializer definition...</Message>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -26,11 +26,12 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		this->display_image(arguments[1]);
 }
 
-MainWindow::MainWindow(ImageViewerApplication &app, const WindowState &state, QWidget *parent):
+MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
 	this->init();
+	this->restore_state(state);
 	this->set_background();
 }
 
@@ -39,11 +40,14 @@ MainWindow::~MainWindow(){
 }
 
 void MainWindow::init(){
+	if (!this->window_state)
+		this->window_state = std::make_shared<WindowState>();
 	this->moving_forward = true;
 	this->not_moved = false;
-	this->fullscreen_zoom = this->zoom = 1;
+	this->window_state->set_zoom(1);
+	this->window_state->set_fullscreen_zoom(1);
 	this->color_calculated = false;
-	this->fullscreen = false;
+	this->window_state->set_fullscreen(false);
 	this->ui->setupUi(this);
 	this->setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint);
 	this->reset_settings();
@@ -68,19 +72,19 @@ QPoint MainWindow::get_image_pos() const{
 
 void MainWindow::set_image_pos(const QPoint &p){
 	this->ui->label->move(p);
-	if (!this->fullscreen)
+	if (!this->window_state->get_fullscreen())
 		this->image_pos = p;
 }
 
 void MainWindow::set_zoom(){
 	auto ds = this->desktop_size.size();
-	if (this->fullscreen)
+	if (this->window_state->get_fullscreen())
 		ds = this->screen_size.size();
 	auto ps = this->displayed_image->get_size();
 	this->ui->label->compute_size_no_zoom(ps);
 	double dr = (double)ds.width() / (double)ds.height();
 	double pr = (double)ps.width() / (double)ps.height();
-	auto &zoom = this->get_current_zoom();
+	auto zoom = this->get_current_zoom();
 	switch (this->get_current_zoom_mode()){
 		case ZoomMode::Normal:
 			zoom = 1;
@@ -100,6 +104,7 @@ void MainWindow::set_zoom(){
 				zoom = (double)ds.height() / (double)ps.height();
 			break;
 	}
+	this->set_current_zoom(zoom);
 }
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){
@@ -126,7 +131,7 @@ void MainWindow::apply_zoom(bool first_display, double old_zoom){
 }
 
 void MainWindow::change_zoom(bool in){
-	auto &zoom = this->get_current_zoom();
+	auto zoom = this->get_current_zoom();
 	auto old_zoom = zoom;
 #if 0
 	if (in)
@@ -138,6 +143,7 @@ void MainWindow::change_zoom(bool in){
 #else
 	zoom *= in ? 1.25 : (1.0 / 1.25);
 #endif
+	this->set_current_zoom(zoom);
 	this->apply_zoom(false, old_zoom);
 	if (this->current_zoom_mode_is_auto())
 		this->set_current_zoom_mode(ZoomMode::Normal);
@@ -167,19 +173,18 @@ void MainWindow::set_solid(const QColor &col){
 }
 
 void MainWindow::set_background(bool force){
-	bool b = this->use_checkerboard_pattern;
-	if (this->window_state->get_using_checkerboard_pattern() == b && !force)
+	if (!this->window_state->get_using_checkerboard_pattern_updated() && !force)
 		return;
 
 	QWidget *p1 = this->ui->checkerboard;
 	QWidget *p2 = this->ui->solid;
-	if (!b){
+	if (!this->window_state->get_using_checkerboard_pattern()){
 		this->set_solid(this->displayed_image->get_background_color());
 		std::swap(p1, p2);
 	}
 	p1->show();
 	p2->hide();
-	this->window_state->set_using_checkerboard_pattern(b);
+	this->window_state->set_using_checkerboard_pattern_updated(false);
 }
 
 void MainWindow::set_background_sizes(){
@@ -228,22 +233,29 @@ void MainWindow::advance(){
 }
 
 void MainWindow::set_iterator(){
-	this->directory_iterator->advance_to(this->current_filename);
+	this->directory_iterator->advance_to(QString::fromStdWString(this->window_state->get_current_filename()));
 }
 
-double &MainWindow::get_current_zoom(){
-	return !this->fullscreen ? this->zoom : this->fullscreen_zoom;
+double MainWindow::get_current_zoom() const{
+	return !this->window_state->get_fullscreen() ? this->window_state->get_zoom() : this->window_state->get_fullscreen_zoom();
+}
+
+void MainWindow::set_current_zoom(double value){
+	if (this->window_state->get_fullscreen())
+		this->window_state->set_fullscreen_zoom(value);
+	else
+		this->window_state->set_zoom(value);
 }
 
 void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
-	if (!this->fullscreen)
+	if (!this->window_state->get_fullscreen())
 		this->window_state->set_zoom_mode(mode);
 	else
 		this->window_state->set_fullscreen_zoom_mode(mode);
 }
 
 ZoomMode MainWindow::get_current_zoom_mode() const{
-	return !this->fullscreen ? this->window_state->get_zoom_mode() : this->window_state->get_fullscreen_zoom_mode();
+	return !this->window_state->get_fullscreen() ? this->window_state->get_zoom_mode() : this->window_state->get_fullscreen_zoom_mode();
 }
 
 void MainWindow::move_in_direction(bool forward){
@@ -283,10 +295,14 @@ void MainWindow::display_image(QString path){
 	}
 	this->color_calculated = false;
 	label->move(0, 0);
-	split_path(this->current_directory, this->current_filename, path);
-	this->setWindowTitle(this->current_filename);
+	QString current_directory,
+		current_filename;
+	split_path(current_directory, current_filename, path);
+	this->window_state->set_current_directory(current_directory.toStdWString());
+	this->window_state->set_current_filename(current_filename.toStdWString());
+	this->setWindowTitle(current_filename);
 	if (!this->directory_iterator)
-		this->directory_iterator = this->app->request_directory(this->current_directory);
+		this->directory_iterator = this->app->request_directory(current_directory);
 	this->displayed_image = li;
 
 	label->reset_transform();
@@ -413,20 +429,20 @@ void MainWindow::work_area_change(int screen){
 
 void MainWindow::resize_window_rect(const QSize &s){
 	this->window_rect.setSize(s);
-	if (!this->fullscreen)
+	if (!this->window_state->get_fullscreen())
 		this->resize(s);
 }
 
 void MainWindow::move_window_rect(const QPoint &p){
 	this->window_rect.setX(p.x());
 	this->window_rect.setY(p.y());
-	if (!this->fullscreen)
+	if (!this->window_state->get_fullscreen())
 		this->move(p);
 }
 
 void MainWindow::set_window_rect(const QRect &r){
 	this->window_rect = r;
-	if (!this->fullscreen)
+	if (!this->window_state->get_fullscreen())
 		this->setGeometry(r);
 }
 
@@ -441,18 +457,19 @@ QMatrix MainWindow::get_image_transform() const{
 double MainWindow::set_image_transform(const QMatrix &m){
 	this->ui->label->set_transform(m);
 	this->fix_positions_and_zoom();
-	return this->zoom;
+	return this->window_state->get_zoom();
 }
 
 double MainWindow::get_image_zoom() const{
-	return this->zoom;
+	return this->window_state->get_zoom();
 }
 
 void MainWindow::set_image_zoom(double x){
-	double &zoom = this->get_current_zoom();
-	double last = zoom;
-	zoom = x;
+	//double &zoom = this->get_current_zoom();
+	double last = this->get_current_zoom();
+	this->set_current_zoom(x);
 	this->apply_zoom(false, last);
-	this->ui->label->set_zoom(this->zoom = x);
+	this->window_state->set_zoom(x);
+	this->ui->label->set_zoom(x);
 	this->set_current_zoom_mode(ZoomMode::Normal);
 }

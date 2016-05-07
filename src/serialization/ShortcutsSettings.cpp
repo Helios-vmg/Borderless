@@ -80,7 +80,7 @@ std::map<QString, ShortcutInfo> get_default_shortcuts() {
 	return ret;
 }
 
-Shortcuts::Shortcuts(){
+void Shortcuts::initialize_to_defaults(){
 	auto shortcuts = get_default_shortcuts();
 	for (auto &s : shortcuts) {
 		auto key = s.second.internal_name;

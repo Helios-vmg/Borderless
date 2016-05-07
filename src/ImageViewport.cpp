@@ -76,10 +76,13 @@ void ImageViewport::paintEvent(QPaintEvent *ev){
 		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
 }
 
-void ImageViewport::save_state(){
+void ImageViewport::save_state(WindowState &state) const{
+	state.set_transform(this->transform);
 }
 
-void ImageViewport::load_state(){
+void ImageViewport::load_state(const WindowState &state){
+	this->transform = state.get_transform().to_QMatrix();
+	this->transform_changed();
 }
 
 void ImageViewport::transform_changed(){

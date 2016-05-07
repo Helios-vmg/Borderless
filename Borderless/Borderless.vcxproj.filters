@@ -157,6 +157,12 @@
     <ClCompile Include="..\src\serialization\ShortcutsSettings.cpp">
       <Filter>Source Files\Serialization</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\serialization\settings.generated.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\serialization\settings.aux.generated.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -189,6 +195,7 @@
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.ui">
       <Filter>Form Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\src\serialization\settings.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h">
@@ -227,6 +234,9 @@
     <ClInclude Include="ShortcutInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\serialization\settings.generated.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SolutionDir)\src\resources\alpha.png">
@@ -237,10 +247,5 @@
     <ResourceCompile Include="$(SolutionDir)\src\resources.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\src\serialization\settings.txt">
-      <Filter>Source Files</Filter>
-    </Text>
   </ItemGroup>
 </Project>
