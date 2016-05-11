@@ -5,10 +5,13 @@ VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Borderless", "Borderless\Borderless.vcxproj", "{B12702AD-ABFB-343A-A199-8E24837244A3}"
 	ProjectSection(ProjectDependencies) = postProject
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE} = {068B1B0F-54A0-4818-926F-B35A72F71BDE}
 		{886936B8-F314-4A7A-915A-C1138AF46B83} = {886936B8-F314-4A7A-915A-C1138AF46B83}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LAS", "serialization\LAS\LAS.vcxproj", "{886936B8-F314-4A7A-915A-C1138AF46B83}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luajit", "luajit\luajit.vcxproj", "{068B1B0F-54A0-4818-926F-B35A72F71BDE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +47,18 @@ Global
 		{886936B8-F314-4A7A-915A-C1138AF46B83}.Release|Win32.Build.0 = Release|Win32
 		{886936B8-F314-4A7A-915A-C1138AF46B83}.Release|x64.ActiveCfg = Release|Win32
 		{886936B8-F314-4A7A-915A-C1138AF46B83}.Release|x64.Build.0 = Release|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Debug|Win32.Build.0 = Debug|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Debug|x64.ActiveCfg = Debug|x64
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Debug|x64.Build.0 = Debug|x64
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.DebugRelease|Win32.ActiveCfg = Release|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.DebugRelease|Win32.Build.0 = Release|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.DebugRelease|x64.ActiveCfg = Release|x64
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.DebugRelease|x64.Build.0 = Release|x64
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Release|Win32.ActiveCfg = Release|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Release|Win32.Build.0 = Release|Win32
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Release|x64.ActiveCfg = Release|x64
+		{068B1B0F-54A0-4818-926F-B35A72F71BDE}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -163,6 +163,9 @@
     <ClCompile Include="..\src\serialization\settings.aux.generated.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\lua.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -236,6 +239,9 @@
     </ClInclude>
     <ClInclude Include="..\src\serialization\settings.generated.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lua.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
