@@ -2,11 +2,8 @@ This is an image viewer with a minimalist GUI. It's intended to be a viewer and 
 
 Current features:
 * Minimally intrusive UI. Image display windows are completely frameless. No titlebar, no status bar, no nothing. The program is mainly controlled with the keyboard, and more complex functions are accessed through a context menu.
-* Supported formats: BMP, JPEG, PNG, GIF. Other formats may already be supported by Qt (which handles the decoding), but they haven't been tested.
+* Supported formats: BMP, JPEG, PNG, GIF, basic SVG support. Other formats may already be supported by Qt (which handles the decoding), but they haven't been tested.
 * Proper transparency display.
-
-Planned features:
-* SVG support.
 
 Possible future features:
 * Support for traversing images in common archive formats.
