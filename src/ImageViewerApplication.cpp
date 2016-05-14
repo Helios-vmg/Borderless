@@ -261,7 +261,7 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	if (ret->actions().size() != initial)
 		ret->addSeparator();
 	ret->addAction("Options...", this, SLOT(show_options()), this->shortcuts.get_current_sequence(show_options_command));
-	ret->addAction("Quit", this, SLOT(quit_slot()), this->shortcuts.get_current_sequence(quit_command));
+	ret->addAction("Quit", caller, SLOT(quit_slot()), this->shortcuts.get_current_sequence(quit_command));
 	return ret;
 }
 
