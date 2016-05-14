@@ -142,6 +142,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -177,6 +178,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -219,7 +221,8 @@
     <ClCompile Include="$(SolutionDir)\src\RotateDialog.cpp" />
     <ClCompile Include="$(SolutionDir)\src\Shortcuts.cpp" />
     <ClCompile Include="$(SolutionDir)\src\SingleInstanceApplication.cpp" />
-    <ClCompile Include="..\src\lua.cpp" />
+    <ClCompile Include="..\src\plugin-core\ImageStore.cpp" />
+    <ClCompile Include="..\src\plugin-core\lua.cpp" />
     <ClCompile Include="..\src\serialization\Implementations.cpp" />
     <ClCompile Include="..\src\serialization\Inlining.cpp" />
     <ClCompile Include="..\src\serialization\MainSettings.cpp" />
@@ -369,7 +372,8 @@
     <ClInclude Include="$(SolutionDir)\src\ZoomModeDropDown.h" />
     <ClInclude Include="$(SolutionDir)\src\LoadedImage.h" />
     <ClInclude Include="$(SolutionDir)\src\Misc.h" />
-    <ClInclude Include="..\src\lua.h" />
+    <ClInclude Include="..\src\plugin-core\ImageStore.h" />
+    <ClInclude Include="..\src\plugin-core\lua.h" />
     <ClInclude Include="..\src\serialization\settings.generated.h" />
     <ClInclude Include="ShortcutInfo.h" />
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">

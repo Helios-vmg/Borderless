@@ -6,8 +6,11 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "lua.h"
+#include "ImageStore.h"
 #include <cmath>
-#include <iostream>
+#include <cassert>
+#include <sstream>
+#include <QMessageBox>
 
 #define MINIMIZE_CHECKING
 
@@ -33,8 +36,12 @@ void handle_call_to_c_error(lua_State *state, const char *function, const char *
 	lua_getstack(state, 1, &debug);
 	lua_getinfo(state, "nSl", &debug);
 	int line = debug.currentline;
-	std::cout << "ERROR at line " << line << " calling function " << function
-		<< "(): " << msg << std::endl;
+	std::stringstream stream;
+	stream << "ERROR at line " << line << " calling function " << function << "(): " << msg;
+	QMessageBox msgbox;
+	msgbox.setText(QString::fromStdString(stream.str()));
+	msgbox.setIcon(QMessageBox::Critical);
+	msgbox.exec();
 }
 
 #define DECLARE_LUA_FUNCTION(x) int x(lua_State *state)
@@ -67,19 +74,17 @@ DECLARE_LUA_FUNCTION(allocate_image){
 #ifndef MINIMIZE_CHECKING
 	if (lua_gettop(state) < 2){
 		msg = "Not enough parameters.";
-	}
-	else if (!lua_isnumber(state, 1) || !lua_isnumber(state, 2)){
+	}else if (!lua_isnumber(state, 1) || !lua_isnumber(state, 2)){
 		msg = "Both parameters must be integers.";
 	}
 #endif
 	if (!msg.size()){
-		int w, h;
-		w = (int)lua_tointeger(state, 1);
-		h = (int)lua_tointeger(state, 2);
+		int w = (int)lua_tointeger(state, 1);
+		int h = (int)lua_tointeger(state, 2);
 		if (w <= 0 || h <= 0)
 			msg = "Both parameters must be greater than zero.";
 		else{
-			auto res = global_store.allocate((unsigned)w, (unsigned)h);
+			auto res = global_store.allocate(w, h);
 			if (res.success){
 				lua_pushinteger(state, res.results[0]);
 				return 1;
@@ -108,15 +113,15 @@ DECLARE_LUA_FUNCTION(traverse_image){
 	global_store.traverse(
 		imgno,
 		[state](int r, int g, int b, int a, int x, int y){
-		lua_pushvalue(state, 2);
-		lua_pushinteger(state, r);
-		lua_pushinteger(state, g);
-		lua_pushinteger(state, b);
-		lua_pushinteger(state, a);
-		lua_pushinteger(state, x);
-		lua_pushinteger(state, y);
-		lua_call(state, 6, 0);
-	}
+			lua_pushvalue(state, 2);
+			lua_pushinteger(state, r);
+			lua_pushinteger(state, g);
+			lua_pushinteger(state, b);
+			lua_pushinteger(state, a);
+			lua_pushinteger(state, x);
+			lua_pushinteger(state, y);
+			lua_call(state, 6, 0);
+		}
 	);
 	return 0;
 }
@@ -159,8 +164,7 @@ DECLARE_LUA_FUNCTION(rgb_to_hsv){
 	else{
 		if (val == r){
 			hue = euclidean_modulo((g - b) / delta, 6);
-		}
-		else if (val == g)
+		}else if (val == g)
 			hue = (b - r) / delta + 2;
 		else
 			hue = (r - g) / delta + 4;
@@ -235,7 +239,8 @@ DECLARE_LUA_FUNCTION(set_current_pixel){
 		return 0;
 	}
 #endif
-	pixel_t rgba = 0;
+	pixel_t rgba;
+	memset(rgba.data(), 0, rgba.size() * sizeof(rgba[0]));
 	for (int i = 0; i < 4; i++){
 #ifndef MINIMIZE_CHECKING
 		if (!lua_isnumber(state, i + 1)){
@@ -248,8 +253,7 @@ DECLARE_LUA_FUNCTION(set_current_pixel){
 			handle_call_to_c_error(state, __FUNCTION__, "All parameters should be in the range [0; 255].");
 			return 0;
 		}
-		rgba <<= 8;
-		rgba |= (BYTE)c;
+		rgba[i] = (std::uint8_t)c;
 	}
 	global_store.set_current_pixel(rgba);
 	return 0;
@@ -271,7 +275,7 @@ DECLARE_LUA_FUNCTION(save_image){
 #endif
 	if (!msg.size()){
 		int handle = lua_tointeger(state, 1);
-		const char *path = lua_tostring(state, 2);
+		auto path = QString::fromUtf8(lua_tostring(state, 2));
 		SaveOptions opt;
 		if (lua_gettop(state) >= 3 && lua_istable(state, 3)){
 			{
@@ -280,14 +284,7 @@ DECLARE_LUA_FUNCTION(save_image){
 				if (lua_isstring(state, -1)){
 					std::string s = lua_tostring(state, -1);
 					to_lower(s);
-					if (s == "jpeg2000")
-						opt.format = ImageFormat::Jpeg2000;
-					else if (s == "jpeg")
-						opt.format = ImageFormat::Jpeg;
-					else if (s == "png")
-						opt.format = ImageFormat::Png;
-					else if (s == "webp")
-						opt.format = ImageFormat::Webp;
+					opt.format = s;
 				}
 				lua_pop(state, 1);
 			}
@@ -296,13 +293,6 @@ DECLARE_LUA_FUNCTION(save_image){
 				lua_gettable(state, 3);
 				if (lua_isnumber(state, -1))
 					opt.compression = lua_tonumber(state, -1);
-				lua_pop(state, 1);
-			}
-			{
-				lua_pushstring(state, "lossy");
-				lua_gettable(state, 3);
-				if (lua_isboolean(state, -1))
-					opt.lossy = lua_toboolean(state, -1) ? Trinary::True : Trinary::False;
 				lua_pop(state, 1);
 			}
 		}
@@ -567,11 +557,17 @@ lua_State *init_lua_state(){
 		lua_setglobal(state, r.name);
 	}
 
-	lua_atpanic(state, [](lua_State *state){
-		std::cerr << std::string("Lua threw an error: ") + lua_tostring(state, -1) << std::endl;
-		exit(-1);
-		return 0;
-	});
+	lua_atpanic(state,
+		[](lua_State *state){
+			std::stringstream stream;
+			stream << "Lua threw an error: " << + lua_tostring(state, -1);
+			QMessageBox msgbox;
+			msgbox.setText(QString::fromStdString(stream.str()));
+			msgbox.setIcon(QMessageBox::Critical);
+			msgbox.exec();
+			return 0;
+		}
+	);
 
 	return state;
 }

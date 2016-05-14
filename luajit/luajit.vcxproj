@@ -32,7 +32,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -45,7 +45,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,15 +71,27 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <TargetExt>lib</TargetExt>
+    <OutDir>$(SolutionDir)bin\</OutDir>
+    <TargetName>lua51</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)bin64\</OutDir>
+    <TargetName>lua51</TargetName>
+    <TargetExt>lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <TargetExt>lib</TargetExt>
+    <OutDir>$(SolutionDir)bin\</OutDir>
+    <TargetName>lua51</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin64\</OutDir>
+    <TargetName>lua51</TargetName>
+    <TargetExt>lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -95,8 +107,9 @@
     </Link>
     <PreBuildEvent>
       <Command>cd $(SolutionDir)luajit-2.0\src
-call msvcbuild.bat static
-move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"</Command>
+call msvcbuild.bat
+move /y "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"
+move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -113,8 +126,9 @@ move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"</Command>
     </Link>
     <PreBuildEvent>
       <Command>cd $(SolutionDir)luajit-2.0\src
-call msvcbuild.bat static
-move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib64"</Command>
+call msvcbuild.bat
+move /y "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib64"
+move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin64"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -135,8 +149,9 @@ move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib64"</Command>
     </Link>
     <PreBuildEvent>
       <Command>cd $(SolutionDir)luajit-2.0\src
-call msvcbuild.bat static
-move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"</Command>
+call msvcbuild.bat
+move /y "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"
+move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,8 +172,9 @@ move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"</Command>
     </Link>
     <PreBuildEvent>
       <Command>cd $(SolutionDir)luajit-2.0\src
-call msvcbuild.bat static
-move "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib64"</Command>
+call msvcbuild.bat
+move /y "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib64"
+move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin64"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

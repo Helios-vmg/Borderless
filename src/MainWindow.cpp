@@ -347,9 +347,10 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 	this->app->postEvent(this, new QContextMenuEvent(QContextMenuEvent::Other, ev->screenPos().toPoint()));
 }
 
-void MainWindow::build_context_menu(QMenu &menu){
-	menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
-	menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
+void MainWindow::build_context_menu(QMenu &main_menu, QMenu &lua_submenu){
+	main_menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
+	main_menu.addMenu(&lua_submenu);
+	main_menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
 //void MainWindow::keyReleaseEvent(QKeyEvent *ev){

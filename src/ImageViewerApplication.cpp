@@ -17,6 +17,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QDir>
 #include <QStandardPaths>
 #include <boost/iostreams/stream.hpp>
+#include "plugin-core/lua.h"
 
 class QFileInputStream {
 	QFile *file;
@@ -64,6 +65,8 @@ ImageViewerApplication::ImageViewerApplication(int argc, char **argv, const QStr
 
 	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
 	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
+
+	this->lua_state.reset(init_lua_state(), [](lua_State *state){ lua_close(state); });
 }
 
 ImageViewerApplication::~ImageViewerApplication(){
@@ -158,25 +161,25 @@ public:
 	DeserializationException(DeserializerStream::ErrorType type) {
 		switch (type) {
 		case DeserializerStream::ErrorType::UnexpectedEndOfFile:
-			this->message = "DeserializationError: Unexpected end of file.";
+			this->message = "Unexpected end of file.";
 			break;
 		case DeserializerStream::ErrorType::InconsistentSmartPointers:
-			this->message = "DeserializationError: Serialized stream uses smart pointers inconsistently.";
+			this->message = "Serialized stream uses smart pointers inconsistently.";
 			break;
 		case DeserializerStream::ErrorType::UnknownObjectId:
-			this->message = "DeserializationError: Serialized stream contains a reference to an unknown object.";
+			this->message = "Serialized stream contains a reference to an unknown object.";
 			break;
 		case DeserializerStream::ErrorType::InvalidProgramState:
-			this->message = "DeserializationError: The program is in an unknown state.";
+			this->message = "The program is in an unknown state.";
 			break;
 		case DeserializerStream::ErrorType::MainObjectNotSerializable:
-			this->message = "DeserializationError: The root object is not an instance of a Serializable subclass.";
+			this->message = "The root object is not an instance of a Serializable subclass.";
 			break;
 		case DeserializerStream::ErrorType::AllocateAbstractObject:
-			this->message = "DeserializationError: The stream contains a concrete object with an abstract class type ID.";
+			this->message = "The stream contains a concrete object with an abstract class type ID.";
 			break;
 		default:
-			this->message = "DeserializationError: Unknown.";
+			this->message = "Unknown.";
 			break;
 		}
 	}
@@ -257,7 +260,7 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	this->context_menu_last_requester = caller;
 	std::shared_ptr<QMenu> ret(new QMenu);
 	auto initial = ret->actions().size();
-	caller->build_context_menu(*ret);
+	caller->build_context_menu(*ret, this->get_lua_submenu());
 	if (ret->actions().size() != initial)
 		ret->addSeparator();
 	ret->addAction("Options...", this, SLOT(show_options()), this->shortcuts.get_current_sequence(show_options_command));
@@ -276,6 +279,7 @@ void ImageViewerApplication::show_options(){
 
 void ImageViewerApplication::quit_and_discard_state(){
 	this->save_settings(false);
+	this->do_not_save = true;
 	this->quit();
 }
 
@@ -293,6 +297,12 @@ bool ImageViewerApplication::restore_settings(){
 	try{
 		settings.reset(ds.deserialize<Settings>(true));
 	}catch (std::bad_cast &){
+		return false;
+	}catch (DeserializationException &ex){
+		QMessageBox msgbox;
+		msgbox.setText("Error reading configuration: " + QString(ex.what()));
+		msgbox.setIcon(QMessageBox::Critical);
+		msgbox.exec();
 		return false;
 	}
 	this->settings = settings->main;
@@ -329,4 +339,12 @@ void ImageViewerApplication::options_changed(const std::vector<ShortcutTriple> &
 void ImageViewerApplication::propagate_shortcuts(){
 	for (auto &w : this->windows)
 		w.second->setup_shortcuts();
+}
+
+QMenu &ImageViewerApplication::get_lua_submenu(){
+	this->lua_submenu.clear();
+	this->lua_submenu.addAction("(None)");
+	this->lua_submenu.actions()[0]->setEnabled(false);
+	this->lua_submenu.setTitle("User filters");
+	return this->lua_submenu;
 }

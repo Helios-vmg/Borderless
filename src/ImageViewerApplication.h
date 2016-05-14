@@ -17,6 +17,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <exception>
 
 class QAction;
+struct lua_State;
 
 class NoWindowsException : public std::exception{};
 
@@ -34,11 +35,15 @@ class ImageViewerApplication : public SingleInstanceApplication
 
 	std::shared_ptr<MainSettings> settings;
 
+	std::shared_ptr<lua_State> lua_state;
+	QMenu lua_submenu;
+
 	void save_current_state(std::shared_ptr<ApplicationState> &);
 	void save_current_windows(std::vector<std::shared_ptr<WindowState>> &);
 	void restore_current_state(const ApplicationState &);
 	void restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &);
 	void propagate_shortcuts();
+	QMenu &get_lua_submenu();
 
 protected:
 	void new_instance(const QStringList &args) override;
