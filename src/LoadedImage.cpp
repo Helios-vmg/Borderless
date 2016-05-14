@@ -20,6 +20,13 @@ LoadedImage::LoadedImage(const QString &path){
 	this->alpha = img.hasAlphaChannel();
 }
 
+LoadedImage::LoadedImage(const QImage &image){
+	this->compute_average_color(image);
+	this->image = QtConcurrent::run([](QImage img){ return QPixmap::fromImage(img); }, image);
+	this->size = image.size();
+	this->alpha = image.hasAlphaChannel();
+}
+
 LoadedImage::~LoadedImage(){
 	this->background_color.cancel();
 }
@@ -66,6 +73,10 @@ void LoadedImage::assign_to_QLabel(QLabel &label){
 	label.setPixmap(this->image);
 }
 
+QImage LoadedImage::get_QImage() const{
+	return ((QPixmap)this->image).toImage();
+}
+
 LoadedAnimation::LoadedAnimation(const QString &path): animation(path){
 	this->null = !this->animation.isValid();
 	if (!this->null){
@@ -78,6 +89,10 @@ LoadedAnimation::LoadedAnimation(const QString &path): animation(path){
 void LoadedAnimation::assign_to_QLabel(QLabel &label){
 	label.setMovie(&this->animation);
 	this->animation.start();
+}
+
+QImage LoadedAnimation::get_QImage() const{
+	return this->animation.currentImage();
 }
 
 std::shared_ptr<LoadedGraphics> LoadedGraphics::create(const QString &path){

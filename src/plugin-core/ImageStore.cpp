@@ -11,25 +11,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 ImageStore global_store;
 
-class Image{
-	QImage bitmap;
-	bool alphaed;
-	int w, h;
-	static const unsigned stride = 4;
-	unsigned pitch;
-	std::uint8_t *current_pixel;
-
-	void to_alpha();
-public:
-	Image(const QString &path);
-	Image(int w, int h);
-	void traverse(traversal_callback cb);
-	void set_current_pixel(const pixel_t &rgba);
-	ImageOperationResult save(const QString &path, SaveOptions opt);
-	ImageOperationResult get_pixel(unsigned x, unsigned y);
-	ImageOperationResult get_dimensions();
-};
-
 Image::Image(const QString &path): alphaed(false){
 	if (!QFile::exists(path))
 		throw ImageOperationResult("File not found.");
@@ -42,6 +23,14 @@ Image::Image(const QString &path): alphaed(false){
 
 Image::Image(int w, int h): alphaed(false){
 	this->bitmap = QImage(w, h, QImage::Format_RGBA8888);
+	if (this->bitmap.isNull())
+		throw ImageOperationResult("Unknown error.");
+	this->w = this->bitmap.width();
+	this->h = this->bitmap.height();
+}
+
+Image::Image(const QImage &image): alphaed(false){
+	this->bitmap = image;
 	if (this->bitmap.isNull())
 		throw ImageOperationResult("Unknown error.");
 	this->w = this->bitmap.width();
@@ -189,4 +178,10 @@ ImageOperationResult ImageStore::get_dimensions(int handle){
 	if (it == this->images.end())
 		return "Image handle doesn't exist.";
 	return it->second->get_dimensions();
+}
+
+int ImageStore::store(const QImage &image){
+	int ret = this->next_index++;
+	this->images[ret] = std::make_shared<Image>(image);
+	return ret;
 }

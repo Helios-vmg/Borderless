@@ -16,6 +16,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QDir>
 #include <exception>
 #include <cassert>
+#include "plugin-core/lua.h"
 
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
 		QMainWindow(parent),
@@ -473,4 +474,21 @@ void MainWindow::set_image_zoom(double x){
 	this->window_state->set_zoom(x);
 	this->ui->label->set_zoom(x);
 	this->set_current_zoom_mode(ZoomMode::Normal);
+}
+
+void MainWindow::process_user_script(const QString &path){
+	if (!QFile::exists(path))
+		throw std::exception("File not found.");
+	QFile file(path);
+	file.open(QFile::ReadOnly);
+	if (!file.isOpen())
+		throw std::exception("Unknown error.");
+	auto data = file.readAll();
+	auto lua_state = init_lua_state(this);
+	luaL_loadbuffer(lua_state.get(), data.data(), data.size(), path.toUtf8().toStdString().c_str());
+	lua_call(lua_state.get(), 0, 0);
+}
+
+QImage MainWindow::get_image() const{
+	return this->displayed_image->get_QImage();
 }

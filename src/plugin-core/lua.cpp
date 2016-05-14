@@ -7,12 +7,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "lua.h"
 #include "ImageStore.h"
+#include "../MainWindow.h"
 #include <cmath>
 #include <cassert>
 #include <sstream>
 #include <QMessageBox>
 
-#define MINIMIZE_CHECKING
+//#define MINIMIZE_CHECKING
 
 double euclidean_modulo(double x, double y){
 	if (x < 0)
@@ -39,6 +40,7 @@ void handle_call_to_c_error(lua_State *state, const char *function, const char *
 	std::stringstream stream;
 	stream << "ERROR at line " << line << " calling function " << function << "(): " << msg;
 	QMessageBox msgbox;
+	msgbox.setWindowTitle("Error executing Lua script.");
 	msgbox.setText(QString::fromStdString(stream.str()));
 	msgbox.setIcon(QMessageBox::Critical);
 	msgbox.exec();
@@ -532,9 +534,61 @@ DECLARE_LUA_FUNCTION(zig_zag_order){
 	return 3;
 }
 
-lua_State *init_lua_state(){
-	lua_State *state = lua_open();
+const char * const current_window_global_name = "__current_window";
+const char * const current_image_global_name = "__current_image";
+
+MainWindow *get_current_window(lua_State *state){
+	lua_getglobal(state, current_window_global_name);
+	auto ret = (MainWindow *)lua_touserdata(state, -1);
+	lua_pop(state, 1);
+	return ret;
+}
+
+DECLARE_LUA_FUNCTION(get_displayed_image){
+	lua_getglobal(state, current_image_global_name);
+	if (!lua_isnil(state, -1))
+		return 1;
+	lua_pop(state, 1);
+
+	auto current_window = get_current_window(state);
+	auto image = current_window->get_image();
+	auto ret = global_store.store(image);
+	lua_pushinteger(state, ret);
+	lua_pushinteger(state, ret);
+	lua_setglobal(state, current_image_global_name);
+	return 1;
+}
+
+DECLARE_LUA_FUNCTION(display_in_current_window){
+	std::string msg;
+#ifndef MINIMIZE_CHECKING
+	if (lua_gettop(state) < 1)
+		msg = "Not enough parameters.";
+	else if (!lua_isnumber(state, 1))
+		msg = "The first parameter should be a number.";
+#endif
+	if (!msg.size()){
+		int handle = lua_tointeger(state, 1);
+		auto image = global_store.get_image(handle);
+		if (image){
+			auto current_window = get_current_window(state);
+			current_window->display_image(std::make_shared<LoadedImage>(image->get_bitmap()));
+			lua_pushboolean(state, 1);
+			return 1;
+		}else{
+			msg = "Invalid image handle.";
+		}
+	}
+	handle_call_to_c_error(state, __FUNCTION__, msg.c_str());
+	lua_pushboolean(state, 0);
+	return 1;
+}
+
+std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
+	std::shared_ptr<lua_State> ret(lua_open(), [](lua_State *state){ lua_close(state); });
+	lua_State *state = ret.get();
 	luaL_openlibs(state);
+
 	luaL_Reg c_functions[] = {
 		{ "load_image", load_image },
 		{ "allocate_image", allocate_image },
@@ -551,11 +605,16 @@ lua_State *init_lua_state(){
 		{ "get_pixel", get_pixel },
 		{ "get_image_dimensions", get_image_dimensions },
 		{ "zig_zag_order", zig_zag_order },
+		{ "display_in_current_window", display_in_current_window },
+		{ "get_displayed_image", get_displayed_image },
 	};
 	for (auto &r : c_functions){
 		lua_pushcfunction(state, r.func);
 		lua_setglobal(state, r.name);
 	}
+
+	lua_pushlightuserdata(state, current_window);
+	lua_setglobal(state, current_window_global_name);
 
 	lua_atpanic(state,
 		[](lua_State *state){
@@ -569,6 +628,6 @@ lua_State *init_lua_state(){
 		}
 	);
 
-	return state;
+	return ret;
 }
 

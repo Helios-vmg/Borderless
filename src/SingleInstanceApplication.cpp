@@ -14,6 +14,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QProcess>
 #include <fstream>
 
+//#define DISABLE_SINGLE_INSTANCE
+
 #ifdef WIN32
 #include <Windows.h>
 
@@ -30,6 +32,7 @@ SingleInstanceApplication::SingleInstanceApplication(int argc, char *argv[], con
 		QApplication(argc, argv),
 		unique_name(unique_name),
 		running(false){
+#ifndef DISABLE_SINGLE_INSTANCE
 	this->args = this->arguments();
 	this->shared_memory.setKey(unique_name);
 	bool success;
@@ -53,6 +56,7 @@ SingleInstanceApplication::SingleInstanceApplication(int argc, char *argv[], con
 	this->local_server.reset(new QLocalServer(this));
 	connect(this->local_server.get(), SIGNAL(newConnection()), this, SLOT(receive_message()));
 	this->local_server->listen(unique_name);
+#endif
 }
 
 void SingleInstanceApplication::receive_message(){
