@@ -121,7 +121,8 @@ public:
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
 	~MainWindow();
 	void display_image(QString path);
-	void display_image(std::shared_ptr<LoadedGraphics>);
+	void display_image(const std::shared_ptr<LoadedGraphics> &graphics);
+	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
 	std::shared_ptr<WindowState> save_state() const;
 	void restore_state(const std::shared_ptr<WindowState> &);
 	bool is_null() const{

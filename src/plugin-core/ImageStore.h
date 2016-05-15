@@ -92,6 +92,10 @@ public:
 			return std::shared_ptr<Image>();
 		return i->second;
 	}
+	void clear(){
+		this->images.clear();
+		this->next_index = 0;
+	}
 };
 
 extern ImageStore global_store;

@@ -107,7 +107,7 @@
     </Link>
     <PreBuildEvent>
       <Command>cd $(SolutionDir)luajit-2.0\src
-call msvcbuild.bat
+call msvcbuild.bat debug
 move /y "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib"
 move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin"</Command>
     </PreBuildEvent>
@@ -126,7 +126,7 @@ move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin"</Command>
     </Link>
     <PreBuildEvent>
       <Command>cd $(SolutionDir)luajit-2.0\src
-call msvcbuild.bat
+call msvcbuild.bat debug
 move /y "$(SolutionDir)luajit-2.0\src\lua51.lib" "$(SolutionDir)lib64"
 move /y "$(SolutionDir)luajit-2.0\src\lua51.dll" "$(SolutionDir)bin64"</Command>
     </PreBuildEvent>

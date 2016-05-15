@@ -16,5 +16,13 @@ class MainWindow;
 bool get_lua_global_function(lua_State *state, const char *name);
 void handle_call_to_c_error(lua_State *state, const char *function, const char *msg);
 std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window);
+int lua_panic_function(lua_State *state);
+
+class LuaStackUnwind : public std::exception{
+public:
+	const char *what() const{
+		return "Control flow exception.";
+	}
+};
 
 #endif

@@ -13,6 +13,12 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <sstream>
 #include <QMessageBox>
 
+#ifdef WIN32
+#include <Windows.h>
+#undef max
+#undef min
+#endif
+
 //#define MINIMIZE_CHECKING
 
 double euclidean_modulo(double x, double y){
@@ -300,13 +306,13 @@ DECLARE_LUA_FUNCTION(save_image){
 		}
 		auto res = global_store.save(handle, path, opt);
 		if (res.success){
-			lua_pushboolean(state, 1);
+			lua_pushboolean(state, true);
 			return 1;
 		}
 		msg = res.message;
 	}
 	handle_call_to_c_error(state, __FUNCTION__, msg.c_str());
-	lua_pushboolean(state, 0);
+	lua_pushboolean(state, false);
 	return 1;
 }
 
@@ -572,20 +578,62 @@ DECLARE_LUA_FUNCTION(display_in_current_window){
 		auto image = global_store.get_image(handle);
 		if (image){
 			auto current_window = get_current_window(state);
-			current_window->display_image(std::make_shared<LoadedImage>(image->get_bitmap()));
-			lua_pushboolean(state, 1);
+			current_window->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
+			lua_pushboolean(state, true);
 			return 1;
 		}else{
 			msg = "Invalid image handle.";
 		}
 	}
 	handle_call_to_c_error(state, __FUNCTION__, msg.c_str());
-	lua_pushboolean(state, 0);
+	lua_pushboolean(state, false);
 	return 1;
 }
 
+DECLARE_LUA_FUNCTION(debug_print){
+#ifdef WIN32
+	auto temp = QString::fromUtf8(lua_tostring(state, 1));
+	temp += "\r\n";
+	OutputDebugStringW(temp.toStdWString().c_str());
+#endif
+	return 0;
+}
+
+DECLARE_LUA_FUNCTION(show_message_box){
+	std::string msg;
+#ifndef MINIMIZE_CHECKING
+	if (lua_gettop(state) < 1)
+		msg = "Not enough parameters.";
+	else if (!lua_isstring(state, 1))
+		msg = "The first parameter should be a string.";
+#endif
+	if (!msg.size()){
+		auto s = QString::fromUtf8(lua_tostring(state, 1));
+		QMessageBox msgbox;
+		msgbox.setText(s);
+		msgbox.setIcon(QMessageBox::NoIcon);
+		msgbox.exec();
+		lua_pushboolean(state, true);
+		return 1;
+	}
+	handle_call_to_c_error(state, __FUNCTION__, msg.c_str());
+	lua_pushboolean(state, false);
+	return 1;
+}
+
+int lua_panic_function(lua_State *state){
+	std::stringstream stream;
+	stream << "Lua threw an error: " << lua_tostring(state, -1);
+	QMessageBox msgbox;
+	msgbox.setText(QString::fromStdString(stream.str()));
+	msgbox.setIcon(QMessageBox::Critical);
+	msgbox.exec();
+	throw LuaStackUnwind();
+	return 0;
+}
+
 std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
-	std::shared_ptr<lua_State> ret(lua_open(), [](lua_State *state){ lua_close(state); });
+	std::shared_ptr<lua_State> ret(luaL_newstate(), [](lua_State *state){ lua_close(state); });
 	lua_State *state = ret.get();
 	luaL_openlibs(state);
 
@@ -607,6 +655,8 @@ std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
 		{ "zig_zag_order", zig_zag_order },
 		{ "display_in_current_window", display_in_current_window },
 		{ "get_displayed_image", get_displayed_image },
+		{ "debug_print", debug_print },
+		{ "show_message_box", show_message_box },
 	};
 	for (auto &r : c_functions){
 		lua_pushcfunction(state, r.func);
@@ -616,17 +666,7 @@ std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
 	lua_pushlightuserdata(state, current_window);
 	lua_setglobal(state, current_window_global_name);
 
-	lua_atpanic(state,
-		[](lua_State *state){
-			std::stringstream stream;
-			stream << "Lua threw an error: " << + lua_tostring(state, -1);
-			QMessageBox msgbox;
-			msgbox.setText(QString::fromStdString(stream.str()));
-			msgbox.setIcon(QMessageBox::Critical);
-			msgbox.exec();
-			return 0;
-		}
-	);
+	lua_atpanic(state, lua_panic_function);
 
 	return ret;
 }
