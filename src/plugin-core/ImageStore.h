@@ -40,6 +40,32 @@ struct SaveOptions{
 typedef std::function<void(int, int, int, int, int, int)> traversal_callback;
 typedef std::array<std::uint8_t, 4> pixel_t;
 
+struct position_info{
+	unsigned char rgba[4];
+	int x;
+	int y;
+};
+
+class ImageTraversalIterator{
+	QImage *image;
+	unsigned char *pixels, *scanline, *current_pixel;
+	unsigned x, y, w, h, pitch, i, n;
+	static const unsigned stride = 4;
+	unsigned state;
+public:
+	ImageTraversalIterator(): image(nullptr){}
+	ImageTraversalIterator(QImage &);
+	bool is_null() const{
+		return !this->image;
+	}
+	// Behaves like iterator++ != end for while and for predicate.
+	bool next();
+	position_info get() const;
+	void set(unsigned char rgba[4]) const;
+	void set(unsigned char r, unsigned char g, unsigned char b, unsigned char a) const;
+	void reset();
+};
+
 class Image{
 	QImage bitmap;
 	bool alphaed;
@@ -61,6 +87,7 @@ public:
 	QImage get_bitmap() const{
 		return this->bitmap;
 	}
+	ImageTraversalIterator get_iterator();
 };
 
 class ImageStore{
@@ -96,6 +123,7 @@ public:
 		this->images.clear();
 		this->next_index = 0;
 	}
+	ImageTraversalIterator get_iterator(int handle);
 };
 
 extern ImageStore global_store;

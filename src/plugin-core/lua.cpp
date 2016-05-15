@@ -19,7 +19,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #undef min
 #endif
 
-//#define MINIMIZE_CHECKING
+#define MINIMIZE_CHECKING
 
 double euclidean_modulo(double x, double y){
 	if (x < 0)
@@ -131,6 +131,133 @@ DECLARE_LUA_FUNCTION(traverse_image){
 			lua_call(state, 6, 0);
 		}
 	);
+	return 0;
+}
+
+#ifdef WIN32
+#define EXPORT_C extern "C" __declspec(dllexport)
+#endif
+
+EXPORT_C ImageTraversalIterator *new_traversal_iterator_c(int imgno){
+	auto it = global_store.get_iterator(imgno);
+	if (it.is_null())
+		return nullptr;
+	return new decltype(it)(it);
+}
+
+EXPORT_C void free_traversal_iterator_c(ImageTraversalIterator *p){
+	delete p;
+}
+
+EXPORT_C int traversal_iterator_next_c(ImageTraversalIterator *p){
+	return p->next();
+}
+
+EXPORT_C position_info traversal_iterator_get_c(ImageTraversalIterator *p){
+	return p->get();
+}
+
+EXPORT_C void traversal_iterator_set_array_c(ImageTraversalIterator *p, unsigned char rgba[4]){
+	p->set(rgba);
+}
+
+EXPORT_C void traversal_iterator_set_c(ImageTraversalIterator *p, unsigned char r, unsigned char g, unsigned char b, unsigned char a){
+	p->set(r, g, b, a);
+}
+
+EXPORT_C void traversal_iterator_reset_c(ImageTraversalIterator *p){
+	p->reset();
+}
+
+DECLARE_LUA_FUNCTION(new_traversal_iterator){
+#ifndef MINIMIZE_CHECKING
+	if (lua_gettop(state) < 1){
+		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
+		return 0;
+	}
+	if (!lua_isnumber(state, 1)){
+		handle_call_to_c_error(state, __FUNCTION__, "the parameter must be an integer.");
+		return 0;
+	}
+#endif
+	int imgno = (int)lua_tointeger(state, 1);
+	auto it2 = new_traversal_iterator_c(imgno);
+	if (!it2)
+		return 0;
+	lua_pushlightuserdata(state, it2);
+	return 1;
+}
+
+bool check_traversal_iterator_parameters(lua_State *state){
+#ifndef MINIMIZE_CHECKING
+	if (lua_gettop(state) < 1){
+		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
+		return false;
+	}
+	if (!lua_isuserdata(state, 1)){
+		handle_call_to_c_error(state, __FUNCTION__, "The parameter must be a pointer.");
+		return false;
+	}
+#endif
+	return true;
+}
+
+DECLARE_LUA_FUNCTION(free_traversal_iterator){
+	if (!check_traversal_iterator_parameters(state))
+		return 0;
+	free_traversal_iterator_c((ImageTraversalIterator *)lua_touserdata(state, 1));
+	return 0;
+}
+
+DECLARE_LUA_FUNCTION(traversal_iterator_next){
+	if (!check_traversal_iterator_parameters(state))
+		return 0;
+	auto it = (ImageTraversalIterator *)lua_touserdata(state, 1);
+	lua_pushboolean(state, traversal_iterator_next_c(it));
+	return 1;
+}
+
+DECLARE_LUA_FUNCTION(traversal_iterator_get){
+	if (!check_traversal_iterator_parameters(state))
+		return 0;
+	auto it = (ImageTraversalIterator *)lua_touserdata(state, 1);
+	auto ret = traversal_iterator_get_c(it);
+	for (int i = 0; i < 4; i++)
+		lua_pushinteger(state, ret.rgba[i]);
+	lua_pushinteger(state, ret.x);
+	lua_pushinteger(state, ret.y);
+	return 6;
+}
+
+DECLARE_LUA_FUNCTION(traversal_iterator_set){
+#ifndef MINIMIZE_CHECKING
+	if (lua_gettop(state) < 5){
+		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
+		return 0;
+	}
+	if (!lua_isuserdata(state, 1)){
+		handle_call_to_c_error(state, __FUNCTION__, "The first parameter must be a pointer.");
+		return 0;
+	}
+	for (int i = 0; i < 4; i++){
+		if (!lua_isnumber(state, 2 + i)){
+			handle_call_to_c_error(state, __FUNCTION__, "The second to fifth parameters must be integers.");
+			return 0;
+		}
+	}
+#endif
+
+	auto it = (ImageTraversalIterator *)lua_touserdata(state, 1);
+	unsigned char rgba[4];
+	for (int i = 0; i < 4; i++)
+		rgba[i] = lua_tointeger(state, 2 + i);
+	it->set(rgba);
+	return 0;
+}
+
+DECLARE_LUA_FUNCTION(traversal_iterator_reset){
+	if (check_traversal_iterator_parameters(state))
+		traversal_iterator_reset_c((ImageTraversalIterator *)lua_touserdata(state, 1));
 	return 0;
 }
 
@@ -632,31 +759,39 @@ int lua_panic_function(lua_State *state){
 	return 0;
 }
 
+#define EXPOSE_LUA_FUNCTION(x) { #x, x }
+
 std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
 	std::shared_ptr<lua_State> ret(luaL_newstate(), [](lua_State *state){ lua_close(state); });
 	lua_State *state = ret.get();
 	luaL_openlibs(state);
 
 	luaL_Reg c_functions[] = {
-		{ "load_image", load_image },
-		{ "allocate_image", allocate_image },
-		{ "unload_image", unload_image },
-		{ "traverse_image", traverse_image },
-		{ "rgb_to_hsv", rgb_to_hsv },
-		{ "hsv_to_rgb", hsv_to_rgb },
-		{ "set_current_pixel", set_current_pixel },
-		{ "save_image", save_image },
-		{ "bitwise_and", bitwise_and },
-		{ "bitwise_or", bitwise_or },
-		{ "bitwise_xor", bitwise_xor },
-		{ "bitwise_not", bitwise_not },
-		{ "get_pixel", get_pixel },
-		{ "get_image_dimensions", get_image_dimensions },
-		{ "zig_zag_order", zig_zag_order },
-		{ "display_in_current_window", display_in_current_window },
-		{ "get_displayed_image", get_displayed_image },
-		{ "debug_print", debug_print },
-		{ "show_message_box", show_message_box },
+		EXPOSE_LUA_FUNCTION(load_image),
+		EXPOSE_LUA_FUNCTION(allocate_image),
+		EXPOSE_LUA_FUNCTION(unload_image),
+		EXPOSE_LUA_FUNCTION(traverse_image),
+		EXPOSE_LUA_FUNCTION(rgb_to_hsv),
+		EXPOSE_LUA_FUNCTION(hsv_to_rgb),
+		EXPOSE_LUA_FUNCTION(set_current_pixel),
+		EXPOSE_LUA_FUNCTION(save_image),
+		EXPOSE_LUA_FUNCTION(bitwise_and),
+		EXPOSE_LUA_FUNCTION(bitwise_or),
+		EXPOSE_LUA_FUNCTION(bitwise_xor),
+		EXPOSE_LUA_FUNCTION(bitwise_not),
+		EXPOSE_LUA_FUNCTION(get_pixel),
+		EXPOSE_LUA_FUNCTION(get_image_dimensions),
+		EXPOSE_LUA_FUNCTION(zig_zag_order),
+		EXPOSE_LUA_FUNCTION(display_in_current_window),
+		EXPOSE_LUA_FUNCTION(get_displayed_image),
+		EXPOSE_LUA_FUNCTION(debug_print),
+		EXPOSE_LUA_FUNCTION(show_message_box),
+		EXPOSE_LUA_FUNCTION(new_traversal_iterator),
+		EXPOSE_LUA_FUNCTION(free_traversal_iterator),
+		EXPOSE_LUA_FUNCTION(traversal_iterator_next),
+		EXPOSE_LUA_FUNCTION(traversal_iterator_get),
+		EXPOSE_LUA_FUNCTION(traversal_iterator_set),
+		EXPOSE_LUA_FUNCTION(traversal_iterator_reset),
 	};
 	for (auto &r : c_functions){
 		lua_pushcfunction(state, r.func);
