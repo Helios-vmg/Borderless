@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "lua.h"
 #include "ImageStore.h"
+#include "PluginCoreState.h"
 #include "../MainWindow.h"
 #include <cmath>
 #include <cassert>
@@ -20,6 +21,16 @@ Distributed under a permissive license. See COPYING.txt for details.
 #endif
 
 #define MINIMIZE_CHECKING
+
+const char * const plugin_core_state_global_name = "__plugincorestate";
+const char * const current_image_global_name = "__current_image";
+
+static PluginCoreState *get_plugin_core_state(lua_State *state){
+	lua_getglobal(state, plugin_core_state_global_name);
+	auto ret = (PluginCoreState *)lua_touserdata(state, -1);
+	lua_pop(state, 1);
+	return ret;
+}
 
 double euclidean_modulo(double x, double y){
 	if (x < 0)
@@ -63,7 +74,8 @@ DECLARE_LUA_FUNCTION(load_image){
 		msg = "The parameter should be a string.";
 #endif
 	if (!msg.size()){
-		auto res = global_store.load(lua_tostring(state, 1));
+		auto core_state = get_plugin_core_state(state);
+		auto res = core_state->get_store().load(lua_tostring(state, 1));
 		if (res.success){
 			lua_pushinteger(state, res.results[0]);
 			return 1;
@@ -92,7 +104,8 @@ DECLARE_LUA_FUNCTION(allocate_image){
 		if (w <= 0 || h <= 0)
 			msg = "Both parameters must be greater than zero.";
 		else{
-			auto res = global_store.allocate(w, h);
+			auto core_state = get_plugin_core_state(state);
+			auto res = core_state->get_store().allocate(w, h);
 			if (res.success){
 				lua_pushinteger(state, res.results[0]);
 				return 1;
@@ -118,7 +131,8 @@ DECLARE_LUA_FUNCTION(traverse_image){
 	}
 #endif
 	int imgno = (int)lua_tointeger(state, 1);
-	global_store.traverse(
+	auto core_state = get_plugin_core_state(state);
+	core_state->get_store().traverse(
 		imgno,
 		[state](int r, int g, int b, int a, int x, int y){
 			lua_pushvalue(state, 2);
@@ -131,133 +145,6 @@ DECLARE_LUA_FUNCTION(traverse_image){
 			lua_call(state, 6, 0);
 		}
 	);
-	return 0;
-}
-
-#ifdef WIN32
-#define EXPORT_C extern "C" __declspec(dllexport)
-#endif
-
-EXPORT_C ImageTraversalIterator *new_traversal_iterator_c(int imgno){
-	auto it = global_store.get_iterator(imgno);
-	if (it.is_null())
-		return nullptr;
-	return new decltype(it)(it);
-}
-
-EXPORT_C void free_traversal_iterator_c(ImageTraversalIterator *p){
-	delete p;
-}
-
-EXPORT_C int traversal_iterator_next_c(ImageTraversalIterator *p){
-	return p->next();
-}
-
-EXPORT_C position_info traversal_iterator_get_c(ImageTraversalIterator *p){
-	return p->get();
-}
-
-EXPORT_C void traversal_iterator_set_array_c(ImageTraversalIterator *p, unsigned char rgba[4]){
-	p->set(rgba);
-}
-
-EXPORT_C void traversal_iterator_set_c(ImageTraversalIterator *p, unsigned char r, unsigned char g, unsigned char b, unsigned char a){
-	p->set(r, g, b, a);
-}
-
-EXPORT_C void traversal_iterator_reset_c(ImageTraversalIterator *p){
-	p->reset();
-}
-
-DECLARE_LUA_FUNCTION(new_traversal_iterator){
-#ifndef MINIMIZE_CHECKING
-	if (lua_gettop(state) < 1){
-		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
-		return 0;
-	}
-	if (!lua_isnumber(state, 1)){
-		handle_call_to_c_error(state, __FUNCTION__, "the parameter must be an integer.");
-		return 0;
-	}
-#endif
-	int imgno = (int)lua_tointeger(state, 1);
-	auto it2 = new_traversal_iterator_c(imgno);
-	if (!it2)
-		return 0;
-	lua_pushlightuserdata(state, it2);
-	return 1;
-}
-
-bool check_traversal_iterator_parameters(lua_State *state){
-#ifndef MINIMIZE_CHECKING
-	if (lua_gettop(state) < 1){
-		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
-		return false;
-	}
-	if (!lua_isuserdata(state, 1)){
-		handle_call_to_c_error(state, __FUNCTION__, "The parameter must be a pointer.");
-		return false;
-	}
-#endif
-	return true;
-}
-
-DECLARE_LUA_FUNCTION(free_traversal_iterator){
-	if (!check_traversal_iterator_parameters(state))
-		return 0;
-	free_traversal_iterator_c((ImageTraversalIterator *)lua_touserdata(state, 1));
-	return 0;
-}
-
-DECLARE_LUA_FUNCTION(traversal_iterator_next){
-	if (!check_traversal_iterator_parameters(state))
-		return 0;
-	auto it = (ImageTraversalIterator *)lua_touserdata(state, 1);
-	lua_pushboolean(state, traversal_iterator_next_c(it));
-	return 1;
-}
-
-DECLARE_LUA_FUNCTION(traversal_iterator_get){
-	if (!check_traversal_iterator_parameters(state))
-		return 0;
-	auto it = (ImageTraversalIterator *)lua_touserdata(state, 1);
-	auto ret = traversal_iterator_get_c(it);
-	for (int i = 0; i < 4; i++)
-		lua_pushinteger(state, ret.rgba[i]);
-	lua_pushinteger(state, ret.x);
-	lua_pushinteger(state, ret.y);
-	return 6;
-}
-
-DECLARE_LUA_FUNCTION(traversal_iterator_set){
-#ifndef MINIMIZE_CHECKING
-	if (lua_gettop(state) < 5){
-		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
-		return 0;
-	}
-	if (!lua_isuserdata(state, 1)){
-		handle_call_to_c_error(state, __FUNCTION__, "The first parameter must be a pointer.");
-		return 0;
-	}
-	for (int i = 0; i < 4; i++){
-		if (!lua_isnumber(state, 2 + i)){
-			handle_call_to_c_error(state, __FUNCTION__, "The second to fifth parameters must be integers.");
-			return 0;
-		}
-	}
-#endif
-
-	auto it = (ImageTraversalIterator *)lua_touserdata(state, 1);
-	unsigned char rgba[4];
-	for (int i = 0; i < 4; i++)
-		rgba[i] = lua_tointeger(state, 2 + i);
-	it->set(rgba);
-	return 0;
-}
-
-DECLARE_LUA_FUNCTION(traversal_iterator_reset){
-	if (check_traversal_iterator_parameters(state))
-		traversal_iterator_reset_c((ImageTraversalIterator *)lua_touserdata(state, 1));
 	return 0;
 }
 
@@ -390,7 +277,8 @@ DECLARE_LUA_FUNCTION(set_current_pixel){
 		}
 		rgba[i] = (std::uint8_t)c;
 	}
-	global_store.set_current_pixel(rgba);
+	auto core_state = get_plugin_core_state(state);
+	core_state->get_store().set_current_pixel(rgba);
 	return 0;
 }
 
@@ -431,7 +319,8 @@ DECLARE_LUA_FUNCTION(save_image){
 				lua_pop(state, 1);
 			}
 		}
-		auto res = global_store.save(handle, path, opt);
+		auto core_state = get_plugin_core_state(state);
+		auto res = core_state->get_store().save(handle, path, opt);
 		if (res.success){
 			lua_pushboolean(state, true);
 			return 1;
@@ -485,7 +374,8 @@ DECLARE_LUA_FUNCTION(unload_image){
 		return 0;
 	}
 #endif
-	auto res = global_store.unload(lua_tointeger(state, 1));
+	auto core_state = get_plugin_core_state(state);
+	auto res = core_state->get_store().unload(lua_tointeger(state, 1));
 	if (!res.success)
 		handle_call_to_c_error(state, __FUNCTION__, res.message.c_str());
 	return 0;
@@ -513,7 +403,8 @@ DECLARE_LUA_FUNCTION(get_pixel){
 		}
 	}
 
-	auto res = global_store.get_pixel(params[0], (unsigned)params[1], (unsigned)params[2]);
+	auto core_state = get_plugin_core_state(state);
+	auto res = core_state->get_store().get_pixel(params[0], (unsigned)params[1], (unsigned)params[2]);
 	if (!res.success){
 		handle_call_to_c_error(state, __FUNCTION__, res.message.c_str());
 		return 0;
@@ -533,7 +424,8 @@ DECLARE_LUA_FUNCTION(get_image_dimensions){
 		return 0;
 	}
 	int img = (int)lua_tointeger(state, 1);
-	auto res = global_store.get_dimensions(img);
+	auto core_state = get_plugin_core_state(state);
+	auto res = core_state->get_store().get_dimensions(img);
 
 	if (!res.success){
 		handle_call_to_c_error(state, __FUNCTION__, res.message.c_str());
@@ -667,25 +559,15 @@ DECLARE_LUA_FUNCTION(zig_zag_order){
 	return 3;
 }
 
-const char * const current_window_global_name = "__current_window";
-const char * const current_image_global_name = "__current_image";
-
-MainWindow *get_current_window(lua_State *state){
-	lua_getglobal(state, current_window_global_name);
-	auto ret = (MainWindow *)lua_touserdata(state, -1);
-	lua_pop(state, 1);
-	return ret;
-}
-
 DECLARE_LUA_FUNCTION(get_displayed_image){
 	lua_getglobal(state, current_image_global_name);
 	if (!lua_isnil(state, -1))
 		return 1;
 	lua_pop(state, 1);
 
-	auto current_window = get_current_window(state);
-	auto image = current_window->get_image();
-	auto ret = global_store.store(image);
+	auto core_state = get_plugin_core_state(state);
+	auto image = core_state->get_caller()->get_image();
+	auto ret = core_state->get_store().store(image);
 	lua_pushinteger(state, ret);
 	lua_pushinteger(state, ret);
 	lua_setglobal(state, current_image_global_name);
@@ -702,10 +584,10 @@ DECLARE_LUA_FUNCTION(display_in_current_window){
 #endif
 	if (!msg.size()){
 		int handle = lua_tointeger(state, 1);
-		auto image = global_store.get_image(handle);
+		auto core_state = get_plugin_core_state(state);
+		auto image = core_state->get_store().get_image(handle);
 		if (image){
-			auto current_window = get_current_window(state);
-			current_window->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
+			core_state->get_caller()->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
 			lua_pushboolean(state, true);
 			return 1;
 		}else{
@@ -761,7 +643,7 @@ int lua_panic_function(lua_State *state){
 
 #define EXPOSE_LUA_FUNCTION(x) { #x, x }
 
-std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
+std::shared_ptr<lua_State> init_lua_state(PluginCoreState *plugin_core_state){
 	std::shared_ptr<lua_State> ret(luaL_newstate(), [](lua_State *state){ lua_close(state); });
 	lua_State *state = ret.get();
 	luaL_openlibs(state);
@@ -786,20 +668,14 @@ std::shared_ptr<lua_State> init_lua_state(MainWindow *current_window){
 		EXPOSE_LUA_FUNCTION(get_displayed_image),
 		EXPOSE_LUA_FUNCTION(debug_print),
 		EXPOSE_LUA_FUNCTION(show_message_box),
-		EXPOSE_LUA_FUNCTION(new_traversal_iterator),
-		EXPOSE_LUA_FUNCTION(free_traversal_iterator),
-		EXPOSE_LUA_FUNCTION(traversal_iterator_next),
-		EXPOSE_LUA_FUNCTION(traversal_iterator_get),
-		EXPOSE_LUA_FUNCTION(traversal_iterator_set),
-		EXPOSE_LUA_FUNCTION(traversal_iterator_reset),
 	};
 	for (auto &r : c_functions){
 		lua_pushcfunction(state, r.func);
 		lua_setglobal(state, r.name);
 	}
 
-	lua_pushlightuserdata(state, current_window);
-	lua_setglobal(state, current_window_global_name);
+	lua_pushlightuserdata(state, plugin_core_state);
+	lua_setglobal(state, plugin_core_state_global_name);
 
 	lua_atpanic(state, lua_panic_function);
 

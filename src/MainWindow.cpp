@@ -16,8 +16,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QDir>
 #include <exception>
 #include <cassert>
-#include "plugin-core/lua.h"
-#include "plugin-core/ImageStore.h"
+#include "plugin-core/PluginCoreState.h"
 
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
 		QMainWindow(parent),
@@ -482,48 +481,10 @@ void MainWindow::set_image_zoom(double x){
 	this->set_current_zoom_mode(ZoomMode::Normal);
 }
 
-#include <Windows.h>
-
 void MainWindow::process_user_script(const QString &path){
-	try{
-		if (!QFile::exists(path))
-			throw std::exception("File not found.");
-		QFile file(path);
-		file.open(QFile::ReadOnly);
-		if (!file.isOpen())
-			throw std::exception("Unknown error.");
-		auto data = file.readAll();
-
-		auto lua_state = init_lua_state(this);
-		auto state = lua_state.get();
-		try{
-			luaL_loadbuffer(state, data.data(), data.size(), path.toUtf8().toStdString().c_str());
-			lua_call(state, 0, 0);
-			lua_getglobal(state, "is_pure_filter");
-			bool pure_filter = false;
-			if (lua_isboolean(state, -1))
-				pure_filter = lua_toboolean(state, -1);
-			lua_pop(state, 1);
-			if (pure_filter){
-				lua_getglobal(state, "main");
-				if (!lua_isfunction(state, -1))
-					throw std::exception("Pure filter doesn't contain a main function.");
-				auto imgno = global_store.store(this->get_image());
-				lua_pushinteger(state, imgno);
-				lua_call(state, 1, 1);
-				if (lua_isnumber(state, -1))
-					imgno = lua_tointeger(state, -1);
-				auto image = global_store.get_image(imgno)->get_bitmap();
-				this->display_filtered_image(std::make_shared<LoadedImage>(image));
-			}
-		}catch (std::exception &){
-			throw;
-		}catch (...){
-			lua_panic_function(state);
-		}
-	}catch (LuaStackUnwind &){
-	}
-	global_store.clear();
+	PluginCoreState plugin_core_state;
+	plugin_core_state.set_current_caller(this);
+	plugin_core_state.execute(path);
 }
 
 QImage MainWindow::get_image() const{

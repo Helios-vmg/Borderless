@@ -169,6 +169,12 @@
     <ClCompile Include="..\src\plugin-core\ImageStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\plugin-core\capi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\plugin-core\PluginCoreState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -247,6 +253,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\plugin-core\ImageStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\plugin-core\capi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\plugin-core\PluginCoreState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

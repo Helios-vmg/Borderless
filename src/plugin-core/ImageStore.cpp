@@ -9,9 +9,10 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QImage>
 #include <QFile>
 
-ImageStore global_store;
-
-Image::Image(const QString &path): alphaed(false){
+Image::Image(const QString &path, ImageStore &owner, int handle):
+		alphaed(false),
+		owner(&owner),
+		own_handle(handle){
 	if (!QFile::exists(path))
 		throw ImageOperationResult("File not found.");
 	this->bitmap = QImage(path);
@@ -21,7 +22,10 @@ Image::Image(const QString &path): alphaed(false){
 	this->h = this->bitmap.height();
 }
 
-Image::Image(int w, int h): alphaed(false){
+Image::Image(int w, int h, ImageStore &owner, int handle):
+		alphaed(false),
+		owner(&owner),
+		own_handle(handle){
 	this->bitmap = QImage(w, h, QImage::Format_RGBA8888);
 	if (this->bitmap.isNull())
 		throw ImageOperationResult("Unknown error.");
@@ -29,7 +33,10 @@ Image::Image(int w, int h): alphaed(false){
 	this->h = this->bitmap.height();
 }
 
-Image::Image(const QImage &image): alphaed(false){
+Image::Image(const QImage &image, ImageStore &owner, int handle):
+		alphaed(false),
+		owner(&owner),
+		own_handle(handle){
 	this->bitmap = image;
 	if (this->bitmap.isNull())
 		throw ImageOperationResult("Unknown error.");
@@ -50,12 +57,12 @@ void Image::traverse(traversal_callback cb){
 			int g = pixel[1];
 			int b = pixel[2];
 			int a = pixel[3];
-			auto prev = global_store.get_current_traversal_image();
+			auto prev = this->owner->get_current_traversal_image();
 			auto prev_pixel = this->current_pixel;
-			global_store.set_current_traversal_image(this);
+			this->owner->set_current_traversal_image(this);
 			this->current_pixel = pixel;
 			cb(r, g, b, a, x, y);
-			global_store.set_current_traversal_image(prev);
+			this->owner->set_current_traversal_image(prev);
 			this->current_pixel = prev_pixel;
 		}
 	}
@@ -116,7 +123,7 @@ ImageOperationResult ImageStore::load(const char *path){
 ImageOperationResult ImageStore::load(const QString &path){
 	decltype(this->images)::mapped_type img;
 	try{
-		img.reset(new Image(path));
+		img.reset(new Image(path, *this, this->next_index));
 	}catch (ImageOperationResult &ior){
 		return ior;
 	}
@@ -162,7 +169,7 @@ ImageOperationResult ImageStore::allocate(int w, int h){
 		return "both width and height must be at least 1.";
 	decltype(this->images)::mapped_type img;
 	try{
-		img.reset(new Image(w, h));
+		img.reset(new Image(w, h, *this, this->next_index));
 	}catch (ImageOperationResult &ior){
 		return ior;
 	}
@@ -193,8 +200,13 @@ ImageOperationResult ImageStore::get_dimensions(int handle){
 }
 
 int ImageStore::store(const QImage &image){
-	int ret = this->next_index++;
-	this->images[ret] = std::make_shared<Image>(image);
+	int ret = this->next_index;
+	try{
+		this->images[ret] = std::make_shared<Image>(image, *this, ret);
+	}catch (std::exception &){
+		return -1;
+	}
+	this->next_index++;
 	return ret;
 }
 
@@ -246,7 +258,7 @@ state_1:
 position_info ImageTraversalIterator::get() const{
 	position_info ret;
 	if (!!this->current_pixel){
-		memcpy(ret.rgba, this->current_pixel, 4);
+		memcpy(ret.rgba.data, this->current_pixel, 4);
 		ret.x = this->x;
 		ret.y = this->y;
 	}

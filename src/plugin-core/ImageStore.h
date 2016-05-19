@@ -14,6 +14,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <cstdint>
 #include <array>
 #include <QImage>
+#include "capi.h"
 
 class Image;
 class QString;
@@ -40,12 +41,6 @@ struct SaveOptions{
 typedef std::function<void(int, int, int, int, int, int)> traversal_callback;
 typedef std::array<std::uint8_t, 4> pixel_t;
 
-struct position_info{
-	unsigned char rgba[4];
-	int x;
-	int y;
-};
-
 class ImageTraversalIterator{
 	QImage *image;
 	unsigned char *pixels, *scanline, *current_pixel;
@@ -66,7 +61,11 @@ public:
 	void reset();
 };
 
+class ImageStore;
+
 class Image{
+	ImageStore *owner;
+	int own_handle;
 	QImage bitmap;
 	bool alphaed;
 	int w, h;
@@ -76,9 +75,9 @@ class Image{
 
 	void to_alpha();
 public:
-	Image(const QString &path);
-	Image(int w, int h);
-	Image(const QImage &);
+	Image(const QString &path, ImageStore &owner, int handle);
+	Image(int w, int h, ImageStore &owner, int handle);
+	Image(const QImage &, ImageStore &owner, int handle);
 	void traverse(traversal_callback cb);
 	void set_current_pixel(const pixel_t &rgba);
 	ImageOperationResult save(const QString &path, SaveOptions opt);
@@ -88,6 +87,12 @@ public:
 		return this->bitmap;
 	}
 	ImageTraversalIterator get_iterator();
+	ImageStore *get_owner() const{
+		return this->owner;
+	}
+	int get_handle() const{
+		return this->own_handle;
+	}
 };
 
 class ImageStore{
@@ -125,7 +130,5 @@ public:
 	}
 	ImageTraversalIterator get_iterator(int handle);
 };
-
-extern ImageStore global_store;
 
 #endif

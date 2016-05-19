@@ -6,6 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "ImageViewerApplication.h"
+#include "plugin-core/PluginCoreState.h"
 #include "MainWindow.h"
 #include "RotateDialog.h"
 #include "Misc.h"
@@ -372,6 +373,8 @@ QStringList ImageViewerApplication::get_user_filter_list(){
 	directory.setSorting(QDir::Name);
 	QStringList filters;
 	filters << "*.lua";
+	for (auto i = accepted_cpp_extensions_size; i--;)
+		filters << QString("*.") + accepted_cpp_extensions[i];
 	directory.setNameFilters(filters);
 	return directory.entryList();
 }
