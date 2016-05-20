@@ -6,13 +6,11 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "lua.h"
-#include "ImageStore.h"
-#include "PluginCoreState.h"
-#include "../MainWindow.h"
+#include "LuaInterpreter.h"
 #include <cmath>
 #include <cassert>
 #include <sstream>
-#include <QMessageBox>
+#include <algorithm>
 
 #ifdef WIN32
 #include <Windows.h>
@@ -25,9 +23,9 @@ Distributed under a permissive license. See COPYING.txt for details.
 const char * const plugin_core_state_global_name = "__plugincorestate";
 const char * const current_image_global_name = "__current_image";
 
-static PluginCoreState *get_plugin_core_state(lua_State *state){
+static LuaInterpreter *get_interpreter(lua_State *state){
 	lua_getglobal(state, plugin_core_state_global_name);
-	auto ret = (PluginCoreState *)lua_touserdata(state, -1);
+	auto ret = (LuaInterpreter *)lua_touserdata(state, -1);
 	lua_pop(state, 1);
 	return ret;
 }
@@ -56,11 +54,8 @@ void handle_call_to_c_error(lua_State *state, const char *function, const char *
 	int line = debug.currentline;
 	std::stringstream stream;
 	stream << "ERROR at line " << line << " calling function " << function << "(): " << msg;
-	QMessageBox msgbox;
-	msgbox.setWindowTitle("Error executing Lua script.");
-	msgbox.setText(QString::fromStdString(stream.str()));
-	msgbox.setIcon(QMessageBox::Critical);
-	msgbox.exec();
+	auto interpreter = get_interpreter(state);
+	interpreter->message_box("Error executing Lua script.", stream.str().c_str(), true);
 }
 
 #define DECLARE_LUA_FUNCTION(x) static int x(lua_State *state)
@@ -74,8 +69,8 @@ DECLARE_LUA_FUNCTION(load_image){
 		msg = "The parameter should be a string.";
 #endif
 	if (!msg.size()){
-		auto core_state = get_plugin_core_state(state);
-		auto res = core_state->get_store().load(lua_tostring(state, 1));
+		auto interpreter = get_interpreter(state);
+		auto res = interpreter->load_image(lua_tostring(state, 1));
 		if (res.success){
 			lua_pushinteger(state, res.results[0]);
 			return 1;
@@ -104,8 +99,8 @@ DECLARE_LUA_FUNCTION(allocate_image){
 		if (w <= 0 || h <= 0)
 			msg = "Both parameters must be greater than zero.";
 		else{
-			auto core_state = get_plugin_core_state(state);
-			auto res = core_state->get_store().allocate(w, h);
+			auto interpreter = get_interpreter(state);
+			auto res = interpreter->allocate_image(w, h);
 			if (res.success){
 				lua_pushinteger(state, res.results[0]);
 				return 1;
@@ -131,10 +126,12 @@ DECLARE_LUA_FUNCTION(traverse_image){
 	}
 #endif
 	int imgno = (int)lua_tointeger(state, 1);
-	auto core_state = get_plugin_core_state(state);
-	core_state->get_store().traverse(
+	auto interpreter = get_interpreter(state);
+
+	interpreter->traverse(
 		imgno,
-		[state](int r, int g, int b, int a, int x, int y){
+		[](void *State, int r, int g, int b, int a, int x, int y){
+			auto state = (lua_State *)State;
 			lua_pushvalue(state, 2);
 			lua_pushinteger(state, r);
 			lua_pushinteger(state, g);
@@ -143,8 +140,10 @@ DECLARE_LUA_FUNCTION(traverse_image){
 			lua_pushinteger(state, x);
 			lua_pushinteger(state, y);
 			lua_call(state, 6, 0);
-		}
+		},
+		state
 	);
+
 	return 0;
 }
 
@@ -277,8 +276,8 @@ DECLARE_LUA_FUNCTION(set_current_pixel){
 		}
 		rgba[i] = (std::uint8_t)c;
 	}
-	auto core_state = get_plugin_core_state(state);
-	core_state->get_store().set_current_pixel(rgba);
+	auto interpreter = get_interpreter(state);
+	interpreter->set_current_pixel(rgba);
 	return 0;
 }
 
@@ -297,8 +296,7 @@ DECLARE_LUA_FUNCTION(save_image){
 		msg = "The second parameter should be a string.";
 #endif
 	if (!msg.size()){
-		int handle = lua_tointeger(state, 1);
-		auto path = QString::fromUtf8(lua_tostring(state, 2));
+		int handle = (int)lua_tointeger(state, 1);
 		SaveOptions opt;
 		if (lua_gettop(state) >= 3 && lua_istable(state, 3)){
 			{
@@ -315,12 +313,13 @@ DECLARE_LUA_FUNCTION(save_image){
 				lua_pushstring(state, "compression");
 				lua_gettable(state, 3);
 				if (lua_isnumber(state, -1))
-					opt.compression = lua_tonumber(state, -1);
+					opt.compression = (int)lua_tointeger(state, -1);
 				lua_pop(state, 1);
 			}
 		}
-		auto core_state = get_plugin_core_state(state);
-		auto res = core_state->get_store().save(handle, path, opt);
+		auto path = lua_tostring(state, 2);
+		auto interpreter = get_interpreter(state);
+		auto res = interpreter->save_image(handle, path, opt);
 		if (res.success){
 			lua_pushboolean(state, true);
 			return 1;
@@ -374,8 +373,8 @@ DECLARE_LUA_FUNCTION(unload_image){
 		return 0;
 	}
 #endif
-	auto core_state = get_plugin_core_state(state);
-	auto res = core_state->get_store().unload(lua_tointeger(state, 1));
+	auto core_state = get_interpreter(state);
+	auto res = core_state->unload_image((int)lua_tointeger(state, 1));
 	if (!res.success)
 		handle_call_to_c_error(state, __FUNCTION__, res.message.c_str());
 	return 0;
@@ -403,8 +402,8 @@ DECLARE_LUA_FUNCTION(get_pixel){
 		}
 	}
 
-	auto core_state = get_plugin_core_state(state);
-	auto res = core_state->get_store().get_pixel(params[0], (unsigned)params[1], (unsigned)params[2]);
+	auto interpreter = get_interpreter(state);
+	auto res = interpreter->get_pixel(params[0], params[1], params[2]);
 	if (!res.success){
 		handle_call_to_c_error(state, __FUNCTION__, res.message.c_str());
 		return 0;
@@ -424,8 +423,8 @@ DECLARE_LUA_FUNCTION(get_image_dimensions){
 		return 0;
 	}
 	int img = (int)lua_tointeger(state, 1);
-	auto core_state = get_plugin_core_state(state);
-	auto res = core_state->get_store().get_dimensions(img);
+	auto interpreter = get_interpreter(state);
+	auto res = interpreter->get_image_dimensions(img);
 
 	if (!res.success){
 		handle_call_to_c_error(state, __FUNCTION__, res.message.c_str());
@@ -458,7 +457,7 @@ DECLARE_LUA_FUNCTION(zig_zag_order){
 			handle_call_to_c_error(state, __FUNCTION__, "All parameters should be integers.");
 			return 0;
 		}
-		params[i] = lua_tointeger(state, i + 1);
+		params[i] = (int)lua_tointeger(state, i + 1);
 	}
 	int x = params[0],
 		y = params[1],
@@ -565,12 +564,11 @@ DECLARE_LUA_FUNCTION(get_displayed_image){
 		return 1;
 	lua_pop(state, 1);
 
-	auto core_state = get_plugin_core_state(state);
-	auto image = core_state->get_caller()->get_image();
-	auto ret = core_state->get_store().store(image);
-	lua_pushinteger(state, ret);
-	lua_pushinteger(state, ret);
+	auto interpreter = get_interpreter(state);
+	auto image = interpreter->get_caller_image();
+	lua_pushinteger(state, image);
 	lua_setglobal(state, current_image_global_name);
+	lua_pushinteger(state, image);
 	return 1;
 }
 
@@ -583,16 +581,14 @@ DECLARE_LUA_FUNCTION(display_in_current_window){
 		msg = "The first parameter should be a number.";
 #endif
 	if (!msg.size()){
-		int handle = lua_tointeger(state, 1);
-		auto core_state = get_plugin_core_state(state);
-		auto image = core_state->get_store().get_image(handle);
-		if (image){
-			core_state->get_caller()->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
+		int handle = (int)lua_tointeger(state, 1);
+		auto interpreter = get_interpreter(state);
+		auto result = interpreter->display_in_current_window(handle);
+		if (result.success){
 			lua_pushboolean(state, true);
 			return 1;
-		}else{
-			msg = "Invalid image handle.";
 		}
+		msg = result.message;
 	}
 	handle_call_to_c_error(state, __FUNCTION__, msg.c_str());
 	lua_pushboolean(state, false);
@@ -601,9 +597,10 @@ DECLARE_LUA_FUNCTION(display_in_current_window){
 
 DECLARE_LUA_FUNCTION(debug_print){
 #ifdef WIN32
-	auto temp = QString::fromUtf8(lua_tostring(state, 1));
+	auto interpreter = get_interpreter(state);
+	std::string temp = lua_tostring(state, 1);
 	temp += "\r\n";
-	OutputDebugStringW(temp.toStdWString().c_str());
+	interpreter->debug_print(temp.c_str());
 #endif
 	return 0;
 }
@@ -617,11 +614,8 @@ DECLARE_LUA_FUNCTION(show_message_box){
 		msg = "The first parameter should be a string.";
 #endif
 	if (!msg.size()){
-		auto s = QString::fromUtf8(lua_tostring(state, 1));
-		QMessageBox msgbox;
-		msgbox.setText(s);
-		msgbox.setIcon(QMessageBox::NoIcon);
-		msgbox.exec();
+		auto interpreter = get_interpreter(state);
+		interpreter->message_box(nullptr, lua_tostring(state, 1), false);
 		lua_pushboolean(state, true);
 		return 1;
 	}
@@ -633,17 +627,15 @@ DECLARE_LUA_FUNCTION(show_message_box){
 int lua_panic_function(lua_State *state){
 	std::stringstream stream;
 	stream << "Lua threw an error: " << lua_tostring(state, -1);
-	QMessageBox msgbox;
-	msgbox.setText(QString::fromStdString(stream.str()));
-	msgbox.setIcon(QMessageBox::Critical);
-	msgbox.exec();
+	auto interpreter = get_interpreter(state);
+	interpreter->message_box(nullptr, stream.str().c_str(), true);
 	throw LuaStackUnwind();
 	return 0;
 }
 
 #define EXPOSE_LUA_FUNCTION(x) { #x, x }
 
-std::shared_ptr<lua_State> init_lua_state(PluginCoreState *plugin_core_state){
+std::shared_ptr<lua_State> init_lua_state(LuaInterpreter *interpreter){
 	std::shared_ptr<lua_State> ret(luaL_newstate(), [](lua_State *state){ lua_close(state); });
 	lua_State *state = ret.get();
 	luaL_openlibs(state);
@@ -674,7 +666,7 @@ std::shared_ptr<lua_State> init_lua_state(PluginCoreState *plugin_core_state){
 		lua_setglobal(state, r.name);
 	}
 
-	lua_pushlightuserdata(state, plugin_core_state);
+	lua_pushlightuserdata(state, interpreter);
 	lua_setglobal(state, plugin_core_state_global_name);
 
 	lua_atpanic(state, lua_panic_function);

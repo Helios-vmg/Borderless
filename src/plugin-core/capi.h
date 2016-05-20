@@ -14,7 +14,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #define EXTERN_C extern "C"
 #endif
 
-#ifdef WIN32
+#if defined WIN32 && defined BUILDING_BORDERLESS
 #define EXPORT_C EXTERN_C __declspec(dllexport)
 #else
 #define EXPORT_C EXTERN_C

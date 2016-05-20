@@ -163,9 +163,6 @@
     <ClCompile Include="..\src\serialization\settings.aux.generated.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\plugin-core\lua.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\plugin-core\ImageStore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -248,9 +245,6 @@
     </ClInclude>
     <ClInclude Include="..\src\serialization\settings.generated.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\plugin-core\lua.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\plugin-core\ImageStore.h">
       <Filter>Header Files</Filter>
