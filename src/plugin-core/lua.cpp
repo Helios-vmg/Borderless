@@ -63,7 +63,7 @@ void handle_call_to_c_error(lua_State *state, const char *function, const char *
 	msgbox.exec();
 }
 
-#define DECLARE_LUA_FUNCTION(x) int x(lua_State *state)
+#define DECLARE_LUA_FUNCTION(x) static int x(lua_State *state)
 
 DECLARE_LUA_FUNCTION(load_image){
 	std::string msg;
