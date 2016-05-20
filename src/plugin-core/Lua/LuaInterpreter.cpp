@@ -30,7 +30,6 @@ LuaCallResult LuaInterpreter::execute_buffer(const char *filename, const void *b
 		if (lua_isboolean(state, -1))
 			pure_filter = !!lua_toboolean(state, -1);
 		lua_pop(state, 1);
-		assert(!!this->latest_caller);
 		if (pure_filter){
 			lua_getglobal(state, "main");
 			if (!lua_isfunction(state, -1))
@@ -67,7 +66,8 @@ void LuaInterpreter::message_box(const char *title, const char *message, bool is
 ImageOperationResult to_ImageOperationResult(const ImageOperationResultExternal &src, std::function<void(char *)> &release){
 	ImageOperationResult ret;
 	ret.success = src.success;
-	ret.message = src.message;
+	if (src.message)
+		ret.message = src.message;
 	static_assert(sizeof(ret.results) == sizeof(src.results), "Inconsistent struct definitions!");
 	memcpy(ret.results, src.results, sizeof(ret.results));
 	release(src.message);

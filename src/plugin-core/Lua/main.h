@@ -24,9 +24,9 @@ class LuaInterpreter;
 typedef void *external_state;
 
 struct ImageOperationResultExternal{
-	bool success;
+	bool success = true;
 	int results[4];
-	char *message;
+	char *message = nullptr;
 };
 
 struct image_info{

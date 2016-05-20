@@ -39,7 +39,6 @@ bool is_lua_path(const QString &path){
 }
 
 PluginCoreState::PluginCoreState(){
-
 }
 
 void PluginCoreState::execute(const QString &path){
@@ -54,6 +53,10 @@ void PluginCoreState::execute(const QString &path){
 #define RESOLVE_FUNCTION(lib, x) auto x = (x##_f)lib.resolve(#x)
 
 void PluginCoreState::execute_lua(const QString &path){
+	if (!this->lua_library.isLoaded()){
+		this->lua_library.setFileName("LuaInterpreter");
+		this->lua_library.load();
+	}
 	this->caller_image_handle = -1;
 	QFile file(path);
 	file.open(QFile::ReadOnly);
@@ -140,13 +143,14 @@ namespace lua_implementations{
 			ret.message = clone_string(HANDLE_NOT_FOUND_MSG);
 			return ret;
 		}
+		info->handle = handle;
 		unsigned stride, pitch;
 		info->pixels = image->get_pixels_pointer(stride, pitch);
 		info->stride = stride;
 		info->pitch = pitch;
 		auto temp = image->get_dimensions();
-		info->w = ret.results[0];
-		info->h = ret.results[1];
+		info->w = temp.results[0];
+		info->h = temp.results[1];
 		ret.success = true;
 		return ret;
 	}
