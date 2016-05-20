@@ -23,20 +23,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 }
 #endif
 
-EXPORT_C LuaInterpreter *new_LuaInterpreter(LuaInterpreterParameters *parameters){
+LUA_PLUGIN_EXPORT_C LuaInterpreter *new_LuaInterpreter(LuaInterpreterParameters *parameters){
 	return new LuaInterpreter(*parameters);
 }
 
-EXPORT_C void delete_LuaInterpreter(LuaInterpreter *interpreter){
+LUA_PLUGIN_EXPORT_C void delete_LuaInterpreter(LuaInterpreter *interpreter){
 	delete interpreter;
 }
 
-EXPORT_C void LuaInterpreter_execute(LuaCallResult *result, LuaInterpreter *interpreter, const char *filename, const void *buffer, size_t size){
+LUA_PLUGIN_EXPORT_C void LuaInterpreter_execute(LuaCallResult *result, LuaInterpreter *interpreter, const char *filename, const void *buffer, size_t size){
 	auto r = interpreter->execute_buffer(filename, buffer, size);
 	if (result)
 		*result = r;
 }
 
-EXPORT_C void delete_LuaCallResult(LuaCallResult result){
-	delete result.impl;
+LUA_PLUGIN_EXPORT_C void delete_LuaCallResult(LuaCallResult *result){
+	delete result->impl;
 }

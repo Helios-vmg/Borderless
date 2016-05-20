@@ -93,6 +93,7 @@ public:
 	int get_handle() const{
 		return this->own_handle;
 	}
+	void *get_pixels_pointer(unsigned &stride, unsigned &pitch);
 };
 
 class ImageStore{
@@ -130,5 +131,7 @@ public:
 	}
 	ImageTraversalIterator get_iterator(int handle);
 };
+
+#define HANDLE_NOT_FOUND_MSG "Image handle doesn't exist."
 
 #endif

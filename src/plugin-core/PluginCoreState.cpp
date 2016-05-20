@@ -6,12 +6,15 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "PluginCoreState.h"
-#include "lua.h"
 #include "../LoadedImage.h"
 #include "../MainWindow.h"
 #include <QFile>
 #include <QFileInfo>
-#include <cassert>
+#include <QMessageBox>
+#include "Lua/main.h"
+#ifdef WIN32
+#include <Windows.h>
+#endif
 
 const char * const accepted_cpp_extensions[] = {
 	"cpp",
@@ -48,44 +51,157 @@ void PluginCoreState::execute(const QString &path){
 		this->execute_lua(path);
 }
 
-void PluginCoreState::execute_lua(const QString &path){
-	try{
-		QFile file(path);
-		file.open(QFile::ReadOnly);
-		if (!file.isOpen())
-			throw std::exception("Unknown error while reading file.");
-		auto data = file.readAll();
+#define RESOLVE_FUNCTION(lib, x) auto x = (x##_f)lib.resolve(#x)
 
-		auto lua_state = init_lua_state(this);
-		auto state = lua_state.get();
-		try{
-			luaL_loadbuffer(state, data.data(), data.size(), path.toUtf8().toStdString().c_str());
-			lua_call(state, 0, 0);
-			lua_getglobal(state, "is_pure_filter");
-			bool pure_filter = false;
-			if (lua_isboolean(state, -1))
-				pure_filter = lua_toboolean(state, -1);
-			lua_pop(state, 1);
-			assert(!!this->latest_caller);
-			if (pure_filter){
-				lua_getglobal(state, "main");
-				if (!lua_isfunction(state, -1))
-					throw std::exception("Pure filter doesn't contain a main function.");
-				auto imgno = this->image_store.store(this->latest_caller->get_image());
-				lua_pushinteger(state, imgno);
-				lua_call(state, 1, 1);
-				if (lua_isnumber(state, -1))
-					imgno = lua_tointeger(state, -1);
-				auto image = this->image_store.get_image(imgno)->get_bitmap();
-				this->latest_caller->display_filtered_image(std::make_shared<LoadedImage>(image));
-			}
-		}catch (std::exception &){
-			throw;
-		}catch (...){
-			lua_panic_function(state);
-		}
-	}catch (LuaStackUnwind &){
+void PluginCoreState::execute_lua(const QString &path){
+	this->caller_image_handle = -1;
+	QFile file(path);
+	file.open(QFile::ReadOnly);
+	if (!file.isOpen())
+		throw std::exception("Unknown error while reading file.");
+	auto data = file.readAll();
+	
+	auto filename = QFileInfo(path).fileName();
+
+	RESOLVE_FUNCTION(this->lua_library, new_LuaInterpreter);
+	RESOLVE_FUNCTION(this->lua_library, delete_LuaInterpreter);
+	RESOLVE_FUNCTION(this->lua_library, LuaInterpreter_execute);
+	RESOLVE_FUNCTION(this->lua_library, delete_LuaCallResult);
+
+	auto params = this->construct_LuaInterpreterParameters();
+	std::shared_ptr<LuaInterpreter> interpreter(new_LuaInterpreter(&params), [=](LuaInterpreter *i){ delete_LuaInterpreter(i); });
+
+	LuaCallResult result;
+	LuaInterpreter_execute(&result, interpreter.get(), filename.toUtf8().toStdString().c_str(), data.data(), data.size());
+	delete_LuaCallResult(&result);
+}
+
+int PluginCoreState::get_caller_image_handle(){
+	if (this->caller_image_handle >= 0)
+		return this->caller_image_handle;
+	return this->caller_image_handle = this->image_store.store(this->latest_caller->get_image());
+}
+
+void PluginCoreState::display_in_caller(int handle){
+	auto image = this->get_store().get_image(handle);
+	if (image)
+		this->latest_caller->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
+}
+
+char *clone_string(const char *s){
+	if (!s)
+		return nullptr;
+	auto n = strlen(s);
+	auto ret = new char[n + 1];
+	memcpy(ret, s, n);
+	ret[n] = 0;
+	return ret;
+}
+
+char *clone_string(const std::string &s){
+	auto n = s.size();
+	if (!n)
+		return nullptr;
+	auto ret = new char[n + 1];
+	memcpy(ret, &s[0], n);
+	ret[n] = 0;
+	return ret;
+}
+
+ImageOperationResultExternal to_ImageOperationResultExternal(const ImageOperationResult &src){
+	ImageOperationResultExternal ret;
+	ret.success = src.success;
+	static_assert(sizeof(ret.results) == sizeof(src.results), "Inconsistent struct definitions!");
+	memcpy(ret.results, src.results, sizeof(ret.results));
+	ret.message = clone_string(src.message);
+	return ret;
+}
+
+namespace lua_implementations{
+#define LUA_FUNCTION_SIGNATURE(rt, x, ...) rt x(external_state state, __VA_ARGS__)
+	LUA_FUNCTION_SIGNATURE(void, release_returned_string, char *s){
+		delete[] s;
 	}
+	LUA_FUNCTION_SIGNATURE(void, show_message_box, const char *title, const char *message, bool is_error){
+		QMessageBox msgbox;
+		if (title)
+			msgbox.setWindowTitle(QString::fromUtf8(title));
+		msgbox.setText(QString::fromUtf8(message));
+		if (is_error)
+			msgbox.setIcon(QMessageBox::Critical);
+		msgbox.exec();
+	}
+	LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, get_image_info, int handle, image_info *info){
+		ImageOperationResultExternal ret;
+		auto This = (PluginCoreState *)state;
+		auto image = This->get_store().get_image(handle);
+		if (!image){
+			ret.success = false;
+			ret.message = clone_string(HANDLE_NOT_FOUND_MSG);
+			return ret;
+		}
+		unsigned stride, pitch;
+		info->pixels = image->get_pixels_pointer(stride, pitch);
+		info->stride = stride;
+		info->pitch = pitch;
+		auto temp = image->get_dimensions();
+		info->w = ret.results[0];
+		info->h = ret.results[1];
+		ret.success = true;
+		return ret;
+	}
+	LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, load_image, const char *path){
+		auto This = (PluginCoreState *)state;
+		return to_ImageOperationResultExternal(This->get_store().load(path));
+	}
+	LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, unload_image, int handle){
+		auto This = (PluginCoreState *)state;
+		return to_ImageOperationResultExternal(This->get_store().unload(handle));
+	}
+	LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, allocate_image, int w, int h){
+		auto This = (PluginCoreState *)state;
+		return to_ImageOperationResultExternal(This->get_store().allocate(w, h));
+	}
+	LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, save_image, int handle, const char *path, int compression, const char *format){
+		auto This = (PluginCoreState *)state;
+		SaveOptions opt;
+		opt.compression = compression;
+		if (format)
+			opt.format = format;
+		return to_ImageOperationResultExternal(This->get_store().save(handle, QString::fromUtf8(path), opt));
+	}
+	LUA_FUNCTION_SIGNATURE(int, get_caller_image){
+		auto This = (PluginCoreState *)state;
+		return This->get_caller_image_handle();
+	}
+	LUA_FUNCTION_SIGNATURE(void, display_in_current_window, int handle){
+		auto This = (PluginCoreState *)state;
+		This->display_in_caller(handle);
+	}
+	LUA_FUNCTION_SIGNATURE(void, debug_print, const char *string){
+#ifdef WIN32
+		auto temp = QString::fromUtf8(string);
+		OutputDebugStringW(temp.toStdWString().c_str());
+#endif
+	}
+}
+
+LuaInterpreterParameters PluginCoreState::construct_LuaInterpreterParameters(){
+	LuaInterpreterParameters ret;
+	ret.state = this;
+#define PASS_FUNCTION_TO_LUA(x) ret.x = lua_implementations::x
+	PASS_FUNCTION_TO_LUA(release_returned_string);
+	PASS_FUNCTION_TO_LUA(show_message_box);
+	PASS_FUNCTION_TO_LUA(get_image_info);
+	PASS_FUNCTION_TO_LUA(load_image);
+	PASS_FUNCTION_TO_LUA(unload_image);
+	PASS_FUNCTION_TO_LUA(allocate_image);
+	PASS_FUNCTION_TO_LUA(save_image);
+	PASS_FUNCTION_TO_LUA(get_caller_image);
+	PASS_FUNCTION_TO_LUA(display_in_current_window);
+	PASS_FUNCTION_TO_LUA(debug_print);
+
+	return ret;
 }
 
 void PluginCoreState::execute_cpp(const QString &path){

@@ -136,7 +136,7 @@ ImageOperationResult ImageStore::load(const QString &path){
 ImageOperationResult ImageStore::unload(int handle){
 	auto it = this->images.find(handle);
 	if (it == this->images.end())
-		return "Image handle doesn't exist.";
+		return HANDLE_NOT_FOUND_MSG;
 	this->images.erase(it);
 	return ImageOperationResult();
 }
@@ -144,14 +144,14 @@ ImageOperationResult ImageStore::unload(int handle){
 ImageOperationResult ImageStore::save(int handle, const QString &path, SaveOptions opt){
 	auto it = this->images.find(handle);
 	if (it == this->images.end())
-		return "Image handle doesn't exist.";
+		return HANDLE_NOT_FOUND_MSG;
 	return it->second->save(path, opt);
 }
 
 ImageOperationResult ImageStore::traverse(int handle, traversal_callback cb){
 	auto it = this->images.find(handle);
 	if (it == this->images.end())
-		return "Image handle doesn't exist.";
+		return HANDLE_NOT_FOUND_MSG;
 	auto img = it->second;
 	img->traverse(cb);
 	return ImageOperationResult();
@@ -182,7 +182,7 @@ ImageOperationResult ImageStore::allocate(int w, int h){
 ImageOperationResult ImageStore::get_pixel(int handle, unsigned x, unsigned y){
 	auto it = this->images.find(handle);
 	if (it == this->images.end())
-		return "Image handle doesn't exist.";
+		return HANDLE_NOT_FOUND_MSG;
 	return it->second->get_pixel(x, y);
 }
 
@@ -195,7 +195,7 @@ void ImageStore::set_current_pixel(const pixel_t &rgba){
 ImageOperationResult ImageStore::get_dimensions(int handle){
 	auto it = this->images.find(handle);
 	if (it == this->images.end())
-		return "Image handle doesn't exist.";
+		return HANDLE_NOT_FOUND_MSG;
 	return it->second->get_dimensions();
 }
 
@@ -285,4 +285,12 @@ void ImageTraversalIterator::reset(){
 		this->n = this->w * this->h;
 		this->state = 4;
 	}
+}
+
+void *Image::get_pixels_pointer(unsigned &stride, unsigned &pitch){
+	this->to_alpha();
+
+	stride = this->stride;
+	pitch = this->pitch;
+	return this->bitmap.bits();
 }
