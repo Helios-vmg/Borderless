@@ -33,3 +33,4 @@ Borderless/GeneratedFiles/
 *.opendb
 *.ipch
 *.generated.*
+LLVM/
