@@ -221,7 +221,7 @@ LuaInterpreterParameters PluginCoreState::construct_LuaInterpreterParameters(){
 
 namespace cpp_implementations{
 
-QThreadStorage<void *> tls;
+QThreadStorage<uintptr_t> tls;
 
 #define CPP_FUNCTION_SIGNATURE(rt, x, ...) rt x(external_state state, __VA_ARGS__)
 
@@ -275,7 +275,7 @@ void PluginCoreState::execute_cpp(const QString &path){
 	std::shared_ptr<CppInterpreter> interpreter(new_CppInterpreter(&params), [=](CppInterpreter *i){ delete_CppInterpreter(i); });
 
 	auto old_tls = cpp_implementations::tls.localData();
-	cpp_implementations::tls.setLocalData(this);
+	cpp_implementations::tls.setLocalData((uintptr_t)this);
 	auto old_size = this->cpp_tls_size;
 	this->cpp_tls_size = this->cpp_tls.size();
 
