@@ -5,13 +5,12 @@ All rights reserved.
 Distributed under a permissive license. See COPYING.txt for details.
 */
 
+#include "stdafx.h"
 #include "main.h"
 #include "CppInterpreter.h"
 #include "../CallResultImpl.h"
 
 #ifdef WIN32
-#include <Windows.h>
-
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved){
 	switch (ul_reason_for_call){
 		case DLL_PROCESS_ATTACH:

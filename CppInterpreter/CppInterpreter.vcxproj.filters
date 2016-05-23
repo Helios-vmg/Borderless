@@ -21,12 +21,24 @@
     <ClCompile Include="..\src\plugin-core\Cpp\CppInterpreter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\StreamRedirector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\plugin-core\Cpp\stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\plugin-core\Cpp\main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\plugin-core\Cpp\CppInterpreter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\StreamRedirector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\plugin-core\Cpp\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

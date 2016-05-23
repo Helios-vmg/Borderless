@@ -5,8 +5,11 @@ All rights reserved.
 Distributed under a permissive license. See COPYING.txt for details.
 */
 
+#include "stdafx.h"
 #include "CppInterpreter.h"
 #include "../CallResultImpl.h"
+#include "../../StreamRedirector.h"
+#ifndef USING_PRECOMPILED_HEADERS
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Basic/DiagnosticOptions.h>
 #include <clang/Driver/Compilation.h>
@@ -28,6 +31,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <sstream>
+#endif
 
 CppInterpreterParameters::retrieve_tls_f global_retrieve_tls = nullptr;
 CppInterpreterParameters::store_tls_f global_store_tls_f = nullptr;
@@ -106,7 +110,10 @@ static bool execute(std::unique_ptr<llvm::Module> module, CppInterpreter *cpp, s
 
 CallResult CppInterpreter::execute_buffer(const char *filename){
 	std::string error_message;
+	std::string redirection;
 	while (true){
+		StdStreamRedirectionGuard guard(redirection);
+
 		IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
 		TextDiagnosticPrinter *DiagClient = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
 
@@ -204,7 +211,7 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 	}
 
 	CallResult ret;
-	ret.impl = new CallResultImpl(error_message);
+	ret.impl = new CallResultImpl(redirection + "\n\n" + error_message);
 	ret.success = false;
 	ret.error_message = ret.impl->message.c_str();
 	return ret;
