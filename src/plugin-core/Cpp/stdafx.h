@@ -3,6 +3,13 @@
 
 #define USING_PRECOMPILED_HEADERS
 
+#pragma warning(push)
+#pragma warning(disable: 4141)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4267)
+#pragma warning(disable: 4624)
+#pragma warning(disable: 4800)
+#pragma warning(disable: 4996)
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Basic/DiagnosticOptions.h>
 #include <clang/Driver/Compilation.h>
@@ -23,6 +30,7 @@
 #include <llvm/Support/Path.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
+#pragma warning(pop)
 #include <sstream>
 
 #ifdef WIN32
