@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "lua.h"
 #include "LuaInterpreter.h"
+#include "../CallResultImpl.h"
 #include <cmath>
 #include <cassert>
 #include <sstream>

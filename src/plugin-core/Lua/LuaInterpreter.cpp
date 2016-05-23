@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "LuaInterpreter.h"
 #include "lua.h"
+#include "../CallResultImpl.h"
 #include <cassert>
 #include <sstream>
 
@@ -19,8 +20,8 @@ LuaInterpreter::LuaInterpreter(const LuaInterpreterParameters &params): paramete
 
 LuaInterpreter::~LuaInterpreter(){}
 
-LuaCallResult LuaInterpreter::execute_buffer(const char *filename, const void *buffer, size_t size){
-	LuaCallResult ret;
+CallResult LuaInterpreter::execute_buffer(const char *filename, const void *buffer, size_t size){
+	CallResult ret;
 	auto state = this->lua_state.get();
 	try{
 		luaL_loadbuffer(state, (const char *)buffer, size, filename);
@@ -44,14 +45,14 @@ LuaCallResult LuaInterpreter::execute_buffer(const char *filename, const void *b
 		}
 	}catch (LuaStackUnwind &){
 	}catch (std::exception &e){
-		ret.impl = new LuaCallResultImpl(e.what());
+		ret.impl = new CallResultImpl(e.what());
 		ret.success = false;
 		ret.error_message = ret.impl->message.c_str();
 		return ret;
 	}catch (...){
 		std::stringstream stream;
 		stream << "Lua threw an error: " << lua_tostring(state, -1);
-		ret.impl = new LuaCallResultImpl(stream.str());
+		ret.impl = new CallResultImpl(stream.str());
 		ret.success = false;
 		ret.error_message = ret.impl->message.c_str();
 		return ret;

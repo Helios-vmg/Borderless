@@ -44,7 +44,7 @@ class LuaInterpreter{
 public:
 	LuaInterpreter(const LuaInterpreterParameters &params);
 	~LuaInterpreter();
-	LuaCallResult execute_buffer(const char *filename, const void *buffer, size_t size);
+	CallResult execute_buffer(const char *filename, const void *buffer, size_t size);
 	void message_box(const char *title, const char *message, bool is_error);
 	ImageOperationResult load_image(const char *path);
 	ImageOperationResult unload_image(int handle);
@@ -58,16 +58,6 @@ public:
 	int get_caller_image();
 	ImageOperationResult display_in_current_window(int handle);
 	void debug_print(const char *string);
-};
-
-class LuaCallResultImpl{
-public:
-	bool success;
-	std::string message;
-
-	LuaCallResultImpl(): success(true){}
-	LuaCallResultImpl(const char *message): message(message){}
-	LuaCallResultImpl(const std::string &message): message(message){}
 };
 
 #endif

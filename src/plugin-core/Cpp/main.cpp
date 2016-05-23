@@ -6,7 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "main.h"
-#include "LuaInterpreter.h"
+#include "CppInterpreter.h"
 #include "../CallResultImpl.h"
 
 #ifdef WIN32
@@ -24,20 +24,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 }
 #endif
 
-LUA_PLUGIN_EXPORT_C LuaInterpreter *new_LuaInterpreter(LuaInterpreterParameters *parameters){
-	return new LuaInterpreter(*parameters);
+CPP_PLUGIN_EXPORT_C CppInterpreter *new_CppInterpreter(CppInterpreterParameters *parameters){
+	return new CppInterpreter(*parameters);
 }
 
-LUA_PLUGIN_EXPORT_C void delete_LuaInterpreter(LuaInterpreter *interpreter){
+CPP_PLUGIN_EXPORT_C void delete_CppInterpreter(CppInterpreter *interpreter){
 	delete interpreter;
 }
 
-LUA_PLUGIN_EXPORT_C void LuaInterpreter_execute(CallResult *result, LuaInterpreter *interpreter, const char *filename, const void *buffer, size_t size){
-	auto r = interpreter->execute_buffer(filename, buffer, size);
+CPP_PLUGIN_EXPORT_C void CppInterpreter_execute(CallResult *result, CppInterpreter *interpreter, const char *filename){
+	auto r = interpreter->execute_buffer(filename);
 	if (result)
 		*result = r;
 }
 
-LUA_PLUGIN_EXPORT_C void delete_LuaCallResult(CallResult *result){
+CPP_PLUGIN_EXPORT_C void delete_CppCallResult(CallResult *result){
 	delete result->impl;
 }
