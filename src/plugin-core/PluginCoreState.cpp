@@ -57,6 +57,8 @@ void PluginCoreState::execute_lua(const QString &path){
 		this->lua_library.setFileName("LuaInterpreter");
 		this->lua_library.load();
 	}
+	if (!this->lua_library.isLoaded())
+		return;
 	this->caller_image_handle = -1;
 	QFile file(path);
 	file.open(QFile::ReadOnly);
@@ -258,6 +260,8 @@ void PluginCoreState::execute_cpp(const QString &path){
 		this->cpp_library.setFileName("CppInterpreter");
 		this->cpp_library.load();
 	}
+	if (!this->lua_library.isLoaded())
+		return;
 	this->caller_image_handle = -1;
 	{
 		QFile file(path);
