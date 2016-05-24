@@ -8,6 +8,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "PluginCoreState.h"
 #include "../LoadedImage.h"
 #include "../MainWindow.h"
+#include "../ClangErrorMessage.hpp"
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -260,7 +261,7 @@ void PluginCoreState::execute_cpp(const QString &path){
 		this->cpp_library.setFileName("CppInterpreter");
 		this->cpp_library.load();
 	}
-	if (!this->lua_library.isLoaded())
+	if (!this->cpp_library.isLoaded())
 		return;
 	this->caller_image_handle = -1;
 	{
@@ -286,6 +287,11 @@ void PluginCoreState::execute_cpp(const QString &path){
 	CallResult result;
 	auto parameter = QDir::toNativeSeparators(path).toUtf8().toStdString();
 	CppInterpreter_execute(&result, interpreter.get(), parameter.c_str());
+	if (!result.success){
+		ClangErrorMessage msgbox;
+		msgbox.set_error_message(QString::fromUtf8(result.error_message));
+		msgbox.exec();
+	}
 	delete_CppCallResult(&result);
 
 	this->cpp_tls.resize(this->cpp_tls_size);

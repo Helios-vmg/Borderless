@@ -206,7 +206,6 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 		if (!execute(std::move(module), this, error_message))
 			break;
 
-		llvm::llvm_shutdown();
 		return CallResult();
 	}
 

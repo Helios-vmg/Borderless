@@ -33,7 +33,9 @@ class StdStreamRedirectionGuard{
 	StdStreamRedirector redir;
 	std::string &dst;
 public:
-	StdStreamRedirectionGuard(std::string &dst): dst(dst){}
+	StdStreamRedirectionGuard(std::string &dst): dst(dst){
+		this->redir.begin_capture();
+	}
 	~StdStreamRedirectionGuard(){
 		this->redir.end_capture();
 		this->dst = this->redir.get_capture();

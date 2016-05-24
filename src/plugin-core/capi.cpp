@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "capi.h"
 #include "ImageStore.h"
+#include <QtWidgets/QMessageBox>
 
 EXPORT_C Image *load_image(PluginCoreState *state, const char *path){
 	return nullptr;
@@ -81,7 +82,9 @@ EXPORT_C void debug_print(const char *string){
 }
 
 EXPORT_C void show_message_box(const char *string){
-
+	QMessageBox msgbox;
+	msgbox.setText(QString::fromUtf8(string));
+	msgbox.exec();
 }
 
 EXPORT_C int save_image(Image *image, const char *path){

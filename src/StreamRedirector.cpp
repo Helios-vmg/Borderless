@@ -28,15 +28,12 @@ StdStreamRedirector::StdStreamRedirector(){
 		return;
 	this->old_stdout = dup(fileno(stdout));
 	this->old_stderr = dup(fileno(stderr));
-	if (this->old_stdout == -1 || this->old_stderr == -1)
-		return;
-
+	
 	this->initialized = true;
 }
 
 StdStreamRedirector::~StdStreamRedirector(){
-	if (this->capturing)
-		end_capture();
+	this->end_capture();
 	if (this->old_stdout > 0)
 		close(this->old_stdout);
 	if (this->old_stderr > 0)
@@ -50,10 +47,10 @@ StdStreamRedirector::~StdStreamRedirector(){
 void StdStreamRedirector::begin_capture(){
 	if (!this->initialized)
 		return;
-	if (this->capturing)
-		end_capture();
+	this->end_capture();
 	fflush(stdout);
 	fflush(stderr);
+	auto temp = fileno(stdout);
 	dup2(this->pipes[WRITE], fileno(stdout));
 	dup2(this->pipes[WRITE], fileno(stderr));
 	this->capturing = true;
@@ -62,10 +59,13 @@ void StdStreamRedirector::begin_capture(){
 bool StdStreamRedirector::end_capture(){
 	if (!this->initialized || !this->capturing)
 		return false;
+	this->capturing = false;
 	fflush(stdout);
 	fflush(stderr);
-	dup2(this->old_stdout, fileno(stdout));
-	dup2(this->old_stderr, fileno(stderr));
+	if (this->old_stdout >= 0)
+		dup2(this->old_stdout, fileno(stdout));
+	if (this->old_stderr >= 0)
+		dup2(this->old_stderr, fileno(stderr));
 	this->capture.clear();
 
 	std::string buf;
