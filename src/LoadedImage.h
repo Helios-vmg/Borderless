@@ -35,6 +35,7 @@ public:
 		return this->alpha;
 	}
 	virtual void assign_to_QLabel(QLabel &) = 0;
+	virtual QImage get_QImage() const = 0;
 	static std::shared_ptr<LoadedGraphics> create(const QString &path);
 };
 
@@ -45,6 +46,7 @@ class LoadedImage : public LoadedGraphics{
 	void compute_average_color(QImage);
 public:
 	LoadedImage(const QString &path);
+	LoadedImage(const QImage &image);
 	~LoadedImage();
 	QColor get_background_color() override{
 		return this->background_color.result();
@@ -53,6 +55,7 @@ public:
 		return false;
 	}
 	void assign_to_QLabel(QLabel &) override;
+	QImage get_QImage() const override;
 };
 
 class LoadedAnimation : public LoadedGraphics{
@@ -67,6 +70,7 @@ public:
 		return true;
 	}
 	void assign_to_QLabel(QLabel &) override;
+	QImage get_QImage() const override;
 };
 
 #endif // LOADEDIMAGE_H

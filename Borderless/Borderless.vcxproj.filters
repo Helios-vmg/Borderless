@@ -142,26 +142,47 @@
     <ClCompile Include="GeneratedFiles\Release\moc_ImageViewerApplication.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\Inlining.cpp">
-      <Filter>Source Files\Serialization</Filter>
+    <ClCompile Include="GeneratedFiles\DebugRelease\moc_ClangErrorMessage.cpp">
+      <Filter>Generated Files\DebugRelease</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\Implementations.cpp">
-      <Filter>Source Files\Serialization</Filter>
+    <ClCompile Include="GeneratedFiles\Debug\moc_ClangErrorMessage.cpp">
+      <Filter>Generated Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\WindowState.cpp">
-      <Filter>Source Files\Serialization</Filter>
+    <ClCompile Include="GeneratedFiles\Release\moc_ClangErrorMessage.cpp">
+      <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\MainSettings.cpp">
-      <Filter>Source Files\Serialization</Filter>
+    <ClCompile Include="$(SolutionDir)\src\ClangErrorMessage.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\ShortcutsSettings.cpp">
-      <Filter>Source Files\Serialization</Filter>
+    <ClCompile Include="$(SolutionDir)\src\plugin-core\capi.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\settings.generated.cpp">
-      <Filter>Generated Files</Filter>
+    <ClCompile Include="$(SolutionDir)\src\plugin-core\ImageStore.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\serialization\settings.aux.generated.cpp">
-      <Filter>Generated Files</Filter>
+    <ClCompile Include="$(SolutionDir)\src\plugin-core\PluginCoreState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\Implementations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\Inlining.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\MainSettings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\settings.aux.generated.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\settings.generated.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\ShortcutsSettings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\serialization\WindowState.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -195,7 +216,11 @@
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.ui">
       <Filter>Form Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\serialization\settings.txt" />
+    <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.hpp" />
+    <CustomBuild Include="$(SolutionDir)\src\serialization\settings.txt" />
+    <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.ui">
+      <Filter>Form Files</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h">
@@ -234,8 +259,20 @@
     <ClInclude Include="ShortcutInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\serialization\settings.generated.h">
+    <ClInclude Include="GeneratedFiles\ui_ClangErrorMessage.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SolutionDir)\src\plugin-core\capi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SolutionDir)\src\plugin-core\ImageStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SolutionDir)\src\plugin-core\PluginCoreState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SolutionDir)\src\serialization\settings.generated.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

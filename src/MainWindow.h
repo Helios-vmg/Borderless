@@ -115,13 +115,14 @@ protected:
 	void closeEvent(QCloseEvent *event) override;
 	void contextMenuEvent(QContextMenuEvent *) override;
 	//bool event(QEvent *) override;
-	void display_image(std::shared_ptr<LoadedGraphics>);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
 	~MainWindow();
 	void display_image(QString path);
+	void display_image(const std::shared_ptr<LoadedGraphics> &graphics);
+	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
 	std::shared_ptr<WindowState> save_state() const;
 	void restore_state(const std::shared_ptr<WindowState> &);
 	bool is_null() const{
@@ -137,10 +138,12 @@ public:
 	void set_image_zoom(double);
 	double set_image_transform(const QMatrix &);
 	void setup_shortcuts();
-	void build_context_menu(QMenu &);
+	void build_context_menu(QMenu &main_menu, QMenu &lua_submenu);
 	bool current_zoom_mode_is_auto() const{
 		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
 	}
+	void process_user_script(const QString &path);
+	QImage get_image() const;
 
 public slots:
 	void label_transform_updated();
