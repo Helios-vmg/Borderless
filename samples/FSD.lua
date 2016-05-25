@@ -1,3 +1,6 @@
+-- This example applies a Floyd-Steinberg dither with 2 colors on the select
+-- image.
+
 is_pure_filter = true
 
 local use_old_traversal = false
