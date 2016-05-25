@@ -165,6 +165,7 @@
       <PreprocessorDefinitions>WIN32;BUILDING_CPPINTERPRETER;NDEBUG;_WINDOWS;_USRDLL;CPPINTERPRETER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\LLVM\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

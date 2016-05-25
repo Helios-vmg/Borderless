@@ -89,7 +89,10 @@ int PluginCoreState::get_caller_image_handle(){
 }
 
 void PluginCoreState::display_in_caller(int handle){
-	auto image = this->get_store().get_image(handle);
+	this->display_in_caller(this->get_store().get_image(handle).get());
+}
+
+void PluginCoreState::display_in_caller(Image *image){
 	if (image)
 		this->latest_caller->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
 }
@@ -242,16 +245,24 @@ CPP_FUNCTION_SIGNATURE(void *, retrieve_tls){
 	return This->retrieve_tls();
 }
 
+CPP_FUNCTION_SIGNATURE(void, display_in_current_window, void *image){
+	if (!image)
+		return;
+	auto This = (PluginCoreState *)tls.localData();
+	This->display_in_caller((Image *)image);
+}
+
 }
 
 CppInterpreterParameters PluginCoreState::construct_CppInterpreterParameters(){
 	CppInterpreterParameters ret;
 	ret.state = this;
-	ret.caller_image = this->get_caller_image_handle();
+	ret.caller_image = this->image_store.get_image(this->get_caller_image_handle()).get();
 #define PASS_FUNCTION_TO_CPP(x) ret.x = cpp_implementations::x
 	PASS_FUNCTION_TO_CPP(release_returned_string);
 	PASS_FUNCTION_TO_CPP(store_tls);
 	PASS_FUNCTION_TO_CPP(retrieve_tls);
+	PASS_FUNCTION_TO_CPP(display_in_current_window);
 
 	return ret;
 }

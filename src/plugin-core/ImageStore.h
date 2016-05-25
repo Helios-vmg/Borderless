@@ -83,6 +83,10 @@ public:
 	ImageOperationResult save(const QString &path, SaveOptions opt);
 	ImageOperationResult get_pixel(unsigned x, unsigned y);
 	ImageOperationResult get_dimensions();
+	void get_dimensions(int &w, int &h){
+		w = this->w;
+		h = this->h;
+	}
 	QImage get_bitmap() const{
 		return this->bitmap;
 	}
@@ -104,11 +108,16 @@ public:
 	ImageStore(): current_traversal_image(nullptr){}
 	ImageOperationResult load(const char *path);
 	ImageOperationResult load(const QString &path);
+	Image *load_image(const char *path);
 	int store(const QImage &);
 	ImageOperationResult unload(int handle);
+	void unload(Image *img){
+		this->unload(img->get_handle());
+	}
 	ImageOperationResult save(int handle, const QString &path, SaveOptions opt);
 	ImageOperationResult traverse(int handle, traversal_callback cb);
 	ImageOperationResult allocate(int w, int h);
+	Image *allocate_image(int w, int h);
 	ImageOperationResult get_pixel(int handle, unsigned x, unsigned y);
 	void set_current_pixel(const pixel_t &rgba);
 	ImageOperationResult get_dimensions(int handle);

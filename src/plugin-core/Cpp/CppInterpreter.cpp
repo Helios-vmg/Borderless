@@ -55,12 +55,12 @@ static llvm::ExecutionEngine *create_execution_engine(std::unique_ptr<llvm::Modu
 		.create();
 }
 
-extern "C" __declspec(dllexport) void borderless_CppInterpreter_get_state(void **state, int *image){
+extern "C" __declspec(dllexport) void borderless_CppInterpreter_get_state(void **state, void **image){
 	auto This = (CppInterpreter *)global_retrieve_tls(nullptr);
 	This->pass_main_arguments(*state, *image);
 }
 
-extern "C" __declspec(dllexport) void borderless_CppInterpreter_return_result(int return_value){
+extern "C" __declspec(dllexport) void borderless_CppInterpreter_return_result(void *return_value){
 	auto This = (CppInterpreter *)global_retrieve_tls(nullptr);
 	This->set_return_value(return_value);
 }
@@ -112,7 +112,7 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 	std::string error_message;
 	std::string redirection;
 	while (true){
-		StdStreamRedirectionGuard guard(redirection);
+		//StdStreamRedirectionGuard guard(redirection);
 
 		IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
 		TextDiagnosticPrinter *DiagClient = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
@@ -206,6 +206,8 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 		if (!execute(std::move(module), this, error_message))
 			break;
 
+		this->parameters.display_in_current_window(this->parameters.state, this->return_value);
+
 		return CallResult();
 	}
 
@@ -216,11 +218,7 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 	return ret;
 }
 
-void CppInterpreter::pass_main_arguments(void *&state, int &image) const{
+void CppInterpreter::pass_main_arguments(void *&state, void *&image) const{
 	state = this->parameters.state;
 	image = this->parameters.caller_image;
-}
-
-void CppInterpreter::set_return_value(int){
-	
 }

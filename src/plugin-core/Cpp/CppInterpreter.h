@@ -13,12 +13,15 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 class CppInterpreter{
 	CppInterpreterParameters parameters;
+	void *return_value;
 public:
 	CppInterpreter(const CppInterpreterParameters &);
 	~CppInterpreter();
 	CallResult execute_buffer(const char *filename);
-	void pass_main_arguments(void *&, int &) const;
-	void set_return_value(int);
+	void pass_main_arguments(void *&, void *&) const;
+	void set_return_value(void *rv){
+		this->return_value = rv;
+	}
 };
 
 #endif

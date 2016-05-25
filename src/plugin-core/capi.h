@@ -52,23 +52,25 @@ typedef struct position_info position_info;
 
 EXPORT_C Image *load_image(PluginCoreState *state, const char *path);
 EXPORT_C Image *allocate_image(PluginCoreState *state, int w, int h);
+EXPORT_C Image *clone_image(Image *image);
+EXPORT_C Image *clone_image_without_data(Image *image);
 EXPORT_C void unload_image(Image *image);
 
 
 /* Image property accessors. */
 
-EXPORT_C void get_image_dimensions(int *w, int *h, Image *image);
-EXPORT_C u8 *get_image_pixel_data(int *stride, int *pitch, Image *image);
+EXPORT_C void get_image_dimensions(Image *image, int *w, int *h);
+EXPORT_C u8 *get_image_pixel_data(Image *image, int *stride, int *pitch);
 
 
 /* Image display functions. */
 EXPORT_C Image *get_displayed_image(PluginCoreState *state);
-EXPORT_C void display_in_current_window(Image *image);
+EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image);
 
 
 /* Image traversal iterator. */
 
-EXPORT_C ImageTraversalIterator *new_traversal_iterator_c(Image *image);
+EXPORT_C ImageTraversalIterator *new_traversal_iterator(Image *image);
 EXPORT_C void free_traversal_iterator(ImageTraversalIterator *p);
 EXPORT_C int traversal_iterator_next(ImageTraversalIterator *p);
 EXPORT_C void traversal_iterator_get(position_info *info, ImageTraversalIterator *p);

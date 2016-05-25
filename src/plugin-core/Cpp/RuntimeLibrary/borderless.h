@@ -3,17 +3,17 @@
 
 #include "borderless_runtime.h"
 
-extern "C" void borderless_CppInterpreter_get_state(void **, int *);
-extern "C" void borderless_CppInterpreter_return_result(int);
+extern "C" void borderless_CppInterpreter_get_state(B::state_t *, B::handle_t *);
+extern "C" void borderless_CppInterpreter_return_result(void *);
 
-Image entry_point(B::Application &app, Image img);
+B::Image entry_point(B::Application &app, B::Image img);
 
 extern "C" void __borderless_main(){
-	void *state;
-	int img;
+	B::state_t state;
+	B::handle_t img;
 	borderless_CppInterpreter_get_state(&state, &img);
 	B::g_application.reset(new B::Application(state));
-	int ret = entry_point(state, Image(img));
-	borderless_CppInterpreter_return_result(ret);	
+	auto ret = entry_point(*B::g_application, B::Image(img));
+	borderless_CppInterpreter_return_result(ret.get_handle());
 }
 #endif

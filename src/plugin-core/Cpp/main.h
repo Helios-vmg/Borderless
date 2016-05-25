@@ -27,7 +27,7 @@ typedef void *external_state;
 
 struct CppInterpreterParameters{
 	external_state state;
-	int caller_image;
+	external_state caller_image;
 
 #define CppInterpreterParameters_DECLARE_FUNCTION(rt, x, ...) \
 	typedef rt (*x##_f)(external_state, __VA_ARGS__); \
@@ -35,6 +35,7 @@ struct CppInterpreterParameters{
 	CppInterpreterParameters_DECLARE_FUNCTION(void, release_returned_string, char *);
 	CppInterpreterParameters_DECLARE_FUNCTION(void, store_tls, void *);
 	CppInterpreterParameters_DECLARE_FUNCTION(void *, retrieve_tls);
+	CppInterpreterParameters_DECLARE_FUNCTION(void, display_in_current_window, void *handle);
 };
 
 #define Cpp_DECLARE_EXPORTED_FUNCTION(rt, x, ...) \

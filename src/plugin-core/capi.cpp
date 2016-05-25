@@ -7,35 +7,45 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "capi.h"
 #include "ImageStore.h"
+#include "PluginCoreState.h"
 #include <QtWidgets/QMessageBox>
+#ifdef WIN32
+#include <Windows.h>
+#endif
 
 EXPORT_C Image *load_image(PluginCoreState *state, const char *path){
-	return nullptr;
+	return state->get_store().load_image(path);
 }
 
 EXPORT_C Image *allocate_image(PluginCoreState *state, int w, int h){
-	return nullptr;
+	return state->get_store().allocate_image(w, h);
 }
 
 EXPORT_C void unload_image(Image *image){
-
+	auto store = image->get_owner();
+	store->unload(image);
 }
 
-EXPORT_C void get_image_dimensions(int *w, int *h, Image *image){
-
+EXPORT_C void get_image_dimensions(Image *image, int *w, int *h){
+	image->get_dimensions(*w, *h);
 }
 
-EXPORT_C u8 *get_image_pixel_data(int *stride, int *pitch, Image *image){
-	return nullptr;
+EXPORT_C u8 *get_image_pixel_data(Image *image, int *stride, int *pitch){
+	unsigned temp1, temp2;
+	auto ret = (u8 *)image->get_pixels_pointer(temp1, temp2);
+	*stride = temp1;
+	*pitch = temp2;
+	return ret;
 }
 
 
 EXPORT_C Image *get_displayed_image(PluginCoreState *state){
-	return nullptr;
+	auto handle = state->get_caller_image_handle();
+	return state->get_store().get_image(handle).get();
 }
 
-EXPORT_C void display_in_current_window(Image *image){
-
+EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image){
+	state->display_in_caller(image);
 }
 
 EXPORT_C ImageTraversalIterator *new_traversal_iterator(Image *image){
@@ -70,7 +80,6 @@ EXPORT_C void traversal_iterator_reset(ImageTraversalIterator *p){
 }
 
 EXPORT_C void rgb_to_hsv(u8_quad *hsv, u8_quad rgb){
-
 }
 
 EXPORT_C void hsv_to_rgb(u8_quad *rgb, u8_quad hsv){
@@ -78,7 +87,10 @@ EXPORT_C void hsv_to_rgb(u8_quad *rgb, u8_quad hsv){
 }
 
 EXPORT_C void debug_print(const char *string){
-
+#ifdef WIN32
+	auto w = QString::fromUtf8(string).toStdWString();
+	OutputDebugStringW(w.c_str());
+#endif
 }
 
 EXPORT_C void show_message_box(const char *string){
@@ -88,5 +100,6 @@ EXPORT_C void show_message_box(const char *string){
 }
 
 EXPORT_C int save_image(Image *image, const char *path){
+	image->save(QString::fromUtf8(path), SaveOptions());
 	return false;
 }

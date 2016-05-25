@@ -120,6 +120,18 @@ ImageOperationResult ImageStore::load(const char *path){
 	return this->load(QString::fromUtf8(path));
 }
 
+Image *ImageStore::load_image(const char *path){
+	auto qpath = QString::fromUtf8(path);
+	decltype(this->images)::mapped_type ret;
+	try{
+		ret.reset(new Image(path, *this, this->next_index));
+	}catch (ImageOperationResult &ior){
+		return nullptr;
+	}
+	this->images[this->next_index++] = ret;
+	return ret.get();
+}
+
 ImageOperationResult ImageStore::load(const QString &path){
 	decltype(this->images)::mapped_type img;
 	try{
@@ -162,6 +174,19 @@ ImageTraversalIterator ImageStore::get_iterator(int handle){
 	if (it == this->images.end())
 		return ImageTraversalIterator();
 	return it->second->get_iterator();
+}
+
+Image *ImageStore::allocate_image(int w, int h){
+	if (w < 1 || h < 1)
+		return nullptr;
+	decltype(this->images)::mapped_type ret;
+	try{
+		ret.reset(new Image(w, h, *this, this->next_index));
+	}catch (ImageOperationResult &ior){
+		return nullptr;
+	}
+	this->images[this->next_index++] = ret;
+	return ret.get();
 }
 
 ImageOperationResult ImageStore::allocate(int w, int h){

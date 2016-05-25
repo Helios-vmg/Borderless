@@ -47,6 +47,7 @@ public:
 	CppInterpreterParameters construct_CppInterpreterParameters();
 	int get_caller_image_handle();
 	void display_in_caller(int handle);
+	void display_in_caller(Image *img);
 	void store_tls(void *);
 	void *retrieve_tls();
 };
