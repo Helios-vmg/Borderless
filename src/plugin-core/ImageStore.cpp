@@ -68,11 +68,6 @@ void Image::traverse(traversal_callback cb){
 	}
 }
 
-ImageTraversalIterator Image::get_iterator(){
-	this->to_alpha();
-	return ImageTraversalIterator(this->bitmap);
-}
-
 void Image::to_alpha(){
 	if (this->alphaed)
 		return;
@@ -169,13 +164,6 @@ ImageOperationResult ImageStore::traverse(int handle, traversal_callback cb){
 	return ImageOperationResult();
 }
 
-ImageTraversalIterator ImageStore::get_iterator(int handle){
-	auto it = this->images.find(handle);
-	if (it == this->images.end())
-		return ImageTraversalIterator();
-	return it->second->get_iterator();
-}
-
 Image *ImageStore::allocate_image(int w, int h){
 	if (w < 1 || h < 1)
 		return nullptr;
@@ -233,83 +221,6 @@ int ImageStore::store(const QImage &image){
 	}
 	this->next_index++;
 	return ret;
-}
-
-ImageTraversalIterator::ImageTraversalIterator(QImage &image): image(&image){
-	this->pixels = image.bits();
-	this->w = image.width();
-	this->h = image.height();
-	this->pitch = image.bytesPerLine();
-	this->reset();
-}
-
-bool ImageTraversalIterator::next(){
-	if (this->state == 4){
-		if (this->i >= this->n)
-			return false;
-		this->x = this->i % this->w;
-		this->y = this->i / this->w;
-		this->current_pixel = this->pixels + this->i++ * this->stride;
-		//this->scanline = this->pixels + this->pitch * this->y;
-		return true;
-	}
-
-	switch (this->state){
-		case 0:
-			break;
-		case 1:
-			goto state_1;
-		case 2:
-			this->current_pixel = nullptr;
-			return false;
-	}
-
-	for (; this->y < this->h; this->y++){
-		this->scanline = this->pixels + this->pitch * this->y;
-		this->x = 0;
-		for (; this->x < this->w; this->x++){
-			this->current_pixel = this->scanline + this->x * this->stride;
-			this->state = 1;
-			return true;
-state_1:
-			;
-		}
-	}
-	this->state = 2;
-	this->current_pixel = nullptr;
-	return false;
-}
-
-position_info ImageTraversalIterator::get() const{
-	position_info ret;
-	if (!!this->current_pixel){
-		memcpy(ret.rgba.data, this->current_pixel, 4);
-		ret.x = this->x;
-		ret.y = this->y;
-	}
-	return ret;
-}
-
-void ImageTraversalIterator::set(unsigned char rgba[4]) const{
-	memcpy(this->current_pixel, rgba, 4);
-}
-
-void ImageTraversalIterator::set(unsigned char r, unsigned char g, unsigned char b, unsigned char a) const{
-	this->current_pixel[0] = r;
-	this->current_pixel[1] = g;
-	this->current_pixel[2] = b;
-	this->current_pixel[3] = a;
-}
-
-void ImageTraversalIterator::reset(){
-	this->y = 0;
-	if (this->pitch != this->stride * this->w)
-		this->state = 0;
-	else{
-		this->i = 0;
-		this->n = this->w * this->h;
-		this->state = 4;
-	}
 }
 
 void *Image::get_pixels_pointer(unsigned &stride, unsigned &pitch){

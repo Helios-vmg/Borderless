@@ -9,6 +9,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ImageStore.h"
 #include "PluginCoreState.h"
 #include <QtWidgets/QMessageBox>
+#include <ctime>
+#include <sstream>
 #ifdef WIN32
 #include <Windows.h>
 #endif
@@ -56,37 +58,6 @@ EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image){
 	state->display_in_caller(image);
 }
 
-EXPORT_C ImageTraversalIterator *new_traversal_iterator(Image *image){
-	auto it = image->get_iterator();
-	if (it.is_null())
-		return nullptr;
-	return new decltype(it)(it);
-}
-
-EXPORT_C void free_traversal_iterator(ImageTraversalIterator *p){
-	delete p;
-}
-
-EXPORT_C int traversal_iterator_next(ImageTraversalIterator *p){
-	return p->next();
-}
-
-EXPORT_C void traversal_iterator_get(position_info *info, ImageTraversalIterator *p){
-	*info = p->get();
-}
-
-EXPORT_C void traversal_iterator_set_quad(ImageTraversalIterator *p, u8_quad rgba){
-	p->set(rgba.data);
-}
-
-EXPORT_C void traversal_iterator_set(ImageTraversalIterator *p, u8 r, u8 g, u8 b, u8 a){
-	p->set(r, g, b, a);
-}
-
-EXPORT_C void traversal_iterator_reset(ImageTraversalIterator *p){
-	p->reset();
-}
-
 EXPORT_C void rgb_to_hsv(u8_quad *hsv, u8_quad rgb){
 }
 
@@ -110,4 +81,22 @@ EXPORT_C void show_message_box(const char *string){
 EXPORT_C int save_image(Image *image, const char *path){
 	image->save(QString::fromUtf8(path), SaveOptions());
 	return false;
+}
+
+EXPORT_C double borderless_clock(){
+	return clock() / (double)CLOCKS_PER_SEC;
+}
+
+EXPORT_C char *double_to_string(double x){
+	std::stringstream stream;
+	stream << x;
+	auto s = stream.str();
+	auto ret = new char[s.size() + 1];
+	ret[s.size()] = 0;
+	memcpy(ret, &s[0], s.size());
+	return ret;
+}
+
+EXPORT_C void release_double_to_string(char *s){
+	delete[] s;
 }

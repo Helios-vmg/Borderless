@@ -41,26 +41,6 @@ struct SaveOptions{
 typedef std::function<void(int, int, int, int, int, int)> traversal_callback;
 typedef std::array<std::uint8_t, 4> pixel_t;
 
-class ImageTraversalIterator{
-	QImage *image;
-	unsigned char *pixels, *scanline, *current_pixel;
-	unsigned x, y, w, h, pitch, i, n;
-	static const unsigned stride = 4;
-	unsigned state;
-public:
-	ImageTraversalIterator(): image(nullptr){}
-	ImageTraversalIterator(QImage &);
-	bool is_null() const{
-		return !this->image;
-	}
-	// Behaves like iterator++ != end for while and for predicate.
-	bool next();
-	position_info get() const;
-	void set(unsigned char rgba[4]) const;
-	void set(unsigned char r, unsigned char g, unsigned char b, unsigned char a) const;
-	void reset();
-};
-
 class ImageStore;
 
 class Image{
@@ -90,7 +70,6 @@ public:
 	QImage get_bitmap() const{
 		return this->bitmap;
 	}
-	ImageTraversalIterator get_iterator();
 	ImageStore *get_owner() const{
 		return this->owner;
 	}
@@ -138,7 +117,6 @@ public:
 		this->images.clear();
 		this->next_index = 0;
 	}
-	ImageTraversalIterator get_iterator(int handle);
 };
 
 #define HANDLE_NOT_FOUND_MSG "Image handle doesn't exist."

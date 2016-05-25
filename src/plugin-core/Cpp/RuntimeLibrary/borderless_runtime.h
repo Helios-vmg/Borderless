@@ -5,6 +5,7 @@
 //#include <memory>
 #include <string>
 #include <unordered_map>
+#include <cstdint>
 
 namespace B{
 	typedef ::Image *handle_t;
@@ -111,20 +112,180 @@ namespace B{
 		}
 	};
 	
-	/*
-	class Stream{
+	class ImageIterator{
+		Image &image;
+		u8 *pixels;
+		int w, h, stride, pitch, i, n;
+		unsigned state;
 	public:
+		ImageIterator(Image &);
+		// Behaves like iterator++ != end for while and for predicate.
+		bool next(u8 *&pi);
+		void position(int &x, int &y) const;
+		void reset();
+	};
+
+	
+	enum class StreamCommand{
+		Endl,
+		Hex,
+		DebugPrint,
+		MsgBox,
 	};
 	
-	class DebugStream : public Stream{
+	class Stream{
+		std::string buffer;
+		bool hex = false;
+		template <typename T>
+		void write_unsigned(T x){
+			if (!this->hex){
+				if (!x)
+					this->buffer += '0';
+				else{
+					const auto n = sizeof(T) * 8 / 3;
+					this->buffer.reserve(this->buffer.size() + n);
+					char temp[n];
+					unsigned i = 0;
+					while (x && i < 100){
+						temp[i++] = '0' + x % 10;
+						x /= 10;
+					}
+					while (i--)
+						this->buffer += temp[i];
+				}
+			}else{
+				const auto n = sizeof(T) * 8 / 4;
+				this->buffer.reserve(this->buffer.size() + n);
+				char temp[n];
+				unsigned i = 0;
+				for (; i < n; i++){
+					auto digit = x % 16;
+					temp[i] = x < 10 ? '0' + digit : 'a' - 10 + digit;
+					x /= 16;
+				}
+				while (i--)
+					this->buffer += temp[i];
+				this->hex = false;
+			}
+		}
+		template <typename T>
+		void write_signed(T x){
+			if (x < 0){
+				this->buffer += '-';
+				x = -x;
+			}
+			this->write_unsigned(x);
+		}
+	public:
+		Stream(){}
+		Stream(const std::string &s): buffer(s){}
+		const std::string &str() const{
+			return this->buffer;
+		}
+		Stream &operator<<(char c){
+			this->buffer += c;
+			return *this;
+		}
+		
+		Stream &operator<<(unsigned char x){
+			this->write_unsigned(x);
+			return *this;
+		}
+		Stream &operator<<(unsigned short x){
+			this->write_unsigned(x);
+			return *this;
+		}
+		Stream &operator<<(unsigned int x){
+			this->write_unsigned(x);
+			return *this;
+		}
+		Stream &operator<<(unsigned long x){
+			this->write_unsigned(x);
+			return *this;
+		}
+		Stream &operator<<(unsigned long long x){
+			this->write_unsigned(x);
+			return *this;
+		}
+		
+		Stream &operator<<(signed char x){
+			this->write_signed(x);
+			return *this;
+		}
+		Stream &operator<<(signed short x){
+			this->write_signed(x);
+			return *this;
+		}
+		Stream &operator<<(signed int x){
+			this->write_signed(x);
+			return *this;
+		}
+		Stream &operator<<(signed long x){
+			this->write_signed(x);
+			return *this;
+		}
+		Stream &operator<<(signed long long x){
+			this->write_signed(x);
+			return *this;
+		}
+		
+		Stream &operator<<(float x){
+			auto temp = double_to_string(x);
+			this->buffer += temp;
+			release_double_to_string(temp);
+			return *this;
+		}
+		Stream &operator<<(double x){
+			auto temp = double_to_string(x);
+			this->buffer += temp;
+			release_double_to_string(temp);
+			return *this;
+		}
+		
+		Stream &operator<<(const char *s){
+			this->buffer += s;
+			return *this;
+		}
+		Stream &operator<<(const std::string &s){
+			this->buffer += s;
+			return *this;
+		}
+		Stream &operator<<(const u8_quad &q){
+			this->buffer.reserve(this->buffer.size() + 17);
+			this->buffer += '#';
+			for (int i = 0; i < 4; i++){
+				this->hex = true;
+				*this << (unsigned char)q.data[i];
+			}
+			return *this;
+		}
+		Stream &operator<<(const StreamCommand &c){
+			switch (c){
+				case StreamCommand::Endl: 
+					*this << '\n';
+					break;
+				case StreamCommand::Hex:
+					this->hex = true;
+					break;
+				case StreamCommand::DebugPrint:
+					g_application->debug_print(this->buffer);
+					this->buffer.clear();
+					break;
+				case StreamCommand::MsgBox:
+					g_application->show_message_box(this->buffer);
+					this->buffer.clear();
+					break;
+				default:
+					break;
+			}
+			return *this;
+		}
 	};
-	
-	class MsgboxStream : public Stream{
-	};
-	
-	DebugStream DEBUG;
-	MsgboxStream MSGBOX;
-	*/
+
+	StreamCommand hex = StreamCommand::Hex;
+	StreamCommand endl = StreamCommand::Endl;
+	StreamCommand debugprint = StreamCommand::DebugPrint;
+	StreamCommand msgbox = StreamCommand::MsgBox;
 	
 	#include "borderless_runtime.cpp"
 }

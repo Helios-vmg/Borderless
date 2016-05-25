@@ -69,3 +69,26 @@ void Image::get_pixel_data(int &w, int &h, int &stride, int &pitch, unsigned cha
 bool Image::save(const char *path){
 	return !!save_image(this->get_handle(), path);
 }
+
+ImageIterator::ImageIterator(Image &image): image(image){
+	this->image.get_pixel_data(this->w, this->h, this->stride, this->pitch, this->pixels);
+	this->reset();
+}
+
+bool ImageIterator::next(u8 *&pi){
+	if (this->i >= this->n)
+		return false;
+	pi = this->pixels + this->i++ * 4;
+	return true;
+}
+
+void ImageIterator::position(int &x, int &y) const{
+	auto i = this->i - 1;
+	x = i % this->w;
+	y = i / this->w;
+}
+
+void ImageIterator::reset(){
+	this->i = 0;
+	this->n = this->w * this->h;
+}
