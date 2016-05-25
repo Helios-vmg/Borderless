@@ -3,7 +3,7 @@ B::Image Application::get_displayed_image(){
 	auto it = this->handles.find((uintptr_t)handle);
 	if (it != this->handles.end())
 		return Image(it->second);
-	auto ret = std::make_shared<handle_t>(handle);
+	shared_ptr ret(handle);
 	this->handles[(uintptr_t)handle] = ret;
 	return Image(ret);
 }
@@ -24,13 +24,13 @@ void Application::show_message_box(const std::string &s){
 Image::Image(const char *path){
 	auto p = load_image(g_application->get_state(), path);
 	if (p)
-		this->handle.reset(new decltype(p)(p));
+		this->handle.reset(p);
 }
 
 Image::Image(int w, int h){
 	auto p = allocate_image(g_application->get_state(), w, h);
 	if (p)
-		this->handle.reset(new decltype(p)(p));
+		this->handle.reset(p);
 }
 
 Image::~Image(){

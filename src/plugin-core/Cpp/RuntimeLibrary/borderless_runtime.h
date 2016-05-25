@@ -2,7 +2,8 @@
 #define BORDERLESS_RUNTIME_H
 
 #include "capi.h"
-#include <memory>
+//#include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace B{
@@ -10,10 +11,54 @@ namespace B{
 	typedef ::PluginCoreState *state_t;
 	class Image;
 	
+	class shared_ptr{
+		handle_t p;
+		unsigned *refcount;
+		void clear(){
+			if (!*this)
+				return;
+			if (this->unique())
+				delete this->refcount;
+			else
+				--*this->refcount;
+			this->refcount = nullptr;
+			this->p = nullptr;
+		}
+	public:
+		shared_ptr(): p(nullptr), refcount(nullptr){}
+		explicit shared_ptr(handle_t p): p(p), refcount(new unsigned(1)){}
+		shared_ptr(const shared_ptr &o): p(o.p), refcount(o.refcount){
+			++*this->refcount;
+		}
+		~shared_ptr(){
+			this->clear();
+		}
+		operator bool() const{
+			return !!this->p;
+		}
+		bool unique() const{
+			return !!this->refcount && *this->refcount == 1;
+		}
+		handle_t get() const{
+			return this->p;
+		}
+		void reset(handle_t p = nullptr){
+			this->clear();
+			if (!p)
+				return;
+			this->p = p;
+			this->refcount = new unsigned(1);
+		}
+		void ref(){
+			if (*this)
+				++*this->refcount;
+		}
+	};
+	
 	class Application{
 		friend class B::Image;
 		state_t state;
-		std::unordered_map<uintptr_t, std::shared_ptr<handle_t>> handles;
+		std::unordered_map<uintptr_t, shared_ptr> handles;
 		
 		state_t get_state() const{
 			return this->state;
@@ -26,11 +71,11 @@ namespace B{
 		void show_message_box(const std::string &);
 	};
 	
-	std::unique_ptr<Application> g_application;
+	Application *g_application;
 	
 	class Image{
 		friend class Application;
-		std::shared_ptr<handle_t> handle;
+		shared_ptr handle;
 		bool dims_initialized = false;
 		int w = -1,
 			h = -1;
@@ -39,16 +84,19 @@ namespace B{
 			pitch = -1;
 		unsigned char *pixels = nullptr;
 		
-		Image(const std::shared_ptr<handle_t> &handle): handle(handle){}
+		Image(const decltype(Image::handle) &handle): handle(handle){}
 	public:
 		Image(){}
-		Image(handle_t handle): handle(new handle_t(handle)){}
+		Image(handle_t handle): handle(handle){}
 		Image(const char *path);
 		Image(const std::string &path): Image(path.c_str()){}
 		Image(int w, int h);
 		~Image();
 		Image clone() const;
 		Image clone_without_data() const;
+		void ref(){
+			this->handle.ref();
+		}
 		operator bool() const{
 			return !!this->handle;
 		}
@@ -59,7 +107,7 @@ namespace B{
 			return this->save(path.c_str());
 		}
 		handle_t get_handle() const{
-			return this->handle ? *this->handle : nullptr;
+			return this->handle ? this->handle.get() : nullptr;
 		}
 	};
 	

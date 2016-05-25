@@ -12,8 +12,11 @@ extern "C" void __borderless_main(){
 	B::state_t state;
 	B::handle_t img;
 	borderless_CppInterpreter_get_state(&state, &img);
-	B::g_application.reset(new B::Application(state));
-	auto ret = entry_point(*B::g_application, B::Image(img));
+	B::g_application = new B::Application(state);
+	B::Image i(img);
+	i.ref();
+	auto ret = entry_point(*B::g_application, i);
+	delete B::g_application;
 	borderless_CppInterpreter_return_result(ret.get_handle());
 }
 #endif

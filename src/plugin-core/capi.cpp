@@ -21,6 +21,14 @@ EXPORT_C Image *allocate_image(PluginCoreState *state, int w, int h){
 	return state->get_store().allocate_image(w, h);
 }
 
+EXPORT_C Image *clone_image(Image *image){
+	return nullptr;
+}
+
+EXPORT_C Image *clone_image_without_data(Image *image){
+	return nullptr;
+}
+
 EXPORT_C void unload_image(Image *image){
 	auto store = image->get_owner();
 	store->unload(image);
