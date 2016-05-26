@@ -409,3 +409,9 @@ void ImageViewerApplication::lua_script_activated(QAction *action){
 		msgbox.exec();
 	}
 }
+
+PluginCoreState &ImageViewerApplication::get_plugin_core_state(){
+	if (!this->plugin_core_state)
+		this->plugin_core_state.reset(new PluginCoreState);
+	return *this->plugin_core_state;
+}

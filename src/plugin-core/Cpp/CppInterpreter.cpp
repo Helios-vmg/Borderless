@@ -10,35 +10,34 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "../CallResultImpl.h"
 #include "../../StreamRedirector.h"
 #ifndef USING_PRECOMPILED_HEADERS
-#include <clang/CodeGen/CodeGenAction.h>
-#include <clang/Basic/DiagnosticOptions.h>
-#include <clang/Driver/Compilation.h>
-#include <clang/Driver/Driver.h>
-#include <clang/Driver/Tool.h>
-#include <clang/Frontend/CompilerInstance.h>
-#include <clang/Frontend/CompilerInvocation.h>
-#include <clang/Frontend/FrontendDiagnostic.h>
-#include <clang/Frontend/TextDiagnosticPrinter.h>
-#include <llvm/ADT/SmallString.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/MCJIT.h>
-#include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/IR/Module.h>
-#include <llvm/Support/FileSystem.h>
-#include <llvm/Support/Host.h>
-#include <llvm/Support/ManagedStatic.h>
-#include <llvm/Support/Path.h>
-#include <llvm/Support/TargetSelect.h>
-#include <llvm/Support/raw_ostream.h>
+#include "llvm_headers.h"
 #include <sstream>
 #endif
 
 CppInterpreterParameters::retrieve_tls_f global_retrieve_tls = nullptr;
 CppInterpreterParameters::store_tls_f global_store_tls_f = nullptr;
 
+struct FailedToHash : public std::exception{
+	std::string msg;
+public:
+	FailedToHash(const std::string &path){
+		this->msg = "Unable to compute hash for \'" + path + "\'.";
+	}
+	const char *what() const{
+		return this->msg.c_str();
+	}
+};
+
 CppInterpreter::CppInterpreter(const CppInterpreterParameters &parameters): parameters(parameters){
 	global_retrieve_tls = this->parameters.retrieve_tls;
 	global_store_tls_f = this->parameters.store_tls;
+	auto params = this->parameters;
+	this->hf = [params](const std::string &path) -> Sha1Sum{
+		Sha1Sum ret;
+		if (!params.get_file_sha1(params.state, path.c_str(), ret.data, sizeof(ret.data)))
+			throw FailedToHash(path);
+		return ret;
+	};
 }
 
 CppInterpreter::~CppInterpreter(){
@@ -65,70 +64,56 @@ extern "C" __declspec(dllexport) void borderless_CppInterpreter_return_result(vo
 	This->set_return_value(return_value);
 }
 
-static bool execute(std::unique_ptr<llvm::Module> module, CppInterpreter *cpp, std::string &error_message){
-	llvm::InitializeNativeTarget();
-	llvm::InitializeNativeTargetAsmPrinter();
-
-	llvm::Module &mod = *module;
-	std::unique_ptr<llvm::ExecutionEngine> EE(create_execution_engine(std::move(module), &error_message));
-	if (!EE){
-		error_message = "Unable to make execution engine: " + error_message;
+bool execute(llvm::Module &mod, llvm::ExecutionEngine &execution_engine, CppInterpreter &cpp, std::string &error_message){
+	llvm::Function *EntryFn = mod.getFunction("__borderless_main");
+	if (!EntryFn){
+		error_message = "'__borderless_main' function not found in module.";
 		return false;
 	}
-
-	/*
-	{
-		llvm::Function *EntryFn = M.getFunction("get_some_value");
-		if (!EntryFn) {
-			llvm::errs() << "'main' function not found in module.\n";
-			return 255;
-		}
-
-		ArrayRef<llvm::GenericValue> args;
-		EE->finalizeObject();
-		auto ret = EE->runFunction(EntryFn, args);
-		std::cout << *ret.IntVal.getRawData() << std::endl;
-	}
-	*/
-
-	{
-		llvm::Function *EntryFn = mod.getFunction("__borderless_main");
-		if (!EntryFn){
-			error_message = "'__borderless_main' function not found in module.";
-			return false;
-		}
 		
-		ArrayRef<llvm::GenericValue> args;
-		EE->finalizeObject();
+	ArrayRef<llvm::GenericValue> args;
+	execution_engine.finalizeObject();
 
-		global_store_tls_f(nullptr, cpp);
-		EE->runFunction(EntryFn, args);
-	}
+	global_store_tls_f(nullptr, &cpp);
+	execution_engine.runFunction(EntryFn, args);
+
+	cpp.display_return_value_in_current_window();
 
 	return true;
 }
 
-CallResult CppInterpreter::execute_buffer(const char *filename){
+void CppInterpreter::display_return_value_in_current_window(){
+	this->parameters.display_in_current_window(this->parameters.state, this->return_value);
+
+}
+
+CallResult CppInterpreter::execute_path(const char *filename){
+	{
+		CallResult ret;
+		if (this->attempt_cache_reuse(ret, filename))
+			return ret;
+	}
+
 	std::string error_message;
 	std::string redirection;
 	while (true){
 		//StdStreamRedirectionGuard guard(redirection);
 
-		IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
-		TextDiagnosticPrinter *DiagClient = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
+		IntrusiveRefCntPtr<DiagnosticOptions> diagnostic_options = new DiagnosticOptions();
+		TextDiagnosticPrinter *text_diagnostic_printer = new TextDiagnosticPrinter(llvm::errs(), &*diagnostic_options);
 
-		IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-		DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
+		IntrusiveRefCntPtr<DiagnosticIDs> diagnostic_ids(new DiagnosticIDs());
+		DiagnosticsEngine diagnostics_engine(diagnostic_ids, &*diagnostic_options, text_diagnostic_printer);
 
 		// Use ELF on windows for now.
 		std::string TripleStr = llvm::sys::getProcessTriple();
-		llvm::Triple T(TripleStr);
-		if (T.isOSBinFormatCOFF())
-			T.setObjectFormat(llvm::Triple::COFF);
+		llvm::Triple triple(TripleStr);
+		if (triple.isOSBinFormatCOFF())
+			triple.setObjectFormat(llvm::Triple::COFF);
 
-		Driver TheDriver("driver", T.str(), Diags);
-		TheDriver.setTitle("clang interpreter");
-		TheDriver.setCheckInputsExist(false);
+		Driver driver("driver", triple.str(), diagnostics_engine);
+		driver.setTitle("clang interpreter");
+		driver.setCheckInputsExist(false);
 
 		// FIXME: This is a hack to try to force the driver to do something we can
 		// recognize. We need to extend the driver library to support this use model
@@ -139,7 +124,7 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 		args.push_back("-fsyntax-only");
 		args.push_back("-fms-compatibility-version=19");
 		args.push_back("-O3");
-		std::unique_ptr<Compilation> C(TheDriver.BuildCompilation(args));
+		std::unique_ptr<Compilation> C(driver.BuildCompilation(args));
 		if (!C){
 			error_message = "Error initializing compiler.";
 			break;
@@ -174,7 +159,7 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 			*invocation,
 			const_cast<const char **>(ccargs.data()),
 			const_cast<const char **>(ccargs.data()) + ccargs.size(),
-			Diags
+			diagnostics_engine
 		);
 
 		// FIXME: This is copied from cc1_main.cpp; simplify and eliminate.
@@ -191,7 +176,8 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 		}
 
 		// Create and execute the frontend to generate an LLVM bitcode module.
-		std::unique_ptr<CodeGenAction> action(new EmitLLVMOnlyAction());
+		std::shared_ptr<llvm::LLVMContext> context(new llvm::LLVMContext);
+		std::unique_ptr<CodeGenAction> action(new EmitLLVMOnlyAction(context.get()));
 		if (!clang.ExecuteAction(*action)){
 			error_message = "Code generation failed.";
 			break;
@@ -202,11 +188,23 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 			error_message = "No module generated.";
 			break;
 		}
-		
-		if (!execute(std::move(module), this, error_message))
+
+		auto mod = module.get();
+
+		llvm::InitializeNativeTarget();
+		llvm::InitializeNativeTargetAsmPrinter();
+
+		std::shared_ptr<llvm::ExecutionEngine> execution_engine(create_execution_engine(std::move(module), &error_message));
+
+		if (!execution_engine){
+			error_message = "Unable to make execution engine: " + error_message;
+			break;
+		}
+
+		if (!execute(*mod, *execution_engine, *this, error_message))
 			break;
 
-		this->parameters.display_in_current_window(this->parameters.state, this->return_value);
+		this->save_in_cache(filename, context, execution_engine, mod);
 
 		return CallResult();
 	}
@@ -221,4 +219,53 @@ CallResult CppInterpreter::execute_buffer(const char *filename){
 void CppInterpreter::pass_main_arguments(void *&state, void *&image) const{
 	state = this->parameters.state;
 	image = this->parameters.caller_image;
+}
+
+bool CppInterpreter::attempt_cache_reuse(CallResult &result, const char *path){
+	std::string spath = path;
+	auto it = this->cached_programs.find(spath);
+	if (it == this->cached_programs.end())
+		return false;
+	auto &program = *it->second;
+	if (!program.equals(path)){
+		this->cached_programs.erase(it);
+		return false;
+	}
+	result = program.execute();
+	return true;
+}
+
+void CppInterpreter::save_in_cache(const char *path, const std::shared_ptr<llvm::LLVMContext> &context, const std::shared_ptr<llvm::ExecutionEngine> &execution_engine, llvm::Module *module){
+	std::string spath = path;
+	this->cached_programs[spath].reset(new CachedProgram(this, spath, context, execution_engine, module));
+}
+
+CachedProgram::CachedProgram(
+		CppInterpreter *interpreter,
+		const std::string &path,
+		const std::shared_ptr<llvm::LLVMContext> &context,
+		const std::shared_ptr<llvm::ExecutionEngine> &execution_engine,
+		llvm::Module *module
+){
+	this->interpreter = interpreter;
+	this->path = path;
+	this->context = context;
+	this->execution_engine = execution_engine;
+	this->module = module;
+	this->hash = (*this->interpreter->get_hash_function())(this->path);
+}
+
+CallResult CachedProgram::execute(){
+	std::string error_message;
+	CallResult ret;
+	if (::execute(*this->module, *this->execution_engine, *this->interpreter, error_message))
+		return ret;
+	ret.impl = new CallResultImpl(error_message);
+	ret.success = false;
+	ret.error_message = ret.impl->message.c_str();
+	return ret;
+}
+
+bool CachedProgram::equals(const std::string &path){
+	return (*this->interpreter->get_hash_function())(path) == this->hash;
 }

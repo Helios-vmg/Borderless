@@ -36,6 +36,7 @@ struct CppInterpreterParameters{
 	CppInterpreterParameters_DECLARE_FUNCTION(void, store_tls, void *);
 	CppInterpreterParameters_DECLARE_FUNCTION(void *, retrieve_tls);
 	CppInterpreterParameters_DECLARE_FUNCTION(void, display_in_current_window, void *handle);
+	CppInterpreterParameters_DECLARE_FUNCTION(bool, get_file_sha1, const char *path, unsigned char *buffer, size_t buffer_size);
 };
 
 #define Cpp_DECLARE_EXPORTED_FUNCTION(rt, x, ...) \
@@ -45,6 +46,7 @@ struct CppInterpreterParameters{
 Cpp_DECLARE_EXPORTED_FUNCTION(CppInterpreter *, new_CppInterpreter, CppInterpreterParameters *parameters);
 Cpp_DECLARE_EXPORTED_FUNCTION(void, delete_CppInterpreter, CppInterpreter *);
 Cpp_DECLARE_EXPORTED_FUNCTION(void, CppInterpreter_execute, CallResult *result, CppInterpreter *, const char *filename);
+Cpp_DECLARE_EXPORTED_FUNCTION(void, CppInterpreter_reset_imag, CppInterpreter *, external_state);
 Cpp_DECLARE_EXPORTED_FUNCTION(void, delete_CppCallResult, CallResult *);
 
 #endif

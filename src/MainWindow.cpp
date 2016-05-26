@@ -482,7 +482,7 @@ void MainWindow::set_image_zoom(double x){
 }
 
 void MainWindow::process_user_script(const QString &path){
-	PluginCoreState plugin_core_state;
+	auto &plugin_core_state = this->app->get_plugin_core_state();
 	plugin_core_state.set_current_caller(this);
 	plugin_core_state.execute(path);
 }

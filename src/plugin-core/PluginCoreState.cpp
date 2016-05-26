@@ -13,8 +13,10 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QDir>
+#include <QCryptographicHash>
 #ifdef WIN32
 #include <Windows.h>
+#undef min
 #endif
 
 const char * const accepted_cpp_extensions[] = {
@@ -52,6 +54,7 @@ void PluginCoreState::execute(const QString &path){
 }
 
 #define RESOLVE_FUNCTION(lib, x) auto x = (x##_f)lib.resolve(#x)
+#define RESOLVE_FUNCTION2(lib, x) this->x = (x##_f)lib.resolve(#x)
 
 void PluginCoreState::execute_lua(const QString &path){
 	if (!this->lua_library.isLoaded()){
@@ -252,28 +255,40 @@ CPP_FUNCTION_SIGNATURE(void, display_in_current_window, void *image){
 	This->display_in_caller((Image *)image);
 }
 
+CPP_FUNCTION_SIGNATURE(bool, get_file_sha1, const char *path, unsigned char *buffer, size_t buffer_size){
+	auto qpath = QString::fromUtf8(path);
+	QCryptographicHash hash(QCryptographicHash::Sha1);
+	QFile file(qpath);
+	file.open(QFile::ReadOnly);
+	if (!file.isOpen())
+		return false;
+	hash.addData(&file);
+	auto result = hash.result();
+	memcpy(buffer, result.constData(), std::min<size_t>(result.size(), buffer_size));
+	return true;
+}
+
+}
+
+void *PluginCoreState::get_image_pointer(){
+	return this->image_store.get_image(this->get_caller_image_handle()).get();
 }
 
 CppInterpreterParameters PluginCoreState::construct_CppInterpreterParameters(){
 	CppInterpreterParameters ret;
 	ret.state = this;
-	ret.caller_image = this->image_store.get_image(this->get_caller_image_handle()).get();
+	ret.caller_image = this->get_image_pointer();
 #define PASS_FUNCTION_TO_CPP(x) ret.x = cpp_implementations::x
 	PASS_FUNCTION_TO_CPP(release_returned_string);
 	PASS_FUNCTION_TO_CPP(store_tls);
 	PASS_FUNCTION_TO_CPP(retrieve_tls);
 	PASS_FUNCTION_TO_CPP(display_in_current_window);
+	PASS_FUNCTION_TO_CPP(get_file_sha1);
 
 	return ret;
 }
 
 void PluginCoreState::execute_cpp(const QString &path){
-	if (!this->cpp_library.isLoaded()){
-		this->cpp_library.setFileName("CppInterpreter");
-		this->cpp_library.load();
-	}
-	if (!this->cpp_library.isLoaded())
-		return;
 	this->caller_image_handle = -1;
 	{
 		QFile file(path);
@@ -281,15 +296,31 @@ void PluginCoreState::execute_cpp(const QString &path){
 		if (!file.isOpen())
 			throw std::exception("Unknown error while reading file.");
 	}
+	if (this->cpp_interpreter){
+		this->execute_cpp_ready(path);
+		return;
+	}
+	if (!this->cpp_library.isLoaded()){
+		this->cpp_library.setFileName("CppInterpreter");
+		this->cpp_library.load();
+	}
+	if (!this->cpp_library.isLoaded())
+		return;
 
 	RESOLVE_FUNCTION(this->cpp_library, new_CppInterpreter);
 	RESOLVE_FUNCTION(this->cpp_library, delete_CppInterpreter);
-	RESOLVE_FUNCTION(this->cpp_library, CppInterpreter_execute);
-	RESOLVE_FUNCTION(this->cpp_library, delete_CppCallResult);
+	RESOLVE_FUNCTION2(this->cpp_library, CppInterpreter_execute);
+	RESOLVE_FUNCTION2(this->cpp_library, delete_CppCallResult);
+	RESOLVE_FUNCTION2(this->cpp_library, CppInterpreter_reset_imag);
 
 	auto params = this->construct_CppInterpreterParameters();
-	std::shared_ptr<CppInterpreter> interpreter(new_CppInterpreter(&params), [=](CppInterpreter *i){ delete_CppInterpreter(i); });
+	this->cpp_interpreter.reset(new_CppInterpreter(&params), [=](CppInterpreter *i){ delete_CppInterpreter(i); });
 
+	this->execute_cpp_ready(path);
+}
+
+void PluginCoreState::execute_cpp_ready(const QString &path){
+	CppInterpreter_reset_imag(this->cpp_interpreter.get(), this->get_image_pointer());
 	auto old_tls = cpp_implementations::tls.localData();
 	cpp_implementations::tls.setLocalData((uintptr_t)this);
 	auto old_size = this->cpp_tls_size;
@@ -297,13 +328,13 @@ void PluginCoreState::execute_cpp(const QString &path){
 
 	CallResult result;
 	auto parameter = QDir::toNativeSeparators(path).toUtf8().toStdString();
-	CppInterpreter_execute(&result, interpreter.get(), parameter.c_str());
+	this->CppInterpreter_execute(&result, this->cpp_interpreter.get(), parameter.c_str());
 	if (!result.success){
 		ClangErrorMessage msgbox;
 		msgbox.set_error_message(QString::fromUtf8(result.error_message));
 		msgbox.exec();
 	}
-	delete_CppCallResult(&result);
+	this->delete_CppCallResult(&result);
 
 	this->cpp_tls.resize(this->cpp_tls_size);
 	this->cpp_tls_size = old_size;

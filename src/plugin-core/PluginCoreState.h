@@ -27,9 +27,15 @@ class PluginCoreState{
 	std::vector<void *> cpp_tls;
 	size_t cpp_tls_size;
 	int caller_image_handle = -1;
+	std::shared_ptr<CppInterpreter> cpp_interpreter;
+	void (*CppInterpreter_execute)(CallResult *, CppInterpreter *, const char *);
+	void (*delete_CppCallResult)(CallResult *);
+	void (*CppInterpreter_reset_imag)(CppInterpreter *, external_state);
 
 	void execute_lua(const QString &);
 	void execute_cpp(const QString &);
+	void execute_cpp_ready(const QString &);
+	void *get_image_pointer();
 public:
 	PluginCoreState();
 	void set_current_caller(MainWindow *mw){

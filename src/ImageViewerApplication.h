@@ -10,6 +10,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "SingleInstanceApplication.h"
 #include "serialization/settings.generated.h"
+#include "plugin-core/PluginCoreState.h"
 #include "Shortcuts.h"
 #include "Enums.h"
 #include <QMenu>
@@ -50,6 +51,7 @@ class ImageViewerApplication : public SingleInstanceApplication
 	QString get_config_filename();
 	QString get_user_filters_location();
 	QStringList get_user_filter_list();
+	std::unique_ptr<PluginCoreState> plugin_core_state;
 
 protected:
 	void new_instance(const QStringList &args) override;
@@ -95,6 +97,7 @@ public:
 		return this->settings;
 	}
 	void set_option_values();
+	PluginCoreState &get_plugin_core_state();
 
 public slots:
 	void window_closing(MainWindow *);

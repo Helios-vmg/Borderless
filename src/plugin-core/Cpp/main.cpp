@@ -34,9 +34,19 @@ CPP_PLUGIN_EXPORT_C void delete_CppInterpreter(CppInterpreter *interpreter){
 }
 
 CPP_PLUGIN_EXPORT_C void CppInterpreter_execute(CallResult *result, CppInterpreter *interpreter, const char *filename){
-	auto r = interpreter->execute_buffer(filename);
-	if (result)
-		*result = r;
+	try{
+		auto r = interpreter->execute_path(filename);
+		if (result)
+			*result = r;
+	}catch (std::exception &e){
+		result->impl = new CallResultImpl((std::string)"Exception thrown: " + e.what());
+		result->error_message = result->impl->message.c_str();
+		result->success = false;
+	}
+}
+
+CPP_PLUGIN_EXPORT_C void CppInterpreter_reset_imag(CppInterpreter *interpreter, external_state image){
+	interpreter->reset_image(image);
 }
 
 CPP_PLUGIN_EXPORT_C void delete_CppCallResult(CallResult *result){
