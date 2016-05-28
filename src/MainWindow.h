@@ -14,7 +14,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "LoadedImage.h"
 #include "DirectoryListing.h"
 #include "ImageViewerApplication.h"
-#include "Rational.h"
 #include <QStringList>
 #include <QShortcut>
 #include <vector>

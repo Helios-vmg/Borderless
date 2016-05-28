@@ -43,6 +43,9 @@ struct LuaInterpreterParameters{
 #define LuaInterpreterParameters_DECLARE_FUNCTION(rt, x, ...) \
 	typedef rt (*x##_f)(external_state, __VA_ARGS__); \
 	x##_f x
+#define LuaInterpreterParameters_DECLARE_FUNCTION0(rt, x) \
+	typedef rt (*x##_f)(external_state); \
+	x##_f x
 	LuaInterpreterParameters_DECLARE_FUNCTION(void, release_returned_string, char *);
 	LuaInterpreterParameters_DECLARE_FUNCTION(void, show_message_box, const char *title, const char *message, bool is_error);
 	LuaInterpreterParameters_DECLARE_FUNCTION(ImageOperationResultExternal, get_image_info, int handle, image_info *);
@@ -50,7 +53,7 @@ struct LuaInterpreterParameters{
 	LuaInterpreterParameters_DECLARE_FUNCTION(ImageOperationResultExternal, unload_image, int handle);
 	LuaInterpreterParameters_DECLARE_FUNCTION(ImageOperationResultExternal, allocate_image, int w, int h);
 	LuaInterpreterParameters_DECLARE_FUNCTION(ImageOperationResultExternal, save_image, int handle, const char *path, int compression, const char *format);
-	LuaInterpreterParameters_DECLARE_FUNCTION(int, get_caller_image);
+	LuaInterpreterParameters_DECLARE_FUNCTION0(int, get_caller_image);
 	LuaInterpreterParameters_DECLARE_FUNCTION(void, display_in_current_window, int handle);
 	LuaInterpreterParameters_DECLARE_FUNCTION(void, debug_print, const char *string);
 };

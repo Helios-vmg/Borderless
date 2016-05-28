@@ -6,7 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "MainWindow.h"
-#include "ui_mainwindow.h"
+#include "ui_MainWindow.h"
 #include "Misc.h"
 #include "RotateDialog.h"
 #include <algorithm>
@@ -17,6 +17,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <exception>
 #include <cassert>
 #include "plugin-core/PluginCoreState.h"
+#include "GenericException.h"
 
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
 		QMainWindow(parent),
@@ -156,7 +157,7 @@ void MainWindow::setup_backgrounds(){
 		QPalette palette = widget->palette();
 		QImage alpha(":/alpha.png");
 		if (alpha.isNull())
-			throw std::exception("Resource not found: \"alpha.png\"");
+			throw GenericException("Resource not found: \"alpha.png\"");
 		palette.setBrush(QPalette::Window, QBrush(alpha));
 		widget->setPalette(palette);
 	}
@@ -329,7 +330,7 @@ void MainWindow::display_image(const std::shared_ptr<LoadedGraphics> &graphics){
 	auto size = label->get_size();
 	int mindim = std::min(size.width(), size.height());
 	this->window_state->set_border_size(
-		mindim < this->window_state->default_border_size * 3 ?
+		(std::uint32_t)mindim < this->window_state->default_border_size * 3 ?
 		mindim / 3 :
 		this->window_state->default_border_size
 	);

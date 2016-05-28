@@ -23,7 +23,7 @@ public:
 	FailedToHash(const std::string &path){
 		this->msg = "Unable to compute hash for \'" + path + "\'.";
 	}
-	const char *what() const{
+	const char *what() const noexcept override{
 		return this->msg.c_str();
 	}
 };

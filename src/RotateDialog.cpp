@@ -13,8 +13,8 @@ const double log_125 = log(1.25);
 
 RotateDialog::RotateDialog(MainWindow &parent) :
 		QDialog(parent.centralWidget()),
-		main_window(parent),
 		ui(new Ui_RotateDialog),
+		main_window(parent),
 		result(false),
 		in_do_transform(false){
 	this->setModal(true);

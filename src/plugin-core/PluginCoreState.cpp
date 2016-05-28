@@ -9,6 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "../LoadedImage.h"
 #include "../MainWindow.h"
 #include "../ClangErrorMessage.hpp"
+#include "../GenericException.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -46,7 +47,7 @@ PluginCoreState::PluginCoreState(){
 
 void PluginCoreState::execute(const QString &path){
 	if (!QFile::exists(path))
-		throw std::exception("File not found.");
+		throw GenericException("File not found.");
 	if (is_cpp_path(path))
 		this->execute_cpp(path);
 	if (is_lua_path(path))
@@ -67,7 +68,7 @@ void PluginCoreState::execute_lua(const QString &path){
 	QFile file(path);
 	file.open(QFile::ReadOnly);
 	if (!file.isOpen())
-		throw std::exception("Unknown error while reading file.");
+		throw GenericException("Unknown error while reading file.");
 	auto data = file.readAll();
 	
 	auto filename = QFileInfo(path).fileName();
@@ -131,6 +132,7 @@ ImageOperationResultExternal to_ImageOperationResultExternal(const ImageOperatio
 
 namespace lua_implementations{
 #define LUA_FUNCTION_SIGNATURE(rt, x, ...) rt x(external_state state, __VA_ARGS__)
+#define LUA_FUNCTION_SIGNATURE0(rt, x) rt x(external_state state)
 
 LUA_FUNCTION_SIGNATURE(void, release_returned_string, char *s){
 	delete[] s;
@@ -191,7 +193,7 @@ LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, save_image, int handle, con
 	return to_ImageOperationResultExternal(This->get_store().save(handle, QString::fromUtf8(path), opt));
 }
 
-LUA_FUNCTION_SIGNATURE(int, get_caller_image){
+LUA_FUNCTION_SIGNATURE0(int, get_caller_image){
 	auto This = (PluginCoreState *)state;
 	return This->get_caller_image_handle();
 }
@@ -233,6 +235,7 @@ namespace cpp_implementations{
 QThreadStorage<uintptr_t> tls;
 
 #define CPP_FUNCTION_SIGNATURE(rt, x, ...) rt x(external_state state, __VA_ARGS__)
+#define CPP_FUNCTION_SIGNATURE0(rt, x) rt x(external_state state)
 
 CPP_FUNCTION_SIGNATURE(void, release_returned_string, char *s){
 	delete[] s;
@@ -243,7 +246,7 @@ CPP_FUNCTION_SIGNATURE(void, store_tls, void *s){
 	This->store_tls(s);
 }
 
-CPP_FUNCTION_SIGNATURE(void *, retrieve_tls){
+CPP_FUNCTION_SIGNATURE0(void *, retrieve_tls){
 	auto This = (PluginCoreState *)tls.localData();
 	return This->retrieve_tls();
 }
@@ -294,7 +297,7 @@ void PluginCoreState::execute_cpp(const QString &path){
 		QFile file(path);
 		file.open(QFile::ReadOnly);
 		if (!file.isOpen())
-			throw std::exception("Unknown error while reading file.");
+			throw GenericException("Unknown error while reading file.");
 	}
 	if (this->cpp_interpreter){
 		this->execute_cpp_ready(path);

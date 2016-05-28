@@ -12,7 +12,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 LoadedImage::LoadedImage(const QString &path){
 	QImage img(path);
-	if (this->null = img.isNull())
+	if ((this->null = img.isNull()))
 		return;
 	this->compute_average_color(img);
 	this->image = QtConcurrent::run([](QImage img){ return QPixmap::fromImage(img); }, img);
@@ -80,7 +80,7 @@ QImage LoadedImage::get_QImage() const{
 LoadedAnimation::LoadedAnimation(const QString &path): animation(path){
 	this->null = !this->animation.isValid();
 	if (!this->null){
-		bool ok = this->animation.jumpToNextFrame();
+		(void)this->animation.jumpToNextFrame();
 		this->size = this->animation.currentPixmap().size();
 		this->alpha = true;
 	}

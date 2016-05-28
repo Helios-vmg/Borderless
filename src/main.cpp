@@ -7,7 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "ImageViewerApplication.h"
 
-int main(int argc, char *argv[]){
+int main(int argc, char **argv){
 	try{
 		ImageViewerApplication app(argc, argv, "BorderlessViewer");
 		return app.exec();

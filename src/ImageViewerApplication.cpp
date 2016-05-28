@@ -11,6 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "RotateDialog.h"
 #include "Misc.h"
 #include "OptionsDialog.h"
+#include "GenericException.h"
 #include <QShortcut>
 #include <QMessageBox>
 #include <sstream>
@@ -53,7 +54,7 @@ public:
 	}
 };
 
-ImageViewerApplication::ImageViewerApplication(int argc, char **argv, const QString &unique_name):
+ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false){
 	if (!this->restore_settings())
@@ -148,9 +149,9 @@ void ImageViewerApplication::save_current_windows(std::vector<std::shared_ptr<Wi
 		windows.push_back(w.second->save_state());
 }
 
-class SettingsException : public std::exception {
+class SettingsException : public GenericException{
 public:
-	SettingsException(const char *what) : std::exception(what){}
+	SettingsException(const char *what) : GenericException(what){}
 };
 
 class DeserializationException : public std::exception {
@@ -182,14 +183,14 @@ public:
 			break;
 		}
 	}
-	virtual const char *what() const override {
+	virtual const char *what() const noexcept override {
 		return this->message;
 	}
 };
 
 class ImplementedDeserializerStream : public DeserializerStream {
 protected:
-	void report_error(ErrorType type, const char *info) override {
+	void report_error(ErrorType type, const char *) override {
 		throw DeserializationException(type);
 	}
 public:
@@ -379,7 +380,7 @@ QStringList ImageViewerApplication::get_user_filter_list(){
 	return directory.entryList();
 }
 
-QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *caller){
+QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *){
 	this->lua_submenu.clear();
 	this->lua_submenu.setTitle("User filters");
 	auto list = this->get_user_filter_list();

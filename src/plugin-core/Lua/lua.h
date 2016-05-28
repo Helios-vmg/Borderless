@@ -20,7 +20,7 @@ int lua_panic_function(lua_State *state);
 
 class LuaStackUnwind : public std::exception{
 public:
-	const char *what() const{
+	const char *what() const noexcept override{
 		return "Control flow exception.";
 	}
 };

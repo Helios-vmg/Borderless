@@ -7,7 +7,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "OptionsDialog.h"
 #include "ImageViewerApplication.h"
-#include <QCheckbox>
 #include <cassert>
 #include <algorithm>
 
@@ -27,7 +26,7 @@ void ShortcutListModel::sort(){
 // first <= x < y !f(x) and for all y <= z < last f(z), find_all() returns y,
 // or last if it does not exist.
 template<class It, class F>
-It find_all(It first, It last, F &f){
+It find_all(It first, It last, const F &f){
 	auto n = last - first;
 	while (n > 0){
 		auto n2 = n / 2;
@@ -100,11 +99,11 @@ void ShortcutListModel::replace_all(const std::vector<ShortcutTriple> &new_short
 	}
 }
 
-QModelIndex ShortcutListModel::index(int row, int column, const QModelIndex &parent) const{
+QModelIndex ShortcutListModel::index(int row, int column, const QModelIndex &) const{
 	return this->createIndex(row, column);
 }
 
-QModelIndex ShortcutListModel::parent(const QModelIndex &idx) const{
+QModelIndex ShortcutListModel::parent(const QModelIndex &) const{
 	return QModelIndex();
 }
 
@@ -121,7 +120,7 @@ int ShortcutListModel::columnCount(const QModelIndex &parent) const{
 }
 
 QVariant ShortcutListModel::data(const QModelIndex &index, int role) const{
-	if (index.row() < 0 || index.row() >= this->items.size() || index.column() < 0 || index.column() > 1 || role != Qt::DisplayRole)
+	if (index.row() < 0 || (size_t)index.row() >= this->items.size() || index.column() < 0 || index.column() > 1 || role != Qt::DisplayRole)
 		return QVariant();
 	switch (index.column()){
 		case 0:
@@ -135,13 +134,13 @@ QVariant ShortcutListModel::data(const QModelIndex &index, int role) const{
 
 class ShortcutListHeaderModel : public QAbstractItemModel{
 public:
-	QModelIndex index(int row, int column, const QModelIndex &parent) const{
+	QModelIndex index(int row, int column, const QModelIndex &) const{
 		return this->createIndex(row, column);
 	}
-	QModelIndex parent(const QModelIndex &idx) const{
+	QModelIndex parent(const QModelIndex &) const{
 		return QModelIndex();
 	}
-	int rowCount(const QModelIndex &parent) const{
+	int rowCount(const QModelIndex &) const{
 		return 0;
 	}
 	int columnCount(const QModelIndex &parent) const{
@@ -149,10 +148,10 @@ public:
 			return 0;
 		return 2;
 	}
-	QVariant data(const QModelIndex &index, int role) const{
+	QVariant data(const QModelIndex &, int) const{
 		return QVariant();
 	}
-	QVariant headerData(int section, Qt::Orientation orientation, int role) const{
+	QVariant headerData(int section, Qt::Orientation, int role) const{
 		if (section < 0 || section > 1 || role != Qt::DisplayRole)
 			return QVariant();
 		switch (section){
@@ -239,7 +238,7 @@ void OptionsDialog::sequence_entered(){
 	this->ui->add_button->setEnabled(!this->sequence_exists_in_model(seq));
 }
 
-void OptionsDialog::selected_shortcut_changed(const QItemSelection &selected, const QItemSelection &deselected){
+void OptionsDialog::selected_shortcut_changed(const QItemSelection &selected, const QItemSelection &){
 	this->ui->remove_button->setEnabled(!!selected.indexes().size());
 }
 

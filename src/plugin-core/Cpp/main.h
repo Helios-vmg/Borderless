@@ -32,9 +32,12 @@ struct CppInterpreterParameters{
 #define CppInterpreterParameters_DECLARE_FUNCTION(rt, x, ...) \
 	typedef rt (*x##_f)(external_state, __VA_ARGS__); \
 	x##_f x
+#define CppInterpreterParameters_DECLARE_FUNCTION0(rt, x) \
+	typedef rt (*x##_f)(external_state); \
+	x##_f x
 	CppInterpreterParameters_DECLARE_FUNCTION(void, release_returned_string, char *);
 	CppInterpreterParameters_DECLARE_FUNCTION(void, store_tls, void *);
-	CppInterpreterParameters_DECLARE_FUNCTION(void *, retrieve_tls);
+	CppInterpreterParameters_DECLARE_FUNCTION0(void *, retrieve_tls);
 	CppInterpreterParameters_DECLARE_FUNCTION(void, display_in_current_window, void *handle);
 	CppInterpreterParameters_DECLARE_FUNCTION(bool, get_file_sha1, const char *path, unsigned char *buffer, size_t buffer_size);
 };

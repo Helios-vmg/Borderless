@@ -13,7 +13,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 class StdStreamRedirector{
 	enum PIPES { READ, WRITE };
-	std::array<int, 2> pipes = {0, 0};
+	std::array<int, 2> pipes = {{0, 0}};
 	int old_stdout = 0;
 	int old_stderr = 0;
 	bool capturing = false;

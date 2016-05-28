@@ -29,7 +29,7 @@ class SingleInstanceApplication : public QApplication{
 
 	bool running;
 	QString unique_name;
-	QSharedMemory shared_memory;
+	std::unique_ptr<QSharedMemory> shared_memory;
 	std::shared_ptr<QLocalServer> local_server;
 
 	static const int timeout = 1000;
@@ -39,6 +39,7 @@ class SingleInstanceApplication : public QApplication{
 	}
 	bool communicate_with_server(QLocalSocket &socket, qint64 &server_pid, const QStringList &list);
 	bool communicate_with_server(QLocalSocket &socket, QByteArray &response, const QByteArray &msg);
+	void clear_shared_memory();
 
 protected:
 	QStringList args;
@@ -46,7 +47,7 @@ protected:
 
 public:
 	//May throw ApplicationAlreadyRunningException.
-	explicit SingleInstanceApplication(int argc, char **argv, const QString &unique_name);
+	explicit SingleInstanceApplication(int &argc, char **argv, const QString &unique_name);
 	bool is_running() const{
 		return this->running;
 	}

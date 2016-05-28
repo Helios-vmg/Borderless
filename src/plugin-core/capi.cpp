@@ -23,11 +23,11 @@ EXPORT_C Image *allocate_image(PluginCoreState *state, int w, int h){
 	return state->get_store().allocate_image(w, h);
 }
 
-EXPORT_C Image *clone_image(Image *image){
+EXPORT_C Image *clone_image(Image *){
 	return nullptr;
 }
 
-EXPORT_C Image *clone_image_without_data(Image *image){
+EXPORT_C Image *clone_image_without_data(Image *){
 	return nullptr;
 }
 
@@ -58,17 +58,19 @@ EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image){
 	state->display_in_caller(image);
 }
 
-EXPORT_C void rgb_to_hsv(u8_quad *hsv, u8_quad rgb){
+EXPORT_C void rgb_to_hsv(u8_quad *, u8_quad){
 }
 
-EXPORT_C void hsv_to_rgb(u8_quad *rgb, u8_quad hsv){
+EXPORT_C void hsv_to_rgb(u8_quad *, u8_quad){
 
 }
 
-EXPORT_C void debug_print(const char *string){
 #ifdef WIN32
+EXPORT_C void debug_print(const char *string){
 	auto w = QString::fromUtf8(string).toStdWString();
 	OutputDebugStringW(w.c_str());
+#else
+EXPORT_C void debug_print(const char *){
 #endif
 }
 
