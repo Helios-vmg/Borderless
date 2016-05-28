@@ -5,7 +5,7 @@ All rights reserved.
 Distributed under a permissive license. See COPYING.txt for details.
 */
 
-#include "directorylisting.h"
+#include "DirectoryListing.h"
 #include <QDir>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
