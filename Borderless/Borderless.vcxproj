@@ -431,8 +431,9 @@
     <ClInclude Include="$(SolutionDir)\src\plugin-core\ImageStore.h" />
     <ClInclude Include="$(SolutionDir)\src\plugin-core\PluginCoreState.h" />
     <ClInclude Include="$(SolutionDir)\src\serialization\settings.generated.h" />
+    <ClInclude Include="$(SolutionDir)\src\Enums.h" />
+    <ClInclude Include="$(SolutionDir)\src\ShortcutInfo.h" />
     <ClInclude Include="GeneratedFiles\ui_ClangErrorMessage.h" />
-    <ClInclude Include="ShortcutInfo.h" />
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing OptionsDialog.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -460,7 +461,6 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
     </CustomBuild>
     <ClInclude Include="$(SolutionDir)\src\Quadrangular.h" />
-    <ClInclude Include="$(SolutionDir)\src\Rational.h" />
     <CustomBuild Include="$(SolutionDir)\src\RotateDialog.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing RotateDialog.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -488,7 +488,6 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
     </CustomBuild>
     <ClInclude Include="$(SolutionDir)\src\Shortcuts.h" />
-    <ClInclude Include="Enums.h" />
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h" />
     <ClInclude Include="GeneratedFiles\ui_OptionsDialog.h" />
     <ClInclude Include="GeneratedFiles\ui_RotateDialog.h" />
