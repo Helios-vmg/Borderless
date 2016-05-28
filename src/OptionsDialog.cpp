@@ -26,7 +26,7 @@ void ShortcutListModel::sort(){
 // first <= x < y !f(x) and for all y <= z < last f(z), find_all() returns y,
 // or last if it does not exist.
 template<class It, class F>
-It find_all(It first, It last, F &f){
+It find_all(It first, It last, const F &f){
 	auto n = last - first;
 	while (n > 0){
 		auto n2 = n / 2;
