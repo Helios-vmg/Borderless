@@ -9,6 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "../LoadedImage.h"
 #include "../MainWindow.h"
 #include "../ClangErrorMessage.hpp"
+#include "../GenericException.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -46,7 +47,7 @@ PluginCoreState::PluginCoreState(){
 
 void PluginCoreState::execute(const QString &path){
 	if (!QFile::exists(path))
-		throw std::exception("File not found.");
+		throw GenericException("File not found.");
 	if (is_cpp_path(path))
 		this->execute_cpp(path);
 	if (is_lua_path(path))
@@ -67,7 +68,7 @@ void PluginCoreState::execute_lua(const QString &path){
 	QFile file(path);
 	file.open(QFile::ReadOnly);
 	if (!file.isOpen())
-		throw std::exception("Unknown error while reading file.");
+		throw GenericException("Unknown error while reading file.");
 	auto data = file.readAll();
 	
 	auto filename = QFileInfo(path).fileName();
@@ -294,7 +295,7 @@ void PluginCoreState::execute_cpp(const QString &path){
 		QFile file(path);
 		file.open(QFile::ReadOnly);
 		if (!file.isOpen())
-			throw std::exception("Unknown error while reading file.");
+			throw GenericException("Unknown error while reading file.");
 	}
 	if (this->cpp_interpreter){
 		this->execute_cpp_ready(path);

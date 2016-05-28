@@ -6,6 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "SingleInstanceApplication.h"
+#include "GenericException.h"
 #include <QtNetwork/QLocalSocket>
 #include <QDataStream>
 #include <exception>
@@ -51,7 +52,7 @@ SingleInstanceApplication::SingleInstanceApplication(int argc, char **argv, cons
 	}
 
 	if (!success)
-		throw std::exception("Unable to allocate shared memory.");
+		throw GenericException("Unable to allocate shared memory.");
 
 	this->local_server.reset(new QLocalServer(this));
 	connect(this->local_server.get(), SIGNAL(newConnection()), this, SLOT(receive_message()));

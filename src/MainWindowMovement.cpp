@@ -6,7 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "MainWindow.h"
-#include "ui_mainwindow.h"
+#include "ui_MainWindow.h"
 
 void set_flags(bool &left, bool &right, bool &middle, QMouseEvent *ev){
 	left = check_flag(ev->buttons(), Qt::LeftButton);

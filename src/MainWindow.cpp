@@ -17,6 +17,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <exception>
 #include <cassert>
 #include "plugin-core/PluginCoreState.h"
+#include "GenericException.h"
 
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
 		QMainWindow(parent),
@@ -156,7 +157,7 @@ void MainWindow::setup_backgrounds(){
 		QPalette palette = widget->palette();
 		QImage alpha(":/alpha.png");
 		if (alpha.isNull())
-			throw std::exception("Resource not found: \"alpha.png\"");
+			throw GenericException("Resource not found: \"alpha.png\"");
 		palette.setBrush(QPalette::Window, QBrush(alpha));
 		widget->setPalette(palette);
 	}
