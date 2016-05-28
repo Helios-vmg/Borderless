@@ -54,7 +54,7 @@ public:
 	}
 };
 
-ImageViewerApplication::ImageViewerApplication(int argc, char **argv, const QString &unique_name):
+ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false){
 	if (!this->restore_settings())

@@ -58,7 +58,7 @@ protected:
 	void add_window(sharedp_t window);
 
 public:
-	ImageViewerApplication(int argc, char **argv, const QString &unique_name);
+	ImageViewerApplication(int &argc, char **argv, const QString &unique_name);
 	~ImageViewerApplication();
 	std::shared_ptr<DirectoryIterator> request_directory(const QString &path);
 	void release_directory(std::shared_ptr<DirectoryIterator>);

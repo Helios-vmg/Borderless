@@ -29,7 +29,7 @@ void allow_set_foreground_window(qulonglong){
 }
 #endif
 
-SingleInstanceApplication::SingleInstanceApplication(int argc, char **argv, const QString &unique_name):
+SingleInstanceApplication::SingleInstanceApplication(int &argc, char **argv, const QString &unique_name):
 		QApplication(argc, argv),
 		running(false),
 		unique_name(unique_name){

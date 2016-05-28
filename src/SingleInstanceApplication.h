@@ -46,7 +46,7 @@ protected:
 
 public:
 	//May throw ApplicationAlreadyRunningException.
-	explicit SingleInstanceApplication(int argc, char **argv, const QString &unique_name);
+	explicit SingleInstanceApplication(int &argc, char **argv, const QString &unique_name);
 	bool is_running() const{
 		return this->running;
 	}
