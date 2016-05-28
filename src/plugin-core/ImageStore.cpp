@@ -10,9 +10,9 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QFile>
 
 Image::Image(const QString &path, ImageStore &owner, int handle):
-		alphaed(false),
 		owner(&owner),
-		own_handle(handle){
+		own_handle(handle),
+		alphaed(false){
 	if (!QFile::exists(path))
 		throw ImageOperationResult("File not found.");
 	this->bitmap = QImage(path);
@@ -23,9 +23,9 @@ Image::Image(const QString &path, ImageStore &owner, int handle):
 }
 
 Image::Image(int w, int h, ImageStore &owner, int handle):
-		alphaed(false),
 		owner(&owner),
-		own_handle(handle){
+		own_handle(handle),
+		alphaed(false){
 	this->bitmap = QImage(w, h, QImage::Format_RGBA8888);
 	if (this->bitmap.isNull())
 		throw ImageOperationResult("Unknown error.");
@@ -34,9 +34,9 @@ Image::Image(int w, int h, ImageStore &owner, int handle):
 }
 
 Image::Image(const QImage &image, ImageStore &owner, int handle):
-		alphaed(false),
 		owner(&owner),
-		own_handle(handle){
+		own_handle(handle),
+		alphaed(false){
 	this->bitmap = image;
 	if (this->bitmap.isNull())
 		throw ImageOperationResult("Unknown error.");
@@ -91,7 +91,7 @@ ImageOperationResult Image::save(const QString &path, SaveOptions opt){
 }
 
 ImageOperationResult Image::get_pixel(unsigned x, unsigned y){
-	if (x >= this->w || y >= this->h)
+	if (x >= (unsigned)this->w || y >= (unsigned)this->h)
 		return "Invalid coordinates.";
 	this->to_alpha();
 	auto pixels = this->bitmap.bits();

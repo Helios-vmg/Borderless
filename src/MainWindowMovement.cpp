@@ -161,13 +161,13 @@ void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 	auto label_rect = this->ui->label->rect();
 
 	auto border_size = this->window_state->get_border_size();
-	if (rect.width() < border_size){
+	if ((std::uint32_t)rect.width() < border_size){
 		if (right)
 			rect.setWidth(border_size);
 		else
 			rect.setLeft(rect.right() - border_size + 1);
 	}
-	if (rect.height() < border_size){
+	if ((std::uint32_t)rect.height() < border_size){
 		if (bottom)
 			rect.setHeight(border_size);
 		else

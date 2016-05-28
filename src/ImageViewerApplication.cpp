@@ -190,7 +190,7 @@ public:
 
 class ImplementedDeserializerStream : public DeserializerStream {
 protected:
-	void report_error(ErrorType type, const char *info) override {
+	void report_error(ErrorType type, const char *) override {
 		throw DeserializationException(type);
 	}
 public:
@@ -380,7 +380,7 @@ QStringList ImageViewerApplication::get_user_filter_list(){
 	return directory.entryList();
 }
 
-QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *caller){
+QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *){
 	this->lua_submenu.clear();
 	this->lua_submenu.setTitle("User filters");
 	auto list = this->get_user_filter_list();

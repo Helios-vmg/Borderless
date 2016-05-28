@@ -330,7 +330,7 @@ void MainWindow::display_image(const std::shared_ptr<LoadedGraphics> &graphics){
 	auto size = label->get_size();
 	int mindim = std::min(size.width(), size.height());
 	this->window_state->set_border_size(
-		mindim < this->window_state->default_border_size * 3 ?
+		(std::uint32_t)mindim < this->window_state->default_border_size * 3 ?
 		mindim / 3 :
 		this->window_state->default_border_size
 	);

@@ -25,14 +25,14 @@ void allow_set_foreground_window(qint64 pid){
 	ret = ret;
 }
 #else
-void allow_set_foreground_window(qulonglong pid){
+void allow_set_foreground_window(qulonglong){
 }
 #endif
 
 SingleInstanceApplication::SingleInstanceApplication(int argc, char **argv, const QString &unique_name):
 		QApplication(argc, argv),
-		unique_name(unique_name),
-		running(false){
+		running(false),
+		unique_name(unique_name){
 #ifndef DISABLE_SINGLE_INSTANCE
 	this->args = this->arguments();
 	this->shared_memory.setKey(unique_name);
@@ -80,10 +80,13 @@ bool SingleInstanceApplication::communicate_with_server(QLocalSocket &socket, qi
 	if (!this->communicate_with_server(socket, response, to_QByteArray(list)))
 		return false;
 	server_pid = 0;
-	unsigned char buf[sizeof(server_pid)];
+	union{
+		unsigned char buf[sizeof(qint64)];
+		qint64 pid;
+	} u;
 	for (int i = 0; i < response.size(); i++)
-		buf[i] = response[i];
-	server_pid = *(quint64 *)buf;
+		u.buf[i] = response[i];
+	server_pid = u.pid;
 	return true;
 }
 
@@ -92,16 +95,16 @@ bool SingleInstanceApplication::communicate_with_server(QLocalSocket &socket, QB
 		return false;
 	socket.connectToServer(this->unique_name, QIODevice::ReadWrite);
 	if (!socket.waitForConnected(this->timeout)){
-		qDebug(socket.errorString().toLatin1());
+		qDebug() << socket.errorString().toLatin1();
 		return false;
 	}
 	socket.write(msg);
 	if (!socket.waitForBytesWritten(this->timeout)){
-		qDebug(socket.errorString().toLatin1());
+		qDebug() << socket.errorString().toLatin1();
 		return false;
 	}
 	if (!socket.waitForReadyRead(this->timeout)){
-		qDebug(socket.errorString().toLatin1());
+		qDebug() << socket.errorString().toLatin1();
 		return false;
 	}
 	response = socket.readAll();
