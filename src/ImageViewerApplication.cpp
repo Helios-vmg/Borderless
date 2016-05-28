@@ -183,7 +183,7 @@ public:
 			break;
 		}
 	}
-	virtual const char *what() const noexcept override {
+	virtual const char *what() const NOEXCEPT override {
 		return this->message;
 	}
 };
