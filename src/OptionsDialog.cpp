@@ -7,7 +7,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "OptionsDialog.h"
 #include "ImageViewerApplication.h"
-#include <QCheckbox>
 #include <cassert>
 #include <algorithm>
 
