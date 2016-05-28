@@ -6,7 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "MainWindow.h"
-#include "ui_mainwindow.h"
+#include "ui_MainWindow.h"
 #include "Misc.h"
 #include "RotateDialog.h"
 #include <algorithm>
