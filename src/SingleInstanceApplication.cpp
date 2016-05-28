@@ -35,20 +35,25 @@ SingleInstanceApplication::SingleInstanceApplication(int &argc, char **argv, con
 		unique_name(unique_name){
 #ifndef DISABLE_SINGLE_INSTANCE
 	this->args = this->arguments();
-	this->shared_memory.setKey(unique_name);
-	bool success;
-	for (int tries = 0; tries < 5; tries++){
-		if (this->shared_memory.attach()){
-			QLocalSocket socket(this);
-			this->running = true;
-			qint64 server_pid;
-			if (this->communicate_with_server(socket, server_pid, this->arguments()))
-				allow_set_foreground_window(server_pid);
-			throw ApplicationAlreadyRunningException();
+	bool success = false;
+	for (int tries = 0; tries < 5 && !success; tries++){
+		this->shared_memory.reset(new QSharedMemory);
+		this->shared_memory->setKey(unique_name);
+		for (; tries < 5 && !success; tries++){
+			if (this->shared_memory->attach()){
+				QLocalSocket socket(this);
+				this->running = true;
+				qint64 server_pid;
+				if (this->communicate_with_server(socket, server_pid, this->arguments()))
+					allow_set_foreground_window(server_pid);
+				else{
+					this->clear_shared_memory();
+					break;
+				}
+				throw ApplicationAlreadyRunningException();
+			}
+			success = this->shared_memory->create(1);
 		}
-		success = this->shared_memory.create(1);
-		if (success)
-			break;
 	}
 
 	if (!success)
@@ -56,7 +61,17 @@ SingleInstanceApplication::SingleInstanceApplication(int &argc, char **argv, con
 
 	this->local_server.reset(new QLocalServer(this));
 	connect(this->local_server.get(), SIGNAL(newConnection()), this, SLOT(receive_message()));
-	this->local_server->listen(unique_name);
+	for (int i = 0; i < 2 && !this->local_server->listen(unique_name); i++)
+		this->clear_shared_memory();
+#endif
+}
+
+void SingleInstanceApplication::clear_shared_memory(){
+#ifndef WIN32
+	QFile file("/tmp/" + unique_name);
+	if (file.exists())
+		std::cerr << "Shared memory exists!\n";
+	file.remove();
 #endif
 }
 
