@@ -132,6 +132,7 @@ ImageOperationResultExternal to_ImageOperationResultExternal(const ImageOperatio
 
 namespace lua_implementations{
 #define LUA_FUNCTION_SIGNATURE(rt, x, ...) rt x(external_state state, __VA_ARGS__)
+#define LUA_FUNCTION_SIGNATURE0(rt, x) rt x(external_state state)
 
 LUA_FUNCTION_SIGNATURE(void, release_returned_string, char *s){
 	delete[] s;
@@ -192,7 +193,7 @@ LUA_FUNCTION_SIGNATURE(ImageOperationResultExternal, save_image, int handle, con
 	return to_ImageOperationResultExternal(This->get_store().save(handle, QString::fromUtf8(path), opt));
 }
 
-LUA_FUNCTION_SIGNATURE(int, get_caller_image){
+LUA_FUNCTION_SIGNATURE0(int, get_caller_image){
 	auto This = (PluginCoreState *)state;
 	return This->get_caller_image_handle();
 }
@@ -234,6 +235,7 @@ namespace cpp_implementations{
 QThreadStorage<uintptr_t> tls;
 
 #define CPP_FUNCTION_SIGNATURE(rt, x, ...) rt x(external_state state, __VA_ARGS__)
+#define CPP_FUNCTION_SIGNATURE0(rt, x) rt x(external_state state)
 
 CPP_FUNCTION_SIGNATURE(void, release_returned_string, char *s){
 	delete[] s;
@@ -244,7 +246,7 @@ CPP_FUNCTION_SIGNATURE(void, store_tls, void *s){
 	This->store_tls(s);
 }
 
-CPP_FUNCTION_SIGNATURE(void *, retrieve_tls){
+CPP_FUNCTION_SIGNATURE0(void *, retrieve_tls){
 	auto This = (PluginCoreState *)tls.localData();
 	return This->retrieve_tls();
 }
