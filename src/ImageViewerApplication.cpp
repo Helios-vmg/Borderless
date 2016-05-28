@@ -11,6 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "RotateDialog.h"
 #include "Misc.h"
 #include "OptionsDialog.h"
+#include "GenericException.h"
 #include <QShortcut>
 #include <QMessageBox>
 #include <sstream>
@@ -148,9 +149,9 @@ void ImageViewerApplication::save_current_windows(std::vector<std::shared_ptr<Wi
 		windows.push_back(w.second->save_state());
 }
 
-class SettingsException : public std::exception {
+class SettingsException : public GenericException{
 public:
-	SettingsException(const char *what) : std::exception(what){}
+	SettingsException(const char *what) : GenericException(what){}
 };
 
 class DeserializationException : public std::exception {
