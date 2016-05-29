@@ -256,7 +256,7 @@ DECLARE_LUA_FUNCTION(hsv_to_rgb){
 
 DECLARE_LUA_FUNCTION(set_current_pixel){
 #ifndef MINIMIZE_CHECKING
-	if (lua_gettop(state) < 3){
+	if (lua_gettop(state) < 4){
 		handle_call_to_c_error(state, __FUNCTION__, "Not enough parameters.");
 		return 0;
 	}
