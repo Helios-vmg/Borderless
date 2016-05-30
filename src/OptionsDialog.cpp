@@ -170,7 +170,7 @@ static ShortcutListHeaderModel slhm;
 OptionsDialog::OptionsDialog(ImageViewerApplication &app):
 		ui(new Ui_OptionsDialog),
 		app(&app),
-		no_changes(true){
+		no_shortcut_changes(true){
 	this->setModal(true);
 	this->ui->setupUi(this);
 
@@ -249,7 +249,7 @@ void OptionsDialog::add_button_clicked(bool){
 	auto command = this->ui->command_input->currentData();
 	auto str_command = command.toString();
 	this->sl_model->add_new_item(this->app->get_shortcuts(), str_command, seq);
-	this->no_changes = false;
+	this->no_shortcut_changes = false;
 }
 
 void OptionsDialog::remove_button_clicked(bool){
@@ -269,7 +269,7 @@ void OptionsDialog::remove_button_clicked(bool){
 	combo->setCurrentIndex(found);
 	this->ui->key_sequence_input->setKeySequence(item.sequence);
 	this->sequence_entered();
-	this->no_changes = false;
+	this->no_shortcut_changes = false;
 	this->ui->shortcuts_list_view->setCurrentIndex(index);
 }
 
@@ -294,8 +294,8 @@ std::shared_ptr<MainSettings> OptionsDialog::build_options(){
 void OptionsDialog::accept(){
 	auto options = this->build_options();
 	if (*options != *this->options)
-		this->app->set_option_values();
-	if (!this->no_changes)
+		this->app->set_option_values(*options);
+	if (!this->no_shortcut_changes)
 		this->app->options_changed(this->sl_model->get_items());
 	this->hide();
 }
@@ -308,5 +308,5 @@ void OptionsDialog::reset_button_clicked(bool){
 	auto defaults = this->app->get_shortcuts().get_default_shortcuts();
 	this->sl_model->replace_all(defaults);
 	this->ui->shortcuts_list_view->resizeColumnToContents(0);
-	this->no_changes = false;
+	this->no_shortcut_changes = false;
 }

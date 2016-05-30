@@ -240,7 +240,8 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	return ret;
 }
 
-void ImageViewerApplication::set_option_values(){
+void ImageViewerApplication::set_option_values(MainSettings &settings){
+	*this->settings = settings;
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
 }
 

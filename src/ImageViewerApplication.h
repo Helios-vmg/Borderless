@@ -96,7 +96,7 @@ public:
 	std::shared_ptr<MainSettings> get_option_values() const{
 		return this->settings;
 	}
-	void set_option_values();
+	void set_option_values(MainSettings &settings);
 	PluginCoreState &get_plugin_core_state();
 
 public slots:

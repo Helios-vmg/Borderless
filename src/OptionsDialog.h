@@ -49,7 +49,7 @@ class OptionsDialog : public QDialog{
 	std::shared_ptr<ShortcutListModel> sl_model;
 	std::shared_ptr<SimpleItemSelectionModel> sl_selmodel;
 	ImageViewerApplication *app;
-	bool no_changes;
+	bool no_shortcut_changes;
 	std::shared_ptr<MainSettings> options;
 
 	void setup_command_input();
