@@ -25,7 +25,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		app(&app){
 	this->init();
 	if (arguments.size() >= 2)
-		this->display_image(arguments[1]);
+		this->open_path_and_display_image(arguments[1]);
 }
 
 MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
@@ -65,17 +65,32 @@ void MainWindow::init(){
 
 void MainWindow::set_desktop_size(int screen){
 	this->desktop_size = this->app->desktop()->availableGeometry(screen);
+	this->desktop_size.setHeight(this->desktop_size.height());
 	this->screen_size = this->app->desktop()->screenGeometry(screen);
 }
 
-QPoint MainWindow::get_image_pos() const{
-	return this->ui->label->pos();
+void MainWindow::save_image_pos(bool force){
+	if (this->window_state->get_fullscreen() && !force)
+		return;
+	auto p = this->ui->label->pos();
+	qDebug() << "Saving image position at " << p;
+	this->image_pos = p;
 }
 
-void MainWindow::set_image_pos(const QPoint &p){
+void MainWindow::restore_image_pos(){
+	QPoint p;
+	if (this->image_pos){
+		p = *this->image_pos;
+		qDebug() << "Restoring image position: " << p;
+	}else{
+		qDebug() << "Saved image position in unset state. Restoring to " << p;
+	}
 	this->ui->label->move(p);
-	if (!this->window_state->get_fullscreen())
-		this->image_pos = p;
+}
+
+void MainWindow::clear_image_pos(){
+	qDebug() << "Clearing image position.";
+	this->image_pos.clear();
 }
 
 void MainWindow::set_zoom(){
@@ -111,25 +126,31 @@ void MainWindow::set_zoom(){
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){
 	auto label_pos = this->ui->label->pos();
+	qDebug() << "MainWindow::apply_zoom(): label_pos = " << label_pos;
 	auto center = to_QPoint(this->size()) / 2;
+	qDebug() << "MainWindow::apply_zoom(): center = " << center;
 	auto center_at = center - label_pos;
+	qDebug() << "MainWindow::apply_zoom(): center_at = " << center_at;
 
 	auto zoom = this->get_current_zoom();
+	qDebug() << "MainWindow::apply_zoom(): zoom = " << zoom;
 
-	this->display_image(this->displayed_image);
+	this->display_image_in_label(this->displayed_image, first_display);
 
-	auto new_location = center - center_at * (zoom / old_zoom);
+	if (zoom != 1){
+		auto new_location = center - center_at * (zoom / old_zoom);
+		qDebug() << "MainWindow::apply_zoom(): center - center_at * (zoom / old_zoom) = "
+			<< center << " - " << center_at << " * (" << zoom << " / " << old_zoom << ") = " << new_location;
 
-	if (first_display){
-		if (!this->app->get_center_when_displayed()){
+		if (first_display && !this->app->get_center_when_displayed()){
 			if (new_location.x() < 0)
 				new_location.setX(0);
 			if (new_location.y() < 0)
 				new_location.setY(0);
 		}
-	}
 
-	this->move_image(new_location);
+		this->move_image(new_location);
+	}
 }
 
 void MainWindow::change_zoom(bool in){
@@ -265,14 +286,15 @@ void MainWindow::move_in_direction(bool forward){
 		return;
 	this->set_iterator();
 	this->moving_forward = forward;
-	size_t i = this->directory_iterator->pos();
+	auto old_pos = this->directory_iterator->pos();
 	this->advance();
-	if (this->directory_iterator->pos() == i)
+	if (this->directory_iterator->pos() == old_pos)
 		return;
-	this->display_image(**this->directory_iterator);
+	this->clear_image_pos();
+	this->open_path_and_display_image(**this->directory_iterator);
 }
 
-void MainWindow::display_image(QString path){
+void MainWindow::open_path_and_display_image(QString path){
 	std::shared_ptr<LoadedGraphics> li;
 	size_t i = 0;
 	auto &label = this->ui->label;
@@ -310,22 +332,18 @@ void MainWindow::display_image(QString path){
 	label->reset_transform();
 	this->set_zoom();
 
-	if (this->get_current_zoom() != 1)
-		this->apply_zoom(true, 1);
-	else
-		this->display_image(li);
+	this->apply_zoom(true, 1);
 }
 
 void MainWindow::display_filtered_image(const std::shared_ptr<LoadedGraphics> &graphics){
 	this->displayed_image = graphics;
-	this->display_image(graphics);
+	this->display_image_in_label(graphics, false);
 }
 
-void MainWindow::display_image(const std::shared_ptr<LoadedGraphics> &graphics){
+void MainWindow::display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display){
 	auto zoom = this->get_current_zoom();
 	auto &label = this->ui->label;
 	label->set_image(*graphics);
-	//label->setPixmap(pixmap);
 	label->set_zoom(zoom);
 	auto size = label->get_size();
 	int mindim = std::min(size.width(), size.height());
@@ -339,6 +357,13 @@ void MainWindow::display_image(const std::shared_ptr<LoadedGraphics> &graphics){
 	if (!this->color_calculated && this->displayed_image->has_alpha()){
 		this->set_background(true);
 		this->color_calculated = true;
+	}
+
+	if (first_display && this->app->get_center_when_displayed()){
+		auto label_size = label->size();
+		auto window_size = this->size();
+		auto new_label_position = (window_size - label_size) / 2;
+		this->move_image(to_QPoint(new_label_position));
 	}
 
 	this->reposition_window();

@@ -195,7 +195,7 @@ void MainWindow::go_to_start(){
 	if (this->directory_iterator->pos() == i)
 		return;
 	this->moving_forward = true;
-	this->display_image(**this->directory_iterator);
+	this->open_path_and_display_image(**this->directory_iterator);
 }
 
 void MainWindow::go_to_end(){
@@ -207,7 +207,7 @@ void MainWindow::go_to_end(){
 	if (this->directory_iterator->pos() == i)
 		return;
 	this->moving_forward = false;
-	this->display_image(**this->directory_iterator);
+	this->open_path_and_display_image(**this->directory_iterator);
 }
 
 void MainWindow::toggle_fullscreen(){
@@ -216,9 +216,9 @@ void MainWindow::toggle_fullscreen(){
 	if (!this->window_state->get_fullscreen()){
 		this->apply_zoom(false, zoom);
 		this->setGeometry(this->window_rect);
-		this->set_image_pos(this->image_pos);
+		this->restore_image_pos();
 	}else{
-		this->image_pos = this->get_image_pos();
+		this->save_image_pos(true);
 		this->set_zoom();
 		this->apply_zoom(false, zoom);
 		this->resolution_to_window_size();

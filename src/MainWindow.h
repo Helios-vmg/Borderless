@@ -34,8 +34,8 @@ class MainWindow : public QMainWindow{
 		window_rect;
 	QPoint first_mouse_pos,
 		first_window_pos,
-		first_label_pos,
-		image_pos;
+		first_label_pos;
+	Optional<QPoint> image_pos;
 	QSize first_window_size;
 	std::shared_ptr<LoadedGraphics> displayed_image;
 	std::vector<int> horizontal_clampers,
@@ -98,8 +98,9 @@ class MainWindow : public QMainWindow{
 	void resolution_to_window_size();
 	void reposition_window();
 	void reposition_image();
-	QPoint get_image_pos() const;
-	void set_image_pos(const QPoint &);
+	void save_image_pos(bool force = false);
+	void restore_image_pos();
+	void clear_image_pos();
 	void rotate(bool right, bool fine = false);
 	void fix_positions_and_zoom();
 
@@ -119,8 +120,8 @@ public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
 	~MainWindow();
-	void display_image(QString path);
-	void display_image(const std::shared_ptr<LoadedGraphics> &graphics);
+	void open_path_and_display_image(QString path);
+	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
 	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
 	std::shared_ptr<WindowState> save_state() const;
 	void restore_state(const std::shared_ptr<WindowState> &);

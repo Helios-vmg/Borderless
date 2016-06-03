@@ -17,7 +17,7 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	path += QString::fromStdWString(this->window_state->get_current_filename());
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
-	this->display_image(path);
+	this->open_path_and_display_image(path);
 	this->ui->label->load_state(*state);
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 

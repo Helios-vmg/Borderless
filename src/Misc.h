@@ -8,6 +8,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef MISC_H
 #define MISC_H
 
+#include "GenericException.h"
 #include <QSize>
 #include <QPoint>
 #include <QStringList>
@@ -138,5 +139,66 @@ template <typename T>
 void set_max(T &a, const T &b){
 	a = std::max(a, b);
 }
+
+class OptionalNotSetException : public GenericException{
+public:
+	OptionalNotSetException(): GenericException("Attempting to access the object of an uninitialized Optional."){}
+};
+
+template <typename T>
+class Optional{
+	bool set;
+	T data;
+public:
+	Optional(): set(false){}
+	Optional(const T &data): set(true), data(data){}
+	Optional(const Optional<T> &existing): set(existing.set), data(existing.data){}
+	Optional(Optional<T> &&existing): set(existing.set), data(existing.data){
+		existing.clear();
+	}
+	const Optional<T> &operator=(const Optional<T> &existing){
+		this->set = existing.set;
+		this->data = existing.data;
+		return *this;
+	}
+	const Optional<T> &operator=(Optional<T> &&existing){
+		this->set = existing.set;
+		this->data = existing.data;
+		existing.clear();
+		return *this;
+	}
+	const Optional<T> &operator=(const T &data){
+		this->set = true;
+		this->data = data;
+		return *this;
+	}
+	const Optional<T> &operator=(T &&data){
+		this->set = true;
+		this->data = data;
+		return *this;
+	}
+	void clear(){
+		this->set = false;
+	}
+	operator bool() const{
+		return this->set;
+	}
+	T &operator*(){
+		if (!*this)
+			throw OptionalNotSetException();
+		return this->data;
+	}
+	const T &operator*() const{
+		if (!*this)
+			throw OptionalNotSetException();
+		return this->data;
+	}
+	T *operator->(){
+		return &this->data;
+	}
+	const T *operator->() const{
+		return &this->data;
+	}
+};
 
 #endif // MISC_H
