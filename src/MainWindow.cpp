@@ -359,15 +359,15 @@ void MainWindow::display_image_in_label(const std::shared_ptr<LoadedGraphics> &g
 		this->color_calculated = true;
 	}
 
+	this->reposition_window();
+	this->set_background_sizes();
+
 	if (first_display && this->app->get_center_when_displayed()){
 		auto label_size = label->size();
 		auto window_size = this->size();
 		auto new_label_position = (window_size - label_size) / 2;
 		this->move_image(to_QPoint(new_label_position));
 	}
-
-	this->reposition_window();
-	this->set_background_sizes();
 }
 
 void MainWindow::show_rotate_dialog(){
