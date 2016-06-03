@@ -97,7 +97,9 @@ CallResult CppInterpreter::execute_path(const char *filename){
 	std::string error_message;
 	std::string redirection;
 	while (true){
-		//StdStreamRedirectionGuard guard(redirection);
+#if defined(WIN32) && defined(_CONSOLE) || !defined(WIN32)
+		StdStreamRedirectionGuard guard(redirection);
+#endif
 
 		IntrusiveRefCntPtr<DiagnosticOptions> diagnostic_options = new DiagnosticOptions();
 		TextDiagnosticPrinter *text_diagnostic_printer = new TextDiagnosticPrinter(llvm::errs(), &*diagnostic_options);

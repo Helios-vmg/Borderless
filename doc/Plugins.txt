@@ -1,0 +1,177 @@
+The following describes the plugin interface, as well as general considerations
+to write filters.
+
+
+Basic introduction
+
+To run a filter, the user right-clicks on an image (called the "caller image")
+in the application, and selects one from the context menu. The selected filter
+is said to operate on the caller image, although this isn't necessarily the
+case. The menu is populated by traversing a "filters" subdirectory in the user's
+configuration directory (its location depends on the platform. On Windows, it's
+in %APPDATA%\BorderlessImageViewer\filters).
+
+
+General concepts
+
+A filter operates on an array of pixels -- a bitmap. Bitmaps passed and returned
+by filters are always 32-bit in depth. That is, they contain four channels (red,
+green, blue, and transparency [or alpha]), each of which may have any of 256
+values of intensity.
+A bitmap has the following properties that determine its memory layout: width,
+height, stride, and pitch. Width and height are the sizes of the corresponding
+dimensions of the bitmap in pixels. The stride is the size of a pixel in bytes.
+Currently, the stride is always 4; if performance of the filter is an concern,
+it's okay to assume that this value will always be 4 (the compiler may generate
+faster code when this value is hard-coded). The pitch is the size of a row in
+bytes. Note that if stride * width may be different from pitch, although this is
+very improbable.
+Pixels are stored in row-major order, from left to right and from top to bottom.
+In other words, a bitmap that is displayed as
+ABC
+DEF
+GHI
+will appear in memory as ABCDEFGHI. Channels are always stored in RGBA order
+regardless of the endianness of the platform. In other words, red is always the
+first byte of a pixel, then green, then blue, then alpha.
+
+
+Lua modes of operations
+
+Lua filters may execute in one of two modes: normal, or pure filter. A "normal"
+filter runs from beginning to end and needs not use the image that was used to
+call it at all. For example, this is useful to write, for example, a generator
+that just writes an image to disk.
+A pure filter must define a global boolean named 'is_pure_filter' set to true
+and a global function named 'main' that accepts an integer and returns an
+integer. The passed integer is a handle to the image on which the filter was
+called, and the return value must be an integer to an image serving as output of
+the filter. This mode is useful to define filters that behave as pure
+mathematical functions. For example, a filter that rotates the displayed image
+by 30° and displays the result. Additionally, in the future it may be possible
+to chain pure filters together.
+
+
+Lua API
+
+load_image(path: string): integer
+Loads an image from the file system. The returned integer serves as a handle to
+pass to other functions. If this handle is lost, the image can no longer be
+unloaded or operated on. This is equivalent to a pointer leak.
+The interpreter may or may not implement some system to clean up leaked images
+that can no longer be referenced by any filters.
+
+allocate_image(width: integer, height: integer): integer
+Creates an image of the given dimensions and returns a handle to it. All pixels
+of the new image are initialized to black transparent.
+
+unload_image(handle: integer)
+Unloads the image associated to the given handle, releasing the memory used by
+it.
+
+traverse_image(handle: integer, callback: function)
+callback(r: integer, g: integer, b: integer, a: integer, x: integer, y: integer)
+Calls the provided callback for every pixel of the image associated with the
+provided handle, passing to it the RGBA values and the coordinates of the pixel.
+The RGBA values are given in the range 0-255 inclusive. The coordinates are
+0-indexed (e.g. the rightmost column is width - 1).
+
+set_current_pixel(r: integer, g: integer, b: integer, a: integer)
+Must be called from the callback passed to a traverse_image() call. Sets the
+pixel currently being traversed to the given RGBA quadruplet.
+The RGBA values should be given in the range 0-255 inclusive.
+
+save_image(handle: image, path: string)
+Saves the image associated with the given handle to the given path on the file
+system. Optionally, an object may be passed as a third parameter to specify
+options.
+{format: string, compression: integer}
+format: E.g. "jpeg", "png", etc.
+compression: An integer between 0 and 100.
+
+rgb_to_hsv(r: integer, g: integer, b: integer): real, integer, integer
+Converts an RGB triplet to the HSV (hue-saturation-value) color space.
+The RGBA values should be given in the range 0-255 inclusive.
+The hue is given in the range 0-360. The saturation and value are given in the
+range 0-255.
+Example: h, s, v = rgb_to_hsv(r, g, b)
+
+hsv_to_rgb(h: real, s: integer, v: integer): integer, integer, integer
+Performs the reverse operation to rgb_to_hsv().
+
+bitwise_and(a: integer, b: integer): integer
+bitwise_or(a: integer, b: integer): integer
+bitwise_xor(a: integer, b: integer): integer
+bitwise_not(a: integer): integer
+Performs the given bitwise operation on the operands and returns the result.
+
+get_pixel(handle: integer, x: integer, y: integer): integer, integer, integer, integer
+Returns the RGBA values of a single pixel of the image. x should be in the range
+[0; width - 1], and y should be in the range [0; height - 1].
+
+get_image_dimensions(handle: integer): integer, integer
+Returns the width and height of the image.
+
+display_in_current_window(handle: image)
+Displays the image in the window from which the filter was called. The call
+may take effect only after the filter has finished.
+
+get_displayed_image(): integer
+Returns the image currently being displayed on the window that called the
+filter.
+
+debug_print(string)
+Windows-only: Sends the given string to debug output. The debug output can be
+read using programs such as DbgView.
+
+show_message_box(string)
+Show a message box with the given string.
+
+
+Special considerations for C++ filters
+
+The C++ implementation is provided by Clang, acting as a JIT compiler. The
+performance of the generated code is identical to that of code generated by the
+command line compiler.
+
+At the time of writing, the latest release of Clang is 3.8. At this point, there
+is no standard library implementation for Clang on Windows. The interpreter
+configures libclang to be able to use MSVC's implementation, but this support is
+not perfect. Specifically, library features that require linking with static
+MSVC runtime libraries cannot be used, because there's no way to tell libclang
+to link these in. The following features are known to work:
+* STL containers.
+* std::string.
+The following features are known NOT to work:
+* All IO streams, including std::stringstream. C streams can still be used. A
+  stringstream replacement is provided (see borderless_runtime.h for details).
+* Random functions, including both <cstdlib> and <random>. [TODO]A replacement
+  is provided.[/TODO]
+* Time functions, including both <ctime> and <chrono>. A clock() replacement is provided.
+* std::shared_ptr. std::unique_ptr and std::auto_ptr haven't been tested, but
+  they might work.
+Other features may be unavailable. If you happen to use a feature that not
+available, the program will abort, with libclang sending the linker error
+message to stderr. I don't seem to be able to override this behavior. To see the
+error message, redirect stderr to a file. Unfortunately, this only reveals the
+specific missing symbol, not the header that caused the problem. It's therefore
+recommended to add new headers to the source one at a time.
+
+libclang sends all its error messages to stderr. On Windows, for Windows
+applications (as opposed to console applications), redirecting standard streams
+is very tricky. This is why the error message box that pops up when compiler
+errors are detected is not very helpful. If you want this message box to display
+the compiler errors, you'll need to build Borderless as a console application.
+This should enable the redirection to a string.
+
+
+C++ modes of operation
+
+C++ filters only operate as pure filters. A C++ filter should always include
+<borderless.h>. This file defines the low level entry point into the filter and
+initializes the environment. You can implement this yourself if you prefer, but
+this is not recommended.
+The main function for the filter has the following signature:
+B::Image entry_point(B::Application &app, B::Image img);
+
+TODO: Describe the C++ run-time library.
