@@ -39,6 +39,7 @@ Source: "{#SourceBasePath}\bin64\Borderless.exe"; DestDir: "{app}\bin"; Flags: i
 Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs
 Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs
+Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\3.8.0\include"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
