@@ -18,41 +18,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <cassert>
 #include <QDir>
 #include <QStandardPaths>
-#include <boost/iostreams/stream.hpp>
-
-class QFileInputStream {
-	QFile *file;
-public:
-	typedef char char_type;
-	typedef boost::iostreams::source_tag category;
-	QFileInputStream(QFile *file) : file(file){}
-	std::streamsize read(char *s, std::streamsize n){
-		std::streamsize ret = 0;
-		bool bad = false;
-		while (n){
-			auto count = this->file->read(s, n);
-			ret += count;
-			s += count;
-			n -= count;
-			if (this->file->error()!= QFileDevice::NoError || this->file->atEnd()){
-				bad = true;
-				break;
-			}
-		}
-		return !ret && bad ? -1 : ret;
-	}
-};
-
-class QFileOutputStream {
-	QFile *file;
-public:
-	typedef char char_type;
-	typedef boost::iostreams::sink_tag category;
-	QFileOutputStream(QFile *file) : file(file){}
-	std::streamsize write(const char *s, std::streamsize n){
-		return this->file->write(s, n);
-	}
-};
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),

@@ -12,6 +12,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "serialization/settings.generated.h"
 #include "plugin-core/PluginCoreState.h"
 #include "Shortcuts.h"
+#include "Streams.h"
 #include "Enums.h"
 #include <QMenu>
 #include <memory>
