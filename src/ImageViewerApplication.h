@@ -17,6 +17,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QMenu>
 #include <memory>
 #include <exception>
+#include <QSystemTrayIcon>
 
 class QAction;
 struct lua_State;
@@ -41,6 +42,10 @@ class ImageViewerApplication : public SingleInstanceApplication
 	std::shared_ptr<MainSettings> settings;
 
 	QMenu lua_submenu;
+	std::unique_ptr<PluginCoreState> plugin_core_state;
+	QSystemTrayIcon tray_icon;
+	std::shared_ptr<QMenu> tray_context_menu,
+		last_tray_context_menu;
 
 	void save_current_state(std::shared_ptr<ApplicationState> &);
 	void save_current_windows(std::vector<std::shared_ptr<WindowState>> &);
@@ -52,7 +57,8 @@ class ImageViewerApplication : public SingleInstanceApplication
 	QString get_config_filename();
 	QString get_user_filters_location();
 	QStringList get_user_filter_list();
-	std::unique_ptr<PluginCoreState> plugin_core_state;
+	void setup_slots();
+	void reset_tray_menu();
 
 protected:
 	void new_instance(const QStringList &args) override;
@@ -93,7 +99,7 @@ public:
 		return this->shortcuts;
 	}
 	void options_changed(const std::vector<ShortcutTriple> &new_shortcuts);
-	std::shared_ptr<QMenu> build_context_menu(MainWindow *caller);
+	std::shared_ptr<QMenu> build_context_menu(MainWindow *caller = nullptr);
 	std::shared_ptr<MainSettings> get_option_values() const{
 		return this->settings;
 	}
@@ -106,6 +112,9 @@ public slots:
 	void resolution_change(int screen);
 	void work_area_change(int screen);
 	void lua_script_activated(QAction *action);
+	void quit_slot(){
+		this->quit();
+	}
 };
 
 #endif // IMAGEVIEWERAPPLICATION_H
