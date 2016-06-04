@@ -60,7 +60,7 @@ ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QSt
 	if (!this->restore_settings())
 		this->settings = std::make_shared<MainSettings>();
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
-	this->new_instance(this->args);
+	ImageViewerApplication::new_instance(this->args);
 	if (!this->windows.size() && !this->settings->get_keep_application_in_background())
 		throw NoWindowsException();
 
