@@ -34,3 +34,4 @@ Borderless/GeneratedFiles/
 *.ipch
 *.generated.*
 LLVM/
+Installer/custom/lib/
