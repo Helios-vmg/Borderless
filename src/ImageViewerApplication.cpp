@@ -25,14 +25,13 @@ ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QSt
 		tray_icon(QIcon(":/icon16.png"), this){
 	if (!this->restore_settings())
 		this->settings = std::make_shared<MainSettings>();
+	this->reset_tray_menu();
+	this->conditional_tray_show();
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
 	ImageViewerApplication::new_instance(this->args);
 	if (!this->windows.size() && !this->settings->get_keep_application_in_background())
 		throw NoWindowsException();
 	
-	this->reset_tray_menu();
-	this->tray_icon.show();
-
 	this->setup_slots();
 }
 
@@ -219,6 +218,7 @@ void ImageViewerApplication::show_options(){
 	OptionsDialog dialog(*this);
 	dialog.exec();
 	this->reset_tray_menu();
+	this->conditional_tray_show();
 }
 
 void ImageViewerApplication::quit_and_discard_state(){
@@ -399,4 +399,11 @@ void ImageViewerApplication::reset_tray_menu(){
 	this->last_tray_context_menu = this->build_context_menu();
 	this->tray_icon.setContextMenu(this->last_tray_context_menu.get());
 	this->tray_context_menu.swap(this->last_tray_context_menu);
+}
+
+void ImageViewerApplication::conditional_tray_show(){
+	if (this->settings->get_keep_application_in_background())
+		this->tray_icon.show();
+	else
+		this->tray_icon.hide();
 }

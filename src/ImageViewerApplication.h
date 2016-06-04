@@ -59,6 +59,7 @@ class ImageViewerApplication : public SingleInstanceApplication
 	QStringList get_user_filter_list();
 	void setup_slots();
 	void reset_tray_menu();
+	void conditional_tray_show();
 
 protected:
 	void new_instance(const QStringList &args) override;
