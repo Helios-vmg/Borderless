@@ -5,7 +5,7 @@
 #define MyAppVersion "1.0"
 #define MyAppURL "https://github.com/Helios-vmg/Borderless"
 #define MyAppExeName "Borderless.exe"
-#define SourceBasePath ..
+#define SourceBasePath ".."
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -23,9 +23,10 @@ DisableProgramGroupPage=yes
 LicenseFile={#SourceBasePath}\COPYING.txt
 OutputDir={#SourceBasePath}\bin64\
 OutputBaseFilename=Borderless_setup
-SetupIconFile={#SourceBasePath}\src\resources\icons\icon.ico
+SetupIconFile=custom\icons\icon.ico
 Compression=lzma
 SolidCompression=yes
+ArchitecturesInstallIn64BitMode=x64
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -35,12 +36,15 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "{#SourceBasePath}\bin64\Borderless.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs
+Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{commonprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{commonprograms}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bin\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
