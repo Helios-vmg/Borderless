@@ -18,55 +18,22 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <cassert>
 #include <QDir>
 #include <QStandardPaths>
-#include <boost/iostreams/stream.hpp>
-
-class QFileInputStream {
-	QFile *file;
-public:
-	typedef char char_type;
-	typedef boost::iostreams::source_tag category;
-	QFileInputStream(QFile *file) : file(file){}
-	std::streamsize read(char *s, std::streamsize n){
-		std::streamsize ret = 0;
-		bool bad = false;
-		while (n){
-			auto count = this->file->read(s, n);
-			ret += count;
-			s += count;
-			n -= count;
-			if (this->file->error()!= QFileDevice::NoError || this->file->atEnd()){
-				bad = true;
-				break;
-			}
-		}
-		return !ret && bad ? -1 : ret;
-	}
-};
-
-class QFileOutputStream {
-	QFile *file;
-public:
-	typedef char char_type;
-	typedef boost::iostreams::sink_tag category;
-	QFileOutputStream(QFile *file) : file(file){}
-	std::streamsize write(const char *s, std::streamsize n){
-		return this->file->write(s, n);
-	}
-};
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
-		do_not_save(false){
+		do_not_save(false),
+		tray_icon(QIcon(":/icon16.png"), this){
 	if (!this->restore_settings())
 		this->settings = std::make_shared<MainSettings>();
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
-	this->new_instance(this->args);
+	ImageViewerApplication::new_instance(this->args);
 	if (!this->windows.size() && !this->settings->get_keep_application_in_background())
 		throw NoWindowsException();
+	
+	this->reset_tray_menu();
+	this->tray_icon.show();
 
-	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
-	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
-	connect(&this->lua_submenu, SIGNAL(triggered(QAction *)), this, SLOT(lua_script_activated(QAction *)));
+	this->setup_slots();
 }
 
 ImageViewerApplication::~ImageViewerApplication(){
@@ -232,11 +199,14 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	this->context_menu_last_requester = caller;
 	std::shared_ptr<QMenu> ret(new QMenu);
 	auto initial = ret->actions().size();
-	caller->build_context_menu(*ret, this->get_lua_submenu(caller));
-	if (ret->actions().size() != initial)
-		ret->addSeparator();
+	if (caller){
+		caller->build_context_menu(*ret, this->get_lua_submenu(caller));
+		if (ret->actions().size() != initial)
+			ret->addSeparator();
+	}
+	auto receiver = caller ? (QObject *)caller : (QObject *)this;
 	ret->addAction("Options...", this, SLOT(show_options()), this->shortcuts.get_current_sequence(show_options_command));
-	ret->addAction("Quit", caller, SLOT(quit_slot()), this->shortcuts.get_current_sequence(quit_command));
+	ret->addAction("Quit", receiver, SLOT(quit_slot()), this->shortcuts.get_current_sequence(quit_command));
 	return ret;
 }
 
@@ -248,6 +218,7 @@ void ImageViewerApplication::set_option_values(MainSettings &settings){
 void ImageViewerApplication::show_options(){
 	OptionsDialog dialog(*this);
 	dialog.exec();
+	this->reset_tray_menu();
 }
 
 void ImageViewerApplication::quit_and_discard_state(){
@@ -416,4 +387,16 @@ PluginCoreState &ImageViewerApplication::get_plugin_core_state(){
 	if (!this->plugin_core_state)
 		this->plugin_core_state.reset(new PluginCoreState);
 	return *this->plugin_core_state;
+}
+
+void ImageViewerApplication::setup_slots(){
+	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
+	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
+	connect(&this->lua_submenu, SIGNAL(triggered(QAction *)), this, SLOT(lua_script_activated(QAction *)));
+}
+
+void ImageViewerApplication::reset_tray_menu(){
+	this->last_tray_context_menu = this->build_context_menu();
+	this->tray_icon.setContextMenu(this->last_tray_context_menu.get());
+	this->tray_context_menu.swap(this->last_tray_context_menu);
 }

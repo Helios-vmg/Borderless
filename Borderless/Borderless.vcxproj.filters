@@ -184,6 +184,9 @@
     <ClCompile Include="$(SolutionDir)\src\serialization\WindowState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(SolutionDir)\src\Streams.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -269,6 +272,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="$(SolutionDir)\src\ShortcutInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(SolutionDir)\src\Streams.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
