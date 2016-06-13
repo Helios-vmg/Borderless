@@ -1,56 +1,38 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "ImageViewerApplication.h"
+#include "plugin-core/PluginCoreState.h"
 #include "MainWindow.h"
 #include "RotateDialog.h"
 #include "Misc.h"
 #include "OptionsDialog.h"
+#include "GenericException.h"
 #include <QShortcut>
 #include <QMessageBox>
 #include <sstream>
 #include <cassert>
+#include <QDir>
+#include <QStandardPaths>
 
-const ZoomMode ImageViewerApplication::default_zoom_mode_for_new_windows = ZoomMode::Normal;
-const ZoomMode ImageViewerApplication::default_fullscreen_zoom_mode_for_new_windows = ZoomMode::AutoFit;
-
-ImageViewerApplication::ImageViewerApplication(int argc, char **argv, const QString &unique_name):
+ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
-		do_not_save(false){
-	this->reset_settings();
-	this->restore_settings();
-	this->setQuitOnLastWindowClosed(!this->keep_application_in_background);
-	this->new_instance(this->args);
-	if (!this->windows.size() && !this->keep_application_in_background)
+		do_not_save(false),
+		tray_icon(QIcon(":/icon16.png"), this){
+	if (!this->restore_settings())
+		this->settings = std::make_shared<MainSettings>();
+	this->reset_tray_menu();
+	this->conditional_tray_show();
+	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
+	ImageViewerApplication::new_instance(this->args);
+	if (!this->windows.size() && !this->settings->get_keep_application_in_background())
 		throw NoWindowsException();
-
-	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
-	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
+	
+	this->setup_slots();
 }
 
 ImageViewerApplication::~ImageViewerApplication(){
@@ -123,147 +105,160 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	}
 }
 
-void ImageViewerApplication::reset_settings(){
-	RESET_SETTING(use_checkerboard_pattern);
-	RESET_SETTING(clamp_strength);
-	RESET_SETTING(clamp_to_edges);
-	RESET_SETTING(center_when_displayed);
-	RESET_SETTING(keep_application_in_background);
-	RESET_SETTING(zoom_mode_for_new_windows);
-	RESET_SETTING(fullscreen_zoom_mode_for_new_windows);
-	this->shortcuts.reset_settings();
+void ImageViewerApplication::save_current_state(std::shared_ptr<ApplicationState> &state){
+	state = std::make_shared<ApplicationState>();
+	this->save_current_windows(state->get_windows());
 }
 
-DEFINE_SETTING_STRING(clamp_strength);
-DEFINE_SETTING_STRING(clamp_to_edges);
-DEFINE_SETTING_STRING(use_checkerboard_pattern);
-DEFINE_SETTING_STRING(last_state);
-DEFINE_SETTING_STRING(windows);
-DEFINE_SETTING_STRING(window);
-DEFINE_SETTING_STRING(center_when_displayed);
-DEFINE_SETTING_STRING(zoom_mode_for_new_windows);
-DEFINE_SETTING_STRING(fullscreen_zoom_mode_for_new_windows);
-DEFINE_SETTING_STRING(shortcuts);
-DEFINE_SETTING_STRING(keep_application_in_background);
-
-#define SAVE_SETTING(x) tree.set_value(#x, this->x)
-
-void ImageViewerApplication::save_current_state(SettingsTree &tree){
-	auto last_state = tree.create_tree();
-	this->save_current_windows(*last_state);
-	tree.add_tree(last_state_setting, last_state);
-}
-
-void ImageViewerApplication::save_current_windows(SettingsTree &tree){
-	auto windows = tree.create_array();
-	int i = 0;
+void ImageViewerApplication::save_current_windows(std::vector<std::shared_ptr<WindowState>> &windows){
 	for (auto &w : this->windows)
-		windows->push_back(w.second->save_state());
-	tree.add_tree(windows_setting, windows);
+		windows.push_back(w.second->save_state());
 }
+
+class SettingsException : public GenericException{
+public:
+	SettingsException(const char *what) : GenericException(what){}
+};
+
+class DeserializationException : public std::exception {
+protected:
+	const char *message;
+public:
+	DeserializationException(DeserializerStream::ErrorType type){
+		switch (type){
+		case DeserializerStream::ErrorType::UnexpectedEndOfFile:
+			this->message = "Unexpected end of file.";
+			break;
+		case DeserializerStream::ErrorType::InconsistentSmartPointers:
+			this->message = "Serialized stream uses smart pointers inconsistently.";
+			break;
+		case DeserializerStream::ErrorType::UnknownObjectId:
+			this->message = "Serialized stream contains a reference to an unknown object.";
+			break;
+		case DeserializerStream::ErrorType::InvalidProgramState:
+			this->message = "The program is in an unknown state.";
+			break;
+		case DeserializerStream::ErrorType::MainObjectNotSerializable:
+			this->message = "The root object is not an instance of a Serializable subclass.";
+			break;
+		case DeserializerStream::ErrorType::AllocateAbstractObject:
+			this->message = "The stream contains a concrete object with an abstract class type ID.";
+			break;
+		default:
+			this->message = "Unknown.";
+			break;
+		}
+	}
+	virtual const char *what() const NOEXCEPT override {
+		return this->message;
+	}
+};
+
+class ImplementedDeserializerStream : public DeserializerStream {
+protected:
+	void report_error(ErrorType type, const char *) override {
+		throw DeserializationException(type);
+	}
+public:
+	ImplementedDeserializerStream(std::istream &stream) : DeserializerStream(stream){}
+};
 
 void ImageViewerApplication::save_settings(bool with_state){
 	if (this->do_not_save)
 		return;
-	SettingsTree tree;
-	SAVE_SETTING(clamp_strength);
-	SAVE_SETTING(clamp_to_edges);
-	SAVE_SETTING(use_checkerboard_pattern);
-	SAVE_SETTING(center_when_displayed);
-	SAVE_SETTING(zoom_mode_for_new_windows);
-	SAVE_SETTING(fullscreen_zoom_mode_for_new_windows);
-	SAVE_SETTING(keep_application_in_background);
+	QString path = this->get_config_filename();
+	if (path.isNull())
+		return;
+	Settings settings;
+	settings.main = this->settings;
 	if (with_state)
-		this->save_current_state(tree);
-	tree.add_tree(shortcuts_setting, this->shortcuts.save_settings());
-	this->settings.write(tree);
-	this->do_not_save = true;
+		this->save_current_state(settings.state);
+	settings.shortcuts = this->shortcuts.save_settings();
+
+	QFile file(path);
+	file.open(QFile::WriteOnly | QFile::Truncate);
+	if (!file.isOpen())
+		return;
+	boost::iostreams::stream<QFileOutputStream> stream(&file);
+	SerializerStream ss(stream);
+	ss.serialize(settings, true);
 }
 
-void ImageViewerApplication::restore_current_state(const SettingsTree &tree){
-	auto subtree = tree.get_array(windows_setting);
-	if (subtree)
-		this->restore_current_windows(*subtree);
+void ImageViewerApplication::restore_current_state(const ApplicationState &windows_state){
+	this->restore_current_windows(windows_state.get_windows());
 }
 
-void ImageViewerApplication::restore_current_windows(const SettingsArray &tree){
+void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
 	this->windows.clear();
-	tree.iterate([this](int, const SettingsItem &item){
-		if (!item.is_value() && !item.is_array())
-			this->add_window(sharedp_t(new MainWindow(*this, static_cast<const SettingsTree &>(item))));
-	});
+	for (auto &state : window_states)
+		this->add_window(std::make_shared<MainWindow>(*this, state));
 }
 
 std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *caller){
 	this->context_menu_last_requester = caller;
 	std::shared_ptr<QMenu> ret(new QMenu);
 	auto initial = ret->actions().size();
-	caller->build_context_menu(*ret);
-	if (ret->actions().size() != initial)
-		ret->addSeparator();
+	if (caller){
+		caller->build_context_menu(*ret, this->get_lua_submenu(caller));
+		if (ret->actions().size() != initial)
+			ret->addSeparator();
+	}
+	auto receiver = caller ? (QObject *)caller : (QObject *)this;
 	ret->addAction("Options...", this, SLOT(show_options()), this->shortcuts.get_current_sequence(show_options_command));
-	ret->addAction("Quit", this, SLOT(quit_slot()), this->shortcuts.get_current_sequence(quit_command));
+	ret->addAction("Quit", receiver, SLOT(quit_slot()), this->shortcuts.get_current_sequence(quit_command));
 	return ret;
 }
 
-OptionsPack ImageViewerApplication::get_option_values() const{
-	OptionsPack ret;
-	ret.center_images = this->center_when_displayed;
-	ret.use_checkerboard = this->use_checkerboard_pattern;
-	ret.clamp_to_edges = this->clamp_to_edges;
-	ret.keep_in_background = this->keep_application_in_background;
-	ret.clamp_strength = this->clamp_strength;
-	ret.windowed_zoom_mode = this->zoom_mode_for_new_windows;
-	ret.fullscreen_zoom_mode = this->fullscreen_zoom_mode_for_new_windows;
-	return ret;
-}
-
-void ImageViewerApplication::set_option_values(const OptionsPack &options){
-	this->center_when_displayed = options.center_images;
-	this->use_checkerboard_pattern = options.use_checkerboard;
-	this->clamp_to_edges = options.clamp_to_edges;
-	this->keep_application_in_background = options.keep_in_background;
-	this->clamp_strength = options.clamp_strength;
-	this->zoom_mode_for_new_windows = options.windowed_zoom_mode;
-	this->fullscreen_zoom_mode_for_new_windows = options.fullscreen_zoom_mode;
-
-	this->setQuitOnLastWindowClosed(!this->keep_application_in_background);
+void ImageViewerApplication::set_option_values(MainSettings &settings){
+	*this->settings = settings;
+	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
 }
 
 void ImageViewerApplication::show_options(){
 	OptionsDialog dialog(*this);
 	dialog.exec();
+	this->reset_tray_menu();
+	this->conditional_tray_show();
 }
 
 void ImageViewerApplication::quit_and_discard_state(){
 	this->save_settings(false);
+	this->do_not_save = true;
 	this->quit();
 }
 
-#define RESTORE_SETTING(key) tree->get_value(this->key, key##_setting)
+bool ImageViewerApplication::restore_settings(){
+	QString path = this->get_config_filename();
+	if (path.isNull())
+		return false;
+	QFile file(path);
+	file.open(QFile::ReadOnly);
+	if (!file.isOpen())
+		return false;
+	boost::iostreams::stream<QFileInputStream> stream(&file);
+	ImplementedDeserializerStream ds(stream);
+	std::shared_ptr<Settings> settings;
+	try{
+		settings.reset(ds.deserialize<Settings>(true));
+	}catch (std::bad_cast &){
+		return false;
+	}catch (DeserializationException &ex){
+		QMessageBox msgbox;
+		msgbox.setWindowTitle("Error reading configuration");
+		msgbox.setText(ex.what());
+		msgbox.setIcon(QMessageBox::Critical);
+		msgbox.exec();
+		return false;
+	}
+	this->settings = settings->main;
 
-void ImageViewerApplication::restore_settings(){
-	auto tree = this->settings.read();
-	if (!tree)
-		return;
-	RESTORE_SETTING(clamp_strength);
-	RESTORE_SETTING(clamp_to_edges);
-	RESTORE_SETTING(use_checkerboard_pattern);
-	RESTORE_SETTING(keep_application_in_background);
-	RESTORE_SETTING(center_when_displayed);
-	RESTORE_SETTING(zoom_mode_for_new_windows);
-	RESTORE_SETTING(fullscreen_zoom_mode_for_new_windows);
+	if (settings->shortcuts)
+		this->shortcuts.restore_settings(*settings->shortcuts);
 
-	std::shared_ptr<SettingsTree> subtree;
+	if (settings->state)
+		this->restore_current_state(*settings->state);
 
-	subtree = tree->get_tree(shortcuts_setting);
-	if (subtree)
-		this->shortcuts.restore_settings(*subtree);
-
-	subtree = tree->get_tree(last_state_setting);
-	if (subtree)
-		this->restore_current_state(*subtree);
-
+	return true;
 }
 
 void ImageViewerApplication::resolution_change(int screen){
@@ -289,4 +284,126 @@ void ImageViewerApplication::options_changed(const std::vector<ShortcutTriple> &
 void ImageViewerApplication::propagate_shortcuts(){
 	for (auto &w : this->windows)
 		w.second->setup_shortcuts();
+}
+
+QString ImageViewerApplication::get_config_location(){
+	auto &ret = this->config_location;
+	if (ret.isNull()){
+		auto list = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+		if (!list.size())
+			return QString::null;
+		ret = list[0];
+		int index = ret.lastIndexOf('/');
+		if (index < 0)
+			index = ret.lastIndexOf('\\');
+		ret = ret.mid(0, index);
+		auto c = QDir::separator();
+		ret += c;
+		ret += "BorderlessImageViewer";
+		ret += c;
+		QDir dir(ret);
+		if (!dir.mkpath(ret))
+			return ret = QString::null;
+	}
+	return ret;
+}
+
+QString ImageViewerApplication::get_config_filename(){
+	auto &ret = this->config_filename;
+	if (ret.isNull()){
+		ret = this->get_config_location();
+		if (ret.isNull())
+			return ret;
+		ret += "settings.dat";
+	}
+	return ret;
+}
+
+QString ImageViewerApplication::get_user_filters_location(){
+	auto &ret = this->user_filters_location;
+	if (ret.isNull()){
+		ret = this->get_config_location();
+		if (ret.isNull())
+			return ret;
+		ret += "filters";
+		ret += QDir::separator();
+		QDir dir(ret);
+		if (!dir.mkpath(ret))
+			return ret = QString::null;
+	}
+	return ret;
+}
+
+QStringList ImageViewerApplication::get_user_filter_list(){
+	QStringList ret;
+
+	auto user_filters_location = this->get_user_filters_location();
+	if (user_filters_location.isNull())
+		return ret;
+
+	QDir directory(user_filters_location);
+	directory.setFilter(QDir::Files | QDir::Hidden);
+	directory.setSorting(QDir::Name);
+	QStringList filters;
+	filters << "*.lua";
+	for (auto i = accepted_cpp_extensions_size; i--;)
+		filters << QString("*.") + accepted_cpp_extensions[i];
+	directory.setNameFilters(filters);
+	return directory.entryList();
+}
+
+QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *){
+	this->lua_submenu.clear();
+	this->lua_submenu.setTitle("User filters");
+	auto list = this->get_user_filter_list();
+	if (list.isEmpty()){
+		this->lua_submenu.addAction("(None)");
+		this->lua_submenu.actions()[0]->setEnabled(false);
+	}else
+		for (auto &i : list){
+			//this->lua_submenu.addAction("Quit", caller, SLOT(user_script_slot()));
+			this->lua_submenu.addAction(i);
+		}
+	return this->lua_submenu;
+}
+
+void ImageViewerApplication::lua_script_activated(QAction *action){
+	try{
+		this->context_menu_last_requester->process_user_script(this->get_user_filters_location() + action->text());
+	}catch (std::exception &e){
+		QMessageBox msgbox;
+		msgbox.setWindowTitle("Error");
+		QString text = "Error executing user script \"";
+		text += action->text();
+		text += "\": ";
+		text += e.what();
+		msgbox.setText(text);
+		msgbox.setIcon(QMessageBox::Critical);
+		msgbox.exec();
+	}
+}
+
+PluginCoreState &ImageViewerApplication::get_plugin_core_state(){
+	if (!this->plugin_core_state)
+		this->plugin_core_state.reset(new PluginCoreState);
+	return *this->plugin_core_state;
+}
+
+void ImageViewerApplication::setup_slots(){
+	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
+	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
+	connect(&this->lua_submenu, SIGNAL(triggered(QAction *)), this, SLOT(lua_script_activated(QAction *)));
+}
+
+void ImageViewerApplication::reset_tray_menu(){
+	this->last_tray_context_menu = this->build_context_menu();
+	this->tray_icon.setContextMenu(this->last_tray_context_menu.get());
+	this->tray_context_menu.swap(this->last_tray_context_menu);
+}
+
+void ImageViewerApplication::conditional_tray_show(){
+	if (this->settings->get_keep_application_in_background())
+		this->tray_icon.show();
+	else
+		this->tray_icon.hide();
 }

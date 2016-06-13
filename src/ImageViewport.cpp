@@ -1,37 +1,14 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "ImageViewport.h"
 #include "LoadedImage.h"
 #include <QPaintEvent>
 #include <QPainter>
-
-DEFINE_SETTING_STRING(transform);
 
 ImageViewport::ImageViewport(QWidget *parent) :
 		QLabel(parent),
@@ -61,7 +38,7 @@ QMatrix translate(const QMatrix &m, const QPointF &offset){
 	return QMatrix(m.m11(), m.m12(), m.m21(), m.m22(), m.dx() + offset.x(), m.dy() + offset.y());
 }
 
-void ImageViewport::paintEvent(QPaintEvent *ev){
+void ImageViewport::paintEvent(QPaintEvent *){
 	QPainter painter(this);
 	painter.setRenderHint(or_flags(QPainter::SmoothPixmapTransform, QPainter::Antialiasing));
 	painter.setClipping(false);
@@ -71,19 +48,18 @@ void ImageViewport::paintEvent(QPaintEvent *ev){
 	auto offset = src_quad.move_to_origin();
 	transform = translate(transform, offset);
 	painter.setMatrix(transform);
-	auto temp = painter.clipRegion().boundingRect();
 	if (this->pixmap())
 		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), *this->pixmap());
 	else if (this->movie())
 		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
 }
 
-void ImageViewport::save_state(SettingsTree &tree){
-	tree.set_value(transform_setting, this->transform);
+void ImageViewport::save_state(WindowState &state) const{
+	state.set_transform(this->transform);
 }
 
-void ImageViewport::load_state(const SettingsTree &tree){
-	tree.get_value(this->transform, transform_setting);
+void ImageViewport::load_state(const WindowState &state){
+	this->transform = state.get_transform().to_QMatrix();
 	this->transform_changed();
 }
 

@@ -1,29 +1,8 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #ifndef MAINWINDOW_H
@@ -35,12 +14,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "LoadedImage.h"
 #include "DirectoryListing.h"
 #include "ImageViewerApplication.h"
-#include "Settings.h"
-#include "Rational.h"
 #include <QStringList>
 #include <QShortcut>
 #include <vector>
 #include <memory>
+#include "Misc.h"
 
 namespace Ui {
 class MainWindow;
@@ -56,22 +34,19 @@ class MainWindow : public QMainWindow{
 		window_rect;
 	QPoint first_mouse_pos,
 		first_window_pos,
-		first_label_pos,
-		image_pos;
+		first_label_pos;
+	Optional<QPoint> image_pos;
 	QSize first_window_size;
 	std::shared_ptr<LoadedGraphics> displayed_image;
 	std::vector<int> horizontal_clampers,
 		vertical_clampers;
-	QString current_directory,
-		current_filename;
+	//QString current_directory,
+	//	current_filename;
 	std::shared_ptr<DirectoryIterator> directory_iterator;
 	bool moving_forward;
 	std::vector<std::shared_ptr<QShortcut> > shortcuts;
 	bool not_moved;
-	double zoom,
-		fullscreen_zoom;
 	bool color_calculated;
-	bool fullscreen;
 	std::vector<QMetaObject::Connection> connections;
 
 	enum class ResizeMode{
@@ -87,12 +62,7 @@ class MainWindow : public QMainWindow{
 	};
 	ResizeMode resize_mode;
 
-	DEFINE_SETTING(int, border_size, 50);
-	DEFINE_SETTING(int, movement_size, 100);
-	DEFINE_SETTING2(ZoomMode, zoom_mode);
-	DEFINE_SETTING2(ZoomMode, fullscreen_zoom_mode);
-	bool using_checkerboard_pattern;
-	bool use_checkerboard_pattern;
+	std::shared_ptr<WindowState> window_state;
 
 	bool move_image(const QPoint &new_position);
 	QPoint compute_movement(const QPoint &new_position);
@@ -121,14 +91,16 @@ class MainWindow : public QMainWindow{
 	void offset_image(const QPoint &);
 	void set_desktop_size(int screen = -1);
 	void set_iterator();
-	double &get_current_zoom();
-	ZoomMode &get_current_zoom_mode();
-	const ZoomMode &get_current_zoom_mode() const;
+	double get_current_zoom() const;
+	void set_current_zoom(double);
+	void set_current_zoom_mode(const ZoomMode &);
+	ZoomMode get_current_zoom_mode() const;
 	void resolution_to_window_size();
 	void reposition_window();
 	void reposition_image();
-	QPoint get_image_pos() const;
-	void set_image_pos(const QPoint &);
+	void save_image_pos(bool force = false);
+	void restore_image_pos();
+	void clear_image_pos();
 	void rotate(bool right, bool fine = false);
 	void fix_positions_and_zoom();
 
@@ -143,15 +115,16 @@ protected:
 	void closeEvent(QCloseEvent *event) override;
 	void contextMenuEvent(QContextMenuEvent *) override;
 	//bool event(QEvent *) override;
-	void display_image(std::shared_ptr<LoadedGraphics>);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
-	explicit MainWindow(ImageViewerApplication &app, const SettingsTree &tree, QWidget *parent = 0);
+	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
 	~MainWindow();
-	void display_image(QString path);
-	std::shared_ptr<SettingsTree> save_state() const;
-	void restore_state(const SettingsTree &tree);
+	void open_path_and_display_image(QString path);
+	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
+	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
+	std::shared_ptr<WindowState> save_state() const;
+	void restore_state(const std::shared_ptr<WindowState> &);
 	bool is_null() const{
 		return !this->displayed_image || this->displayed_image->is_null();
 	}
@@ -165,10 +138,12 @@ public:
 	void set_image_zoom(double);
 	double set_image_transform(const QMatrix &);
 	void setup_shortcuts();
-	void build_context_menu(QMenu &);
+	void build_context_menu(QMenu &main_menu, QMenu &lua_submenu);
 	bool current_zoom_mode_is_auto() const{
 		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
 	}
+	void process_user_script(const QString &path);
+	QImage get_image() const;
 
 public slots:
 	void label_transform_updated();

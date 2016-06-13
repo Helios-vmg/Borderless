@@ -1,32 +1,12 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "SingleInstanceApplication.h"
+#include "GenericException.h"
 #include <QtNetwork/QLocalSocket>
 #include <QDataStream>
 #include <exception>
@@ -34,6 +14,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MainWindow.h"
 #include <QProcess>
 #include <fstream>
+
+//#define DISABLE_SINGLE_INSTANCE
 
 #ifdef WIN32
 #include <Windows.h>
@@ -43,37 +25,54 @@ void allow_set_foreground_window(qint64 pid){
 	ret = ret;
 }
 #else
-void allow_set_foreground_window(qulonglong pid){
+void allow_set_foreground_window(qulonglong){
 }
 #endif
 
-SingleInstanceApplication::SingleInstanceApplication(int argc, char *argv[], const QString &unique_name):
+SingleInstanceApplication::SingleInstanceApplication(int &argc, char **argv, const QString &unique_name):
 		QApplication(argc, argv),
-		unique_name(unique_name),
-		running(false){
+		running(false),
+		unique_name(unique_name){
+#ifndef DISABLE_SINGLE_INSTANCE
 	this->args = this->arguments();
-	this->shared_memory.setKey(unique_name);
-	bool success;
-	for (int tries = 0; tries < 5; tries++){
-		if (this->shared_memory.attach()){
-			QLocalSocket socket(this);
-			this->running = true;
-			qint64 server_pid;
-			if (this->communicate_with_server(socket, server_pid, this->arguments()))
-				allow_set_foreground_window(server_pid);
-			throw ApplicationAlreadyRunningException();
+	bool success = false;
+	for (int tries = 0; tries < 5 && !success; tries++){
+		this->shared_memory.reset(new QSharedMemory);
+		this->shared_memory->setKey(unique_name);
+		for (; tries < 5 && !success; tries++){
+			if (this->shared_memory->attach()){
+				QLocalSocket socket(this);
+				this->running = true;
+				qint64 server_pid;
+				if (this->communicate_with_server(socket, server_pid, this->arguments()))
+					allow_set_foreground_window(server_pid);
+				else{
+					this->clear_shared_memory();
+					break;
+				}
+				throw ApplicationAlreadyRunningException();
+			}
+			success = this->shared_memory->create(1);
 		}
-		success = this->shared_memory.create(1);
-		if (success)
-			break;
 	}
 
 	if (!success)
-		throw std::exception("Unable to allocate shared memory.");
+		throw GenericException("Unable to allocate shared memory.");
 
 	this->local_server.reset(new QLocalServer(this));
 	connect(this->local_server.get(), SIGNAL(newConnection()), this, SLOT(receive_message()));
-	this->local_server->listen(unique_name);
+	for (int i = 0; i < 2 && !this->local_server->listen(unique_name); i++)
+		this->clear_shared_memory();
+#endif
+}
+
+void SingleInstanceApplication::clear_shared_memory(){
+#ifndef WIN32
+	QFile file("/tmp/" + unique_name);
+	if (file.exists())
+		std::cerr << "Shared memory exists!\n";
+	file.remove();
+#endif
 }
 
 void SingleInstanceApplication::receive_message(){
@@ -96,10 +95,13 @@ bool SingleInstanceApplication::communicate_with_server(QLocalSocket &socket, qi
 	if (!this->communicate_with_server(socket, response, to_QByteArray(list)))
 		return false;
 	server_pid = 0;
-	unsigned char buf[sizeof(server_pid)];
+	union{
+		unsigned char buf[sizeof(qint64)];
+		qint64 pid;
+	} u;
 	for (int i = 0; i < response.size(); i++)
-		buf[i] = response[i];
-	server_pid = *(quint64 *)buf;
+		u.buf[i] = response[i];
+	server_pid = u.pid;
 	return true;
 }
 
@@ -108,16 +110,16 @@ bool SingleInstanceApplication::communicate_with_server(QLocalSocket &socket, QB
 		return false;
 	socket.connectToServer(this->unique_name, QIODevice::ReadWrite);
 	if (!socket.waitForConnected(this->timeout)){
-		qDebug(socket.errorString().toLatin1());
+		qDebug() << socket.errorString().toLatin1();
 		return false;
 	}
 	socket.write(msg);
 	if (!socket.waitForBytesWritten(this->timeout)){
-		qDebug(socket.errorString().toLatin1());
+		qDebug() << socket.errorString().toLatin1();
 		return false;
 	}
 	if (!socket.waitForReadyRead(this->timeout)){
-		qDebug(socket.errorString().toLatin1());
+		qDebug() << socket.errorString().toLatin1();
 		return false;
 	}
 	response = socket.readAll();

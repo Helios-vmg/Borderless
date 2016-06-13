@@ -30,3 +30,9 @@ _ReSharper*/
 *.sdf
 bin64/
 Borderless/GeneratedFiles/
+*.opendb
+*.ipch
+*.generated.*
+LLVM/
+Installer/custom/lib/
+Installer/custom/redist/*

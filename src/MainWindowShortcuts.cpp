@@ -1,33 +1,12 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "MainWindow.h"
-#include "ui_mainwindow.h"
+#include "ui_MainWindow.h"
 
 void MainWindow::setup_shortcuts(){
 	static struct Pair{
@@ -108,7 +87,7 @@ void MainWindow::back_slot(){
 }
 
 void MainWindow::background_swap_slot(){
-	this->use_checkerboard_pattern = !this->use_checkerboard_pattern;
+	this->window_state->flip_using_checkerboard_pattern();
 	this->set_background();
 }
 
@@ -125,19 +104,19 @@ void MainWindow::zoom_out_slot(){
 }
 
 void MainWindow::up_slot(){
-	this->offset_image(QPoint(0, this->movement_size));
+	this->offset_image(QPoint(0, this->window_state->get_movement_size()));
 }
 
 void MainWindow::down_slot(){
-	this->offset_image(QPoint(0, -this->movement_size));
+	this->offset_image(QPoint(0, -this->window_state->get_movement_size()));
 }
 
 void MainWindow::left_slot(){
-	this->offset_image(QPoint(this->movement_size, 0));
+	this->offset_image(QPoint(this->window_state->get_movement_size(), 0));
 }
 
 void MainWindow::right_slot(){
-	this->offset_image(QPoint(-this->movement_size, 0));
+	this->offset_image(QPoint(-this->window_state->get_movement_size(), 0));
 }
 
 void MainWindow::up_big_slot(){
@@ -166,7 +145,7 @@ void MainWindow::offset_image(const QPoint &offset){
 
 void MainWindow::reset_zoom_slot(){
 	int zoom = this->get_current_zoom();
-	this->get_current_zoom_mode() = ZoomMode::Normal;
+	this->set_current_zoom_mode(ZoomMode::Normal);
 	this->ui->label->reset_transform();
 	this->set_zoom();
 	this->apply_zoom(false, zoom);
@@ -188,7 +167,9 @@ void cycle_zoom_mode(ZoomMode &mode){
 }
 
 void MainWindow::cycle_zoom_mode_slot(){
-	cycle_zoom_mode(this->get_current_zoom_mode());
+	auto mode = this->get_current_zoom_mode();
+	cycle_zoom_mode(mode);
+	this->set_current_zoom_mode(mode);
 	auto zoom = this->get_current_zoom();
 	this->set_zoom();
 	this->apply_zoom(false, zoom);
@@ -200,7 +181,9 @@ void toggle_lock_zoom(ZoomMode &mode){
 }
 
 void MainWindow::toggle_lock_zoom_slot(){
-	toggle_lock_zoom(this->zoom_mode);
+	auto mode = this->window_state->get_zoom_mode();
+	toggle_lock_zoom(mode);
+	this->window_state->set_zoom_mode(mode);
 }
 
 void MainWindow::go_to_start(){
@@ -212,7 +195,7 @@ void MainWindow::go_to_start(){
 	if (this->directory_iterator->pos() == i)
 		return;
 	this->moving_forward = true;
-	this->display_image(**this->directory_iterator);
+	this->open_path_and_display_image(**this->directory_iterator);
 }
 
 void MainWindow::go_to_end(){
@@ -224,18 +207,18 @@ void MainWindow::go_to_end(){
 	if (this->directory_iterator->pos() == i)
 		return;
 	this->moving_forward = false;
-	this->display_image(**this->directory_iterator);
+	this->open_path_and_display_image(**this->directory_iterator);
 }
 
 void MainWindow::toggle_fullscreen(){
 	auto zoom = this->get_current_zoom();
-	this->fullscreen = !this->fullscreen;
-	if (!this->fullscreen){
+	this->window_state->set_fullscreen(!this->window_state->get_fullscreen());
+	if (!this->window_state->get_fullscreen()){
 		this->apply_zoom(false, zoom);
 		this->setGeometry(this->window_rect);
-		this->set_image_pos(this->image_pos);
+		this->restore_image_pos();
 	}else{
-		this->image_pos = this->get_image_pos();
+		this->save_image_pos(true);
 		this->set_zoom();
 		this->apply_zoom(false, zoom);
 		this->resolution_to_window_size();

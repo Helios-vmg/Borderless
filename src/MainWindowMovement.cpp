@@ -1,33 +1,12 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "MainWindow.h"
-#include "ui_mainwindow.h"
+#include "ui_MainWindow.h"
 
 void set_flags(bool &left, bool &right, bool &middle, QMouseEvent *ev){
 	left = check_flag(ev->buttons(), Qt::LeftButton);
@@ -104,7 +83,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 		return;
 
 	if (left){
-		if (this->fullscreen)
+		if (this->window_state->get_fullscreen())
 			return;
 		if (this->resize_mode == ResizeMode::None)
 			this->move_window(this->first_window_pos + ev->globalPos() - this->first_mouse_pos);
@@ -181,17 +160,18 @@ void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 
 	auto label_rect = this->ui->label->rect();
 
-	if (rect.width() < this->border_size){
+	auto border_size = this->window_state->get_border_size();
+	if ((std::uint32_t)rect.width() < border_size){
 		if (right)
-			rect.setWidth(this->border_size);
+			rect.setWidth(border_size);
 		else
-			rect.setLeft(rect.right() - this->border_size + 1);
+			rect.setLeft(rect.right() - border_size + 1);
 	}
-	if (rect.height() < this->border_size){
+	if ((std::uint32_t)rect.height() < border_size){
 		if (bottom)
-			rect.setHeight(this->border_size);
+			rect.setHeight(border_size);
 		else
-			rect.setTop(rect.bottom() - this->border_size + 1);
+			rect.setTop(rect.bottom() - border_size + 1);
 	}
 
 	if (rect.width() > label_rect.width()){
@@ -312,7 +292,7 @@ QPoint MainWindow::compute_movement(const QPoint &_new_position){
 
 void MainWindow::reposition_window(){
 	this->resize_to_max();
-	if (this->fullscreen)
+	if (this->window_state->get_fullscreen())
 		this->resolution_to_window_size();
 	this->reposition_image();
 }
@@ -322,10 +302,10 @@ void MainWindow::reposition_image(){
 }
 
 MainWindow::ResizeMode MainWindow::get_resize_mode(const QPoint &pos){
-	if (this->fullscreen || this->current_zoom_mode_is_auto())
+	if (this->window_state->get_fullscreen() || this->current_zoom_mode_is_auto())
 		return ResizeMode::None;
 
-	for (int border = this->border_size; border >= 0; border -= 5){
+	for (int border = this->window_state->get_border_size(); border >= 0; border -= 5){
 		bool left = false,
 			top = false,
 			right = false,

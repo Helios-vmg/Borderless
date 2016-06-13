@@ -1,29 +1,8 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #ifndef SHORTCUTS_H
@@ -34,7 +13,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <vector>
 #include <memory>
-#include "Settings.h"
+#include "serialization/settings.generated.h"
+#include "ShortcutInfo.h"
 
 #define DECLARE_COMMAND_INTERNAL_NAME(x) extern const char *x##_command
 
@@ -75,27 +55,6 @@ struct ShortcutSetting{
 	std::vector<QKeySequence> sequences;
 };
 
-struct ShortcutInfo{
-	const char *display_name;
-	const char *internal_name;
-	QKeySequence default_sequences[4];
-	size_t sequences_count;
-	ShortcutInfo(){}
-	ShortcutInfo(const char *display_name, const char *internal_name) : display_name(display_name), internal_name(internal_name), sequences_count(0){}
-	ShortcutInfo(const char *display_name, const char *internal_name, const char *s1) : display_name(display_name), internal_name(internal_name), sequences_count(0){
-		*this << s1;
-	}
-	ShortcutInfo(const char *display_name, const char *internal_name, const char *s1, const char *s2) : display_name(display_name), internal_name(internal_name), sequences_count(0){
-		*this << s1 << s2;
-	}
-	ShortcutInfo &operator<<(const char *s){
-		this->sequences_count %= 4;
-		this->default_sequences[this->sequences_count] = QKeySequence((QString)s);
-		this->sequences_count++;
-		return *this;
-	}
-};
-
 struct ShortcutTriple{
 	QString command;
 	QString display_name;
@@ -107,9 +66,9 @@ class ApplicationShortcuts{
 	std::map<QString, std::shared_ptr<ShortcutSetting> > current_shortcuts;
 public:
 	ApplicationShortcuts();
-	void restore_settings(const SettingsTree &tree);
+	void restore_settings(const Shortcuts &);
 	void reset_settings();
-	std::shared_ptr<SettingsTree> save_settings();
+	std::shared_ptr<Shortcuts> save_settings() const;
 	const ShortcutInfo *get_shortcut_info(const QString &command) const;
 	QString get_display_name(const QString &command) const;
 	const ShortcutSetting *get_shortcut_setting(const QString &command) const;

@@ -1,34 +1,12 @@
 /*
-
-Copyright (c) 2015, Helios
+Copyright (c), Helios
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "OptionsDialog.h"
 #include "ImageViewerApplication.h"
-#include <QCheckbox>
 #include <cassert>
 #include <algorithm>
 
@@ -48,7 +26,7 @@ void ShortcutListModel::sort(){
 // first <= x < y !f(x) and for all y <= z < last f(z), find_all() returns y,
 // or last if it does not exist.
 template<class It, class F>
-It find_all(It first, It last, F &f){
+It find_all(It first, It last, const F &f){
 	auto n = last - first;
 	while (n > 0){
 		auto n2 = n / 2;
@@ -121,11 +99,11 @@ void ShortcutListModel::replace_all(const std::vector<ShortcutTriple> &new_short
 	}
 }
 
-QModelIndex ShortcutListModel::index(int row, int column, const QModelIndex &parent) const{
+QModelIndex ShortcutListModel::index(int row, int column, const QModelIndex &) const{
 	return this->createIndex(row, column);
 }
 
-QModelIndex ShortcutListModel::parent(const QModelIndex &idx) const{
+QModelIndex ShortcutListModel::parent(const QModelIndex &) const{
 	return QModelIndex();
 }
 
@@ -142,7 +120,7 @@ int ShortcutListModel::columnCount(const QModelIndex &parent) const{
 }
 
 QVariant ShortcutListModel::data(const QModelIndex &index, int role) const{
-	if (index.row() < 0 || index.row() >= this->items.size() || index.column() < 0 || index.column() > 1 || role != Qt::DisplayRole)
+	if (index.row() < 0 || (size_t)index.row() >= this->items.size() || index.column() < 0 || index.column() > 1 || role != Qt::DisplayRole)
 		return QVariant();
 	switch (index.column()){
 		case 0:
@@ -156,13 +134,13 @@ QVariant ShortcutListModel::data(const QModelIndex &index, int role) const{
 
 class ShortcutListHeaderModel : public QAbstractItemModel{
 public:
-	QModelIndex index(int row, int column, const QModelIndex &parent) const{
+	QModelIndex index(int row, int column, const QModelIndex &) const{
 		return this->createIndex(row, column);
 	}
-	QModelIndex parent(const QModelIndex &idx) const{
+	QModelIndex parent(const QModelIndex &) const{
 		return QModelIndex();
 	}
-	int rowCount(const QModelIndex &parent) const{
+	int rowCount(const QModelIndex &) const{
 		return 0;
 	}
 	int columnCount(const QModelIndex &parent) const{
@@ -170,10 +148,10 @@ public:
 			return 0;
 		return 2;
 	}
-	QVariant data(const QModelIndex &index, int role) const{
+	QVariant data(const QModelIndex &, int) const{
 		return QVariant();
 	}
-	QVariant headerData(int section, Qt::Orientation orientation, int role) const{
+	QVariant headerData(int section, Qt::Orientation, int role) const{
 		if (section < 0 || section > 1 || role != Qt::DisplayRole)
 			return QVariant();
 		switch (section){
@@ -192,7 +170,7 @@ static ShortcutListHeaderModel slhm;
 OptionsDialog::OptionsDialog(ImageViewerApplication &app):
 		ui(new Ui_OptionsDialog),
 		app(&app),
-		no_changes(true){
+		no_shortcut_changes(true){
 	this->setModal(true);
 	this->ui->setupUi(this);
 
@@ -228,13 +206,13 @@ void OptionsDialog::setup_shortcuts_list_view(){
 }
 
 void OptionsDialog::setup_general_options(){
-	this->ui->center_when_displayed_cb->setChecked(this->options.center_images);
-	this->ui->use_checkerboard_pattern_cb->setChecked(this->options.use_checkerboard);
-	this->ui->clamp_to_edges_cb->setChecked(this->options.clamp_to_edges);
-    this->ui->keep_application_running_cb->setChecked(this->options.keep_in_background);
-	this->ui->clamp_strength_spinbox->setValue(this->options.clamp_strength);
-	this->ui->zoom_mode_for_new_windows_cb->set_selected_item(this->options.windowed_zoom_mode);
-	this->ui->fullscreen_zoom_mode_for_new_windows_cb->set_selected_item(this->options.fullscreen_zoom_mode);
+	this->ui->center_when_displayed_cb->setChecked(this->options->get_center_when_displayed());
+	this->ui->use_checkerboard_pattern_cb->setChecked(this->options->get_use_checkerboard_pattern());
+	this->ui->clamp_to_edges_cb->setChecked(this->options->get_clamp_to_edges());
+    this->ui->keep_application_running_cb->setChecked(this->options->get_keep_application_in_background());
+	this->ui->clamp_strength_spinbox->setValue(this->options->get_clamp_strength());
+	this->ui->zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_zoom_mode_for_new_windows());
+	this->ui->fullscreen_zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_fullscreen_zoom_mode_for_new_windows());
 }
 
 void OptionsDialog::setup_signals(){
@@ -260,7 +238,7 @@ void OptionsDialog::sequence_entered(){
 	this->ui->add_button->setEnabled(!this->sequence_exists_in_model(seq));
 }
 
-void OptionsDialog::selected_shortcut_changed(const QItemSelection &selected, const QItemSelection &deselected){
+void OptionsDialog::selected_shortcut_changed(const QItemSelection &selected, const QItemSelection &){
 	this->ui->remove_button->setEnabled(!!selected.indexes().size());
 }
 
@@ -271,7 +249,7 @@ void OptionsDialog::add_button_clicked(bool){
 	auto command = this->ui->command_input->currentData();
 	auto str_command = command.toString();
 	this->sl_model->add_new_item(this->app->get_shortcuts(), str_command, seq);
-	this->no_changes = false;
+	this->no_shortcut_changes = false;
 }
 
 void OptionsDialog::remove_button_clicked(bool){
@@ -291,7 +269,7 @@ void OptionsDialog::remove_button_clicked(bool){
 	combo->setCurrentIndex(found);
 	this->ui->key_sequence_input->setKeySequence(item.sequence);
 	this->sequence_entered();
-	this->no_changes = false;
+	this->no_shortcut_changes = false;
 	this->ui->shortcuts_list_view->setCurrentIndex(index);
 }
 
@@ -301,23 +279,23 @@ void OptionsDialog::item_inserted_into_shortcut_model(size_t index){
 	this->ui->add_button->setEnabled(false);
 }
 
-OptionsPack OptionsDialog::build_options(){
-	OptionsPack ret;
-	ret.center_images = this->ui->center_when_displayed_cb->isChecked();
-	ret.use_checkerboard = this->ui->use_checkerboard_pattern_cb->isChecked();
-	ret.clamp_to_edges = this->ui->clamp_to_edges_cb->isChecked();
-	ret.keep_in_background = this->ui->keep_application_running_cb->isChecked();
-	ret.clamp_strength = this->ui->clamp_strength_spinbox->value();
-	ret.windowed_zoom_mode = this->ui->zoom_mode_for_new_windows_cb->get_selected_item();
-	ret.fullscreen_zoom_mode = this->ui->fullscreen_zoom_mode_for_new_windows_cb->get_selected_item();
+std::shared_ptr<MainSettings> OptionsDialog::build_options(){
+	auto ret = std::make_shared<MainSettings>();
+	ret->set_center_when_displayed(this->ui->center_when_displayed_cb->isChecked());
+	ret->set_use_checkerboard_pattern(this->ui->use_checkerboard_pattern_cb->isChecked());
+	ret->set_clamp_to_edges(this->ui->clamp_to_edges_cb->isChecked());
+	ret->set_keep_application_in_background(this->ui->keep_application_running_cb->isChecked());
+	ret->set_clamp_strength(this->ui->clamp_strength_spinbox->value());
+	ret->set_zoom_mode_for_new_windows(this->ui->zoom_mode_for_new_windows_cb->get_selected_item());
+	ret->set_fullscreen_zoom_mode_for_new_windows(this->ui->fullscreen_zoom_mode_for_new_windows_cb->get_selected_item());
 	return ret;
 }
 
 void OptionsDialog::accept(){
 	auto options = this->build_options();
-	if (options != this->options)
-		this->app->set_option_values(options);
-	if (!this->no_changes)
+	if (*options != *this->options)
+		this->app->set_option_values(*options);
+	if (!this->no_shortcut_changes)
 		this->app->options_changed(this->sl_model->get_items());
 	this->hide();
 }
@@ -330,5 +308,5 @@ void OptionsDialog::reset_button_clicked(bool){
 	auto defaults = this->app->get_shortcuts().get_default_shortcuts();
 	this->sl_model->replace_all(defaults);
 	this->ui->shortcuts_list_view->resizeColumnToContents(0);
-	this->no_changes = false;
+	this->no_shortcut_changes = false;
 }
