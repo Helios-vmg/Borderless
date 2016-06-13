@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "BorderlessImageViewer"
-#define MyAppVersion "1.0"
+#define MyAppVersion "0.2"
 #define MyAppURL "https://github.com/Helios-vmg/Borderless"
 #define MyAppExeName "Borderless.exe"
 #define SourceBasePath ".."
@@ -35,12 +35,37 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#SourceBasePath}\bin64\Borderless.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs
-Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs
-Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\3.8.0\include"; Flags: ignoreversion
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+Source: "{#SourceBasePath}\bin64\{#MyAppExeName}"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: main
+Source: "{#SourceBasePath}\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion; Components: main
+Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: main
+Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs; Components: main
+Source: "custom\redist\*"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: main
+Source: "{#SourceBasePath}\doc\*"; DestDir: "{app}\doc"; Flags: ignoreversion; Components: main
+Source: "{#SourceBasePath}\samples\*"; DestDir: "{app}\samples"; Flags: ignoreversion; Components: cppi luai
+Source: "{#SourceBasePath}\bin64\LuaInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: luai
+Source: "{#SourceBasePath}\bin64\CppInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: cppi
+Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs; Components: cppi
+Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\3.8.0\include"; Flags: ignoreversion; Components: cppi
+
+[Components]
+Name: "main"; Description: "Main Executable"; Types: full minimum custom; Flags: fixed
+Name: "luai"; Description: "Lua Interpreter Plugin"; Types: full custom; ExtraDiskSpaceRequired: 774656
+Name: "cppi"; Description: "C++ Interpreter Plugin"; Types: full custom; ExtraDiskSpaceRequired: 48755650
+
+[Types]
+Name: "full"; Description: "Full installation"
+Name: "minimum"; Description: "Minimal installation"
+Name: "custom"; Description: "Custom installation"; Flags: iscustom
+
+[Registry]
+; Set up Applications subkey
+Root: HKCR; Subkey: "Applications\{#MyAppExeName}"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "Applications\{#MyAppExeName}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppName}"
+Root: HKCR; Subkey: "Applications\{#MyAppExeName}\SupportedTypes"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "Applications\{#MyAppExeName}\shell\open\command"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "Applications\{#MyAppExeName}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\bin\{#MyAppExeName}"" ""%1"""
+
+#include "registry.iss"
 
 [Icons]
 Name: "{commonprograms}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"

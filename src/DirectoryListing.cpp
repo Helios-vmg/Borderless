@@ -22,6 +22,7 @@ static const char *supported_extensions[] = {
 	"*.webp",
 	"*.ico",
 	"*.tga",
+	"*.tif",
 	"*.tiff",
 	"*.jp2",
 };

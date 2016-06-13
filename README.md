@@ -10,7 +10,7 @@ Current features:
 Possible future features:
 * Support for traversing images in common archive formats.
 
-Requirements:
+Requirements (compilation):
 * Qt 5.4.1 or newer
 * Boost.Iostreams
 * LuaJIT (optional)

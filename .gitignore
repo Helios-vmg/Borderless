@@ -35,3 +35,4 @@ Borderless/GeneratedFiles/
 *.generated.*
 LLVM/
 Installer/custom/lib/
+Installer/custom/redist/*
