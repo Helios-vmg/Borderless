@@ -10,7 +10,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
 
-const Qt::CaseSensitivity platorm_case = Qt::CaseInsensitive;
+const Qt::CaseSensitivity platform_case = Qt::CaseInsensitive;
 
 static const char *supported_extensions[] = {
 	"*.bmp",
@@ -41,7 +41,7 @@ QStringList get_entries(QString path){
 		filters << p;
 	directory.setNameFilters(filters);
 	auto ret = directory.entryList();
-	auto f = strcmpci<platorm_case>;
+	auto f = strcmpci<platform_case>;
 	std::sort(ret.begin(), ret.end(), f);
 	return ret;
 }
@@ -65,7 +65,7 @@ DirectoryListing::DirectoryListing(const QString &path){
 }
 
 bool DirectoryListing::operator==(const QString &path) const{
-	return !this->base_path.compare(this->base_path, path, platorm_case);
+	return !this->base_path.compare(this->base_path, path, platform_case);
 }
 
 DirectoryIterator DirectoryListing::begin(){
@@ -84,7 +84,7 @@ QString DirectoryListing::operator[](size_t i) const{
 }
 
 bool DirectoryListing::find(size_t &dst, const QString &s) const{
-	auto f = strcmpci<platorm_case>;
+	auto f = strcmpci<platform_case>;
 	auto entries = this->entries.result();
 	auto it = std::lower_bound(entries.begin(), entries.end(), s, f);
 	if (it == entries.end())
