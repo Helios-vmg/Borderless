@@ -215,6 +215,7 @@ void ImageViewerApplication::set_option_values(MainSettings &settings){
 }
 
 void ImageViewerApplication::show_options(){
+	this->tray_icon.setContextMenu(nullptr);
 	OptionsDialog dialog(*this);
 	dialog.exec();
 	this->reset_tray_menu();
