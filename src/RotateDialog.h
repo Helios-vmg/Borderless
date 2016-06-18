@@ -24,10 +24,12 @@ class RotateDialog : public QDialog{
 		last_scale,
 		scale;
 	bool in_do_transform;
+	bool geometry_set;
 
 	void do_transform(bool = false);
 	void set_scale();
 	void set_scale_label();
+	void resizeEvent(QResizeEvent *) override;
 public:
 	RotateDialog(MainWindow &parent);
 	bool accepted() const{
