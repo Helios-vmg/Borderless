@@ -9,6 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ImageViewerApplication.h"
 #include <cassert>
 #include <algorithm>
+#include <QDesktopWidget>
 
 ShortcutListModel::ShortcutListModel(const ApplicationShortcuts &shortcuts): items(shortcuts.get_current_shortcuts()){
 	this->sort();
@@ -180,6 +181,8 @@ OptionsDialog::OptionsDialog(ImageViewerApplication &app):
 	this->setup_shortcuts_list_view();
 	this->setup_general_options();
 	this->setup_signals();
+	auto geom = app.desktop()->availableGeometry(app.desktop()->screenNumber(this));
+	this->resize(geom.size() / 2);
 }
 
 void OptionsDialog::setup_command_input(){
