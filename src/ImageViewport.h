@@ -57,6 +57,8 @@ public:
 		size = this->compute_quad_no_zoom(size).get_bounding_box().size().toSize();
 	}
 	QSize get_size() const{
+		if (!this->pixmap() && !this->movie())
+			return QSize(800, 600);
 		auto ret = this->image_size;
 		this->compute_size(ret);
 		return ret;

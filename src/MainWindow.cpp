@@ -201,7 +201,7 @@ void MainWindow::set_background(bool force){
 
 	QWidget *p1 = this->ui->checkerboard;
 	QWidget *p2 = this->ui->solid;
-	if (!this->window_state->get_using_checkerboard_pattern()){
+	if (!this->window_state->get_using_checkerboard_pattern() && this->displayed_image){
 		this->set_solid(this->displayed_image->get_background_color());
 		std::swap(p1, p2);
 	}
@@ -222,12 +222,12 @@ void MainWindow::set_background_sizes(){
 void MainWindow::show_nothing(){
 	qDebug() << "MainWindow::show_nothing()";
 	this->displayed_image.reset();
-	this->ui->label->setText("no image");
-	this->ui->label->setAlignment(Qt::AlignCenter);
-	this->set_solid(Qt::black);
 	this->resize(800, 600);
+	this->ui->label->move(0, 0);
 	this->ui->label->resize(this->size());
 	this->window_state->reset_border_size();
+	this->set_background_sizes();
+	this->resize_to_max();
 }
 
 void MainWindow::resize_to_max(){
@@ -294,7 +294,7 @@ void MainWindow::move_in_direction(bool forward){
 	this->open_path_and_display_image(**this->directory_iterator);
 }
 
-void MainWindow::open_path_and_display_image(QString path){
+bool MainWindow::open_path_and_display_image(QString path){
 	std::shared_ptr<LoadedGraphics> li;
 	size_t i = 0;
 	auto &label = this->ui->label;
@@ -313,26 +313,27 @@ void MainWindow::open_path_and_display_image(QString path){
 		}else
 			break;
 	}
-	if (li->is_null()){
-		this->show_nothing();
-		return;
-	}
-	this->color_calculated = false;
-	label->move(0, 0);
 	QString current_directory,
 		current_filename;
 	split_path(current_directory, current_filename, path);
 	this->window_state->set_current_directory(current_directory.toStdWString());
 	this->window_state->set_current_filename(current_filename.toStdWString());
-	this->setWindowTitle(current_filename);
 	if (!this->directory_iterator)
 		this->directory_iterator = this->app->request_directory(current_directory);
+	if (li->is_null()){
+		this->show_nothing();
+		return false;
+	}
+	this->color_calculated = false;
+	label->move(0, 0);
+	this->setWindowTitle(current_filename);
 	this->displayed_image = li;
 
 	label->reset_transform();
 	this->set_zoom();
 
 	this->apply_zoom(true, 1);
+	return true;
 }
 
 void MainWindow::display_filtered_image(const std::shared_ptr<LoadedGraphics> &graphics){

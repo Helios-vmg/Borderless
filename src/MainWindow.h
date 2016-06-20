@@ -120,7 +120,7 @@ public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
 	~MainWindow();
-	void open_path_and_display_image(QString path);
+	bool open_path_and_display_image(QString path);
 	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
 	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
 	std::shared_ptr<WindowState> save_state() const;

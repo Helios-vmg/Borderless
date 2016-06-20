@@ -40,6 +40,17 @@ QMatrix translate(const QMatrix &m, const QPointF &offset){
 
 void ImageViewport::paintEvent(QPaintEvent *){
 	QPainter painter(this);
+	if (!this->pixmap() && !this->movie()){
+		painter.setBrush(QBrush(Qt::white));
+		auto font = painter.font();
+		font.setPixelSize(48);
+		painter.setFont(font);
+		QRect rect(0, 0, 800, 600);
+		painter.fillRect(rect, Qt::black);
+		painter.drawText(rect, "No image");
+		return;
+	}
+
 	painter.setRenderHint(or_flags(QPainter::SmoothPixmapTransform, QPainter::Antialiasing));
 	painter.setClipping(false);
 
@@ -50,7 +61,7 @@ void ImageViewport::paintEvent(QPaintEvent *){
 	painter.setMatrix(transform);
 	if (this->pixmap())
 		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), *this->pixmap());
-	else if (this->movie())
+	else
 		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
 }
 

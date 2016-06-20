@@ -17,12 +17,14 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	path += QString::fromStdWString(this->window_state->get_current_filename());
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
-	this->open_path_and_display_image(path);
-	this->ui->label->load_state(*state);
+	bool success = this->open_path_and_display_image(path);
+	this->ui->label->load_state(*this->window_state);
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 
 	this->ui->label->move(this->window_state->get_label_pos().to_QPoint());
 	this->move(this->window_state->get_pos().to_QPoint());
+	if (!success)
+		return;
 	this->resize(this->window_state->get_size().to_QSize());
 	this->fix_positions_and_zoom();
 }
