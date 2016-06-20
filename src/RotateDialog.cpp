@@ -28,6 +28,10 @@ RotateDialog::RotateDialog(MainWindow &parent) :
 	this->rotation_slider_changed(0);
 	this->set_scale();
 	this->geometry_set = false;
+	auto desktop = this->main_window.get_app().desktop();
+	auto h = 22 * desktop->logicalDpiY() / 96;
+	this->ui->rotation_slider->setMinimumHeight(h);
+	this->ui->scale_slider->setMinimumHeight(h);
 }
 
 void RotateDialog::resizeEvent(QResizeEvent *e){

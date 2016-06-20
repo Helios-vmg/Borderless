@@ -144,6 +144,9 @@ public:
 	}
 	void process_user_script(const QString &path);
 	QImage get_image() const;
+	ImageViewerApplication &get_app(){
+		return *this->app;
+	}
 
 public slots:
 	void label_transform_updated();
