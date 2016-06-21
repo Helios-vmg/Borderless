@@ -197,6 +197,13 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
+               <widget class="QCheckBox" name="save_state_on_exit_cb">
+                <property name="text">
+                 <string>Save application state on exit</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QCheckBox" name="keep_application_running_cb">
                 <property name="toolTip">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When there are no images displayed, the application will continue running in the background. To fully exit use the &amp;quot;Quit&amp;quot; option in the context menu or the shotcut bound to that command.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>

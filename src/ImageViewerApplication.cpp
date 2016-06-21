@@ -144,8 +144,11 @@ public:
 		case DeserializerStream::ErrorType::AllocateAbstractObject:
 			this->message = "The stream contains a concrete object with an abstract class type ID.";
 			break;
+		case DeserializerStream::ErrorType::AllocateObjectOfUnknownType:
+			this->message = "The stream contains an object of an unknown type. Did you try to import a configuration created by a newer version of the program?";
+			break;
 		default:
-			this->message = "Unknown.";
+			this->message = "Unknown error.";
 			break;
 		}
 	}
@@ -171,7 +174,7 @@ void ImageViewerApplication::save_settings(bool with_state){
 		return;
 	Settings settings;
 	settings.main = this->settings;
-	if (with_state)
+	if (with_state && this->settings->get_save_state_on_exit())
 		this->save_current_state(settings.state);
 	settings.shortcuts = this->shortcuts.save_settings();
 
