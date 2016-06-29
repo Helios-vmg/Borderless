@@ -41,6 +41,7 @@ cpp settings{
 		uint32_t zoom_mode_for_new_windows;
 		uint32_t fullscreen_zoom_mode_for_new_windows;
 		bool keep_application_in_background;
+		bool save_state_on_exit;
 		#include "MainSettings.h"
 	}
 	class ApplicationState{

@@ -16,6 +16,7 @@ MainSettings::MainSettings(){
 	this->keep_application_in_background = true;
 	this->set_zoom_mode_for_new_windows(ZoomMode::Normal);
 	this->set_fullscreen_zoom_mode_for_new_windows(ZoomMode::AutoFit);
+	this->set_save_state_on_exit(true);
 }
 
 bool MainSettings::operator==(const MainSettings &other) const{
@@ -27,5 +28,6 @@ bool MainSettings::operator==(const MainSettings &other) const{
 	CHECK_EQUALITY(zoom_mode_for_new_windows);
 	CHECK_EQUALITY(fullscreen_zoom_mode_for_new_windows);
 	CHECK_EQUALITY(keep_application_in_background);
+	CHECK_EQUALITY(save_state_on_exit);
 	return true;
 }

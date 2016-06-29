@@ -9,6 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ImageViewerApplication.h"
 #include <cassert>
 #include <algorithm>
+#include <QDesktopWidget>
 
 ShortcutListModel::ShortcutListModel(const ApplicationShortcuts &shortcuts): items(shortcuts.get_current_shortcuts()){
 	this->sort();
@@ -180,6 +181,8 @@ OptionsDialog::OptionsDialog(ImageViewerApplication &app):
 	this->setup_shortcuts_list_view();
 	this->setup_general_options();
 	this->setup_signals();
+	auto geom = app.desktop()->availableGeometry(app.desktop()->screenNumber(this));
+	this->resize(geom.size() / 2);
 }
 
 void OptionsDialog::setup_command_input(){
@@ -209,6 +212,7 @@ void OptionsDialog::setup_general_options(){
 	this->ui->center_when_displayed_cb->setChecked(this->options->get_center_when_displayed());
 	this->ui->use_checkerboard_pattern_cb->setChecked(this->options->get_use_checkerboard_pattern());
 	this->ui->clamp_to_edges_cb->setChecked(this->options->get_clamp_to_edges());
+	this->ui->save_state_on_exit_cb->setChecked(this->options->get_save_state_on_exit());
     this->ui->keep_application_running_cb->setChecked(this->options->get_keep_application_in_background());
 	this->ui->clamp_strength_spinbox->setValue(this->options->get_clamp_strength());
 	this->ui->zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_zoom_mode_for_new_windows());
@@ -284,6 +288,7 @@ std::shared_ptr<MainSettings> OptionsDialog::build_options(){
 	ret->set_center_when_displayed(this->ui->center_when_displayed_cb->isChecked());
 	ret->set_use_checkerboard_pattern(this->ui->use_checkerboard_pattern_cb->isChecked());
 	ret->set_clamp_to_edges(this->ui->clamp_to_edges_cb->isChecked());
+	ret->set_save_state_on_exit(this->ui->save_state_on_exit_cb->isChecked());
 	ret->set_keep_application_in_background(this->ui->keep_application_running_cb->isChecked());
 	ret->set_clamp_strength(this->ui->clamp_strength_spinbox->value());
 	ret->set_zoom_mode_for_new_windows(this->ui->zoom_mode_for_new_windows_cb->get_selected_item());

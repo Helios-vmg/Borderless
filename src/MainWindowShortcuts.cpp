@@ -96,10 +96,14 @@ void MainWindow::close_slot(){
 }
 
 void MainWindow::zoom_in_slot(){
+	if (!this->displayed_image)
+		return;
 	this->change_zoom(true);
 }
 
 void MainWindow::zoom_out_slot(){
+	if (!this->displayed_image)
+		return;
 	this->change_zoom(false);
 }
 
@@ -144,6 +148,8 @@ void MainWindow::offset_image(const QPoint &offset){
 }
 
 void MainWindow::reset_zoom_slot(){
+	if (!this->displayed_image)
+		return;
 	int zoom = this->get_current_zoom();
 	this->set_current_zoom_mode(ZoomMode::Normal);
 	this->ui->label->reset_transform();
@@ -167,6 +173,8 @@ void cycle_zoom_mode(ZoomMode &mode){
 }
 
 void MainWindow::cycle_zoom_mode_slot(){
+	if (!this->displayed_image)
+		return;
 	auto mode = this->get_current_zoom_mode();
 	cycle_zoom_mode(mode);
 	this->set_current_zoom_mode(mode);
@@ -181,6 +189,8 @@ void toggle_lock_zoom(ZoomMode &mode){
 }
 
 void MainWindow::toggle_lock_zoom_slot(){
+	if (!this->displayed_image)
+		return;
 	auto mode = this->window_state->get_zoom_mode();
 	toggle_lock_zoom(mode);
 	this->window_state->set_zoom_mode(mode);
@@ -214,13 +224,16 @@ void MainWindow::toggle_fullscreen(){
 	auto zoom = this->get_current_zoom();
 	this->window_state->set_fullscreen(!this->window_state->get_fullscreen());
 	if (!this->window_state->get_fullscreen()){
-		this->apply_zoom(false, zoom);
+		if (this->displayed_image)
+			this->apply_zoom(false, zoom);
 		this->setGeometry(this->window_rect);
 		this->restore_image_pos();
 	}else{
 		this->save_image_pos(true);
-		this->set_zoom();
-		this->apply_zoom(false, zoom);
+		if (this->displayed_image){
+			this->set_zoom();
+			this->apply_zoom(false, zoom);
+		}
 		this->resolution_to_window_size();
 		this->reposition_image();
 		//this->move_image(QPoint(0, 0));

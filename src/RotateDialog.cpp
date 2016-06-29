@@ -8,6 +8,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "RotateDialog.h"
 #include "Misc.h"
 #include <cmath>
+#include <QMessageBox>
 
 const double log_125 = log(1.25);
 
@@ -26,6 +27,25 @@ RotateDialog::RotateDialog(MainWindow &parent) :
 	this->last_scale = this->original_scale = this->scale = this->main_window.get_image_zoom();
 	this->rotation_slider_changed(0);
 	this->set_scale();
+	this->geometry_set = false;
+	auto desktop = this->main_window.get_app().desktop();
+	auto h = 22 * desktop->logicalDpiY() / 96;
+	this->ui->rotation_slider->setMinimumHeight(h);
+	this->ui->scale_slider->setMinimumHeight(h);
+}
+
+void RotateDialog::resizeEvent(QResizeEvent *e){
+	if (this->geometry_set){
+		QDialog::resizeEvent(e);
+		return;
+	}
+	this->geometry_set = true;
+	auto size = this->size();
+	size.setWidth(size.height() * 400 / 143);
+	this->setMinimumWidth(size.width());
+	this->setMinimumHeight(size.height());
+	this->setMaximumHeight(size.height());
+	this->updateGeometry();
 }
 
 void RotateDialog::do_transform(bool set_zoom){
