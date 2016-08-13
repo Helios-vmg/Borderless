@@ -290,8 +290,8 @@ QPoint MainWindow::compute_movement(const QPoint &_new_position){
 	return new_position;
 }
 
-void MainWindow::reposition_window(){
-	this->resize_to_max();
+void MainWindow::reposition_window(bool do_not_enlarge){
+	this->resize_to_max(do_not_enlarge);
 	if (this->window_state->get_fullscreen())
 		this->resolution_to_window_size();
 	this->reposition_image();

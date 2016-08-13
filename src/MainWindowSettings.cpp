@@ -26,7 +26,7 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	if (!success)
 		return;
 	this->resize(this->window_state->get_size().to_QSize());
-	this->fix_positions_and_zoom();
+	this->fix_positions_and_zoom(true);
 }
 
 std::shared_ptr<WindowState> MainWindow::save_state() const{

@@ -230,11 +230,15 @@ void MainWindow::show_nothing(){
 	this->resize_to_max();
 }
 
-void MainWindow::resize_to_max(){
+void MainWindow::resize_to_max(bool do_not_enlarge){
 	auto rect = this->geometry();
 	auto &label = this->ui->label;
 	label->resize(label->get_size());
-	rect.setSize(label->size().boundedTo(this->desktop_size.size()));
+	auto new_size = this->desktop_size.size();
+	new_size = label->size().boundedTo(new_size);
+	if (do_not_enlarge)
+		new_size = new_size.boundedTo(this->size());
+	rect.setSize(new_size);
 	if (rect.left() < this->desktop_size.left())
 		rect.moveLeft(this->desktop_size.left());
 	else if (rect.right() > this->desktop_size.right())
@@ -441,13 +445,13 @@ void MainWindow::resolution_to_window_size(){
 	this->setGeometry(this->screen_size);
 }
 
-void MainWindow::fix_positions_and_zoom(){
+void MainWindow::fix_positions_and_zoom(bool do_not_enlarge){
 	if (this->current_zoom_mode_is_auto()){
 		auto zoom = this->get_current_zoom();
 		this->set_zoom();
 		this->apply_zoom(false, zoom);
 	}
-	this->reposition_window();
+	this->reposition_window(do_not_enlarge);
 	this->reposition_image();
 	this->ui->label->repaint();
 }
