@@ -14,6 +14,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "Shortcuts.h"
 #include "Streams.h"
 #include "Enums.h"
+#include "ProtocolModule.h"
 #include <QMenu>
 #include <memory>
 #include <exception>
@@ -60,6 +61,7 @@ class ImageViewerApplication : public SingleInstanceApplication
 	void setup_slots();
 	void reset_tray_menu();
 	void conditional_tray_show();
+	std::unique_ptr<CustomProtocolHandler> protocol_handler;
 
 protected:
 	void new_instance(const QStringList &args) override;
@@ -106,6 +108,10 @@ public:
 	}
 	void set_option_values(MainSettings &settings);
 	PluginCoreState &get_plugin_core_state();
+	void load_custom_file_protocols();
+	QImage load_image(const QString &);
+	std::unique_ptr<QMovie> load_animation(const QString &);
+	bool is_animation(const QString &);
 
 public slots:
 	void window_closing(MainWindow *);

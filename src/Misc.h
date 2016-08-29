@@ -201,4 +201,8 @@ public:
 	}
 };
 
+inline void to_lower(std::string &s){
+	std::transform(s.begin(), s.end(), s.begin(), tolower);
+}
+
 #endif // MISC_H

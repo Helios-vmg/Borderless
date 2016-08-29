@@ -23,6 +23,7 @@ ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QSt
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false),
 		tray_icon(QIcon(":/icon16.png"), this){
+	this->load_custom_file_protocols();
 	if (!this->restore_settings())
 		this->settings = std::make_shared<MainSettings>();
 	this->reset_tray_menu();
@@ -410,4 +411,28 @@ void ImageViewerApplication::conditional_tray_show(){
 		this->tray_icon.show();
 	else
 		this->tray_icon.hide();
+}
+
+void ImageViewerApplication::load_custom_file_protocols(){
+	this->protocol_handler.reset(new CustomProtocolHandler(this->get_config_location()));
+}
+
+QImage ImageViewerApplication::load_image(const QString &path){
+	auto dev = this->protocol_handler->open(path);
+	if (!dev)
+		return QImage(path);
+	QImage ret;
+	ret.load(dev.get(), nullptr);
+	return ret;
+}
+
+std::unique_ptr<QMovie> ImageViewerApplication::load_animation(const QString &path){
+	auto dev = this->protocol_handler->open(path);
+	if (!dev)
+		return std::make_unique<QMovie>(path);
+	return std::make_unique<QMovie>(dev.get());
+}
+
+bool ImageViewerApplication::is_animation(const QString &path){
+	return path.endsWith(".gif", Qt::CaseInsensitive);
 }

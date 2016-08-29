@@ -187,6 +187,9 @@
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\ProtocolModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -223,6 +226,9 @@
     <CustomBuild Include="$(SolutionDir)\src\serialization\settings.txt" />
     <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.ui">
       <Filter>Form Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\ProtocolModule.h">
+      <Filter>Header Files</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

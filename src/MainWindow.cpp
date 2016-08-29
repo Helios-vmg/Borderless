@@ -305,7 +305,7 @@ bool MainWindow::open_path_and_display_image(QString path){
 	if (!!this->directory_iterator)
 		i = this->directory_iterator->pos();
 	while (true){
-		li = LoadedGraphics::create(path);
+		li = LoadedGraphics::create(*this->app, path);
 		qDebug() << path;
 		if (!li->is_null())
 			break;

@@ -8,6 +8,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef LOADEDIMAGE_H
 #define LOADEDIMAGE_H
 
+#include "ImageViewerApplication.h"
 #include <QString>
 #include <QPixmap>
 #include <QMovie>
@@ -36,7 +37,7 @@ public:
 	}
 	virtual void assign_to_QLabel(QLabel &) = 0;
 	virtual QImage get_QImage() const = 0;
-	static std::shared_ptr<LoadedGraphics> create(const QString &path);
+	static std::shared_ptr<LoadedGraphics> create(ImageViewerApplication &app, const QString &path);
 };
 
 class LoadedImage : public LoadedGraphics{
@@ -45,7 +46,7 @@ class LoadedImage : public LoadedGraphics{
 
 	void compute_average_color(QImage);
 public:
-	LoadedImage(const QString &path);
+	LoadedImage(ImageViewerApplication &app, const QString &path);
 	LoadedImage(const QImage &image);
 	~LoadedImage();
 	QColor get_background_color() override{
@@ -59,10 +60,10 @@ public:
 };
 
 class LoadedAnimation : public LoadedGraphics{
-	QMovie animation;
+	std::unique_ptr<QMovie> animation;
 
 public:
-	LoadedAnimation(const QString &path);
+	LoadedAnimation(ImageViewerApplication &app, const QString &path);
 	QColor get_background_color() override{
 		return QColor(0, 0, 0, 0);
 	}
