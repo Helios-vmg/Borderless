@@ -11,7 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QLabel>
 
 LoadedImage::LoadedImage(ImageViewerApplication &app, const QString &path){
-	QImage img(path);
+	auto img = app.load_image(path);
 	if ((this->null = img.isNull()))
 		return;
 	this->compute_average_color(img);

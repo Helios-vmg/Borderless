@@ -25,7 +25,7 @@ class ProtocolModule{
 	class unknown_stream_t;
 
 	typedef const char *(*get_protocol_f)();
-	typedef protocol_client_t *(*initialize_client_f)();
+	typedef protocol_client_t *(*initialize_client_f)(const wchar_t *, const wchar_t *);
 	typedef void (*terminate_client_f)(protocol_client_t *);
 	typedef unknown_stream_t *(*open_file_utf8_f)(protocol_client_t *, const char *);
 	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
@@ -53,7 +53,7 @@ class ProtocolModule{
 		}
 	};
 public:
-	ProtocolModule(const QString &filename);
+	ProtocolModule(const QString &filename, const QString &config_location, const QString &plugins_location);
 	~ProtocolModule();
 	operator bool() const{
 		return this->ok;

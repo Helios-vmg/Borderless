@@ -10,6 +10,9 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
+#ifdef WIN32
+#include <Windows.h>
+#endif
 
 #define INIT_FUNCTION(x) this->x = nullptr
 #define RESOLVE_FUNCTION(x) {               \
@@ -18,7 +21,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 		return;                             \
 }
 
-ProtocolModule::ProtocolModule(const QString &filename){
+ProtocolModule::ProtocolModule(const QString &filename, const QString &config_location, const QString &plugins_location){
 	this->ok = false;
 	this->client = nullptr;
 	this->lib.setFileName(filename);
@@ -42,10 +45,12 @@ ProtocolModule::ProtocolModule(const QString &filename){
 	RESOLVE_FUNCTION(close_file);
 	RESOLVE_FUNCTION(read_file);
 
-	this->client = this->initialize_client();
+	auto cl = config_location.toStdWString();
+	auto pl = plugins_location.toStdWString();
+	this->client = this->initialize_client(cl.c_str(), pl.c_str());
 	if (!this->client)
 		return;
-
+	this->protocol = this->get_protocol();
 	this->ok = true;
 }
 
@@ -102,7 +107,7 @@ CustomProtocolHandler::CustomProtocolHandler(const QString &config_location){
 	auto lines = read_all_lines_from_file(list_file);
 
 	for (auto &line : lines){
-		auto mod = std::make_unique<ProtocolModule>(protocols_location + line);
+		auto mod = std::make_unique<ProtocolModule>(protocols_location + line, config_location, protocols_location);
 		if (!*mod)
 			continue;
 		auto proto = mod->get_protocol_string();

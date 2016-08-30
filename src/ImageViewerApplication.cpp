@@ -422,8 +422,14 @@ QImage ImageViewerApplication::load_image(const QString &path){
 	if (!dev)
 		return QImage(path);
 	QImage ret;
-	ret.load(dev.get(), nullptr);
+	auto extension = QFileInfo(path).suffix().toStdString();
+	ret.load(dev.get(), extension.c_str());
 	return ret;
+	//QImageReader reader(dev.get());
+	//reader.setFileName(path);
+	//reader.setAutoDetectImageFormat(true);
+	//auto ret = reader.read();
+	//return ret;
 }
 
 std::unique_ptr<QMovie> ImageViewerApplication::load_animation(const QString &path){
