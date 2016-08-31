@@ -13,7 +13,10 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
 	auto path = QString::fromStdWString(this->window_state->get_current_directory());
-	path += QDir::separator();
+	auto c = QDir::separator();
+	if (CustomProtocolHandler::is_url(path))
+		c = '/';
+	path += c;
 	path += QString::fromStdWString(this->window_state->get_current_filename());
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);

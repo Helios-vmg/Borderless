@@ -69,6 +69,7 @@ class CustomProtocolHandler{
 public:
 	CustomProtocolHandler(const QString &config_location);
 	std::unique_ptr<QIODevice> open(const QString &s);
+	static bool is_url(const QString &);
 };
 
 #endif

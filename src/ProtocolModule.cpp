@@ -153,13 +153,18 @@ bool is_url(std::string &scheme, const QString &s){
 	return false;
 }
 
+bool CustomProtocolHandler::is_url(const QString &path){
+	std::string unused;
+	return ::is_url(unused, path);
+}
+
 std::unique_ptr<QIODevice> CustomProtocolHandler::open(const QString &s){
 	std::unique_ptr<QIODevice> ret;
 	if (!this->modules.size())
 		return ret;
 
 	std::string scheme;
-	if (!is_url(scheme, s))
+	if (!::is_url(scheme, s))
 		return ret;
 	auto it = this->modules.find(scheme);
 	if (it == this->modules.end())
