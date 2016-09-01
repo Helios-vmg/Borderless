@@ -32,18 +32,22 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(get_protocol);
 	INIT_FUNCTION(initialize_client);
 	INIT_FUNCTION(terminate_client);
-	INIT_FUNCTION(open_file_utf8);
 	INIT_FUNCTION(open_file_utf16);
 	INIT_FUNCTION(close_file);
 	INIT_FUNCTION(read_file);
+	INIT_FUNCTION(create_file_enumerator);
+	INIT_FUNCTION(file_enumerator_next);
+	INIT_FUNCTION(destroy_file_enumerator);
 
 	RESOLVE_FUNCTION(get_protocol);
 	RESOLVE_FUNCTION(initialize_client);
 	RESOLVE_FUNCTION(terminate_client);
-	RESOLVE_FUNCTION(open_file_utf8);
 	RESOLVE_FUNCTION(open_file_utf16);
 	RESOLVE_FUNCTION(close_file);
 	RESOLVE_FUNCTION(read_file);
+	RESOLVE_FUNCTION(create_file_enumerator);
+	RESOLVE_FUNCTION(file_enumerator_next);
+	RESOLVE_FUNCTION(destroy_file_enumerator);
 
 	auto cl = config_location.toStdWString();
 	auto pl = plugins_location.toStdWString();
@@ -74,13 +78,29 @@ qint64 ProtocolModule::Stream::readData(char *data, qint64 maxSize){
 	return this->module->read_file(this->stream, data, maxSize);
 }
 
-std::unique_ptr<QIODevice> ProtocolModule::open(const QString &s){
-	auto temp = s.toStdWString();
+std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
+	auto temp = path.toStdWString();
 	auto stream = this->open_file_utf16(this->client, temp.c_str());
 	std::unique_ptr<QIODevice> ret;
 	if (!stream)
 		return ret;
 	ret.reset(new Stream(this, stream));
+	return ret;
+}
+
+QStringList ProtocolModule::enumerate_directory(const QString &path){
+	QStringList ret;
+	auto temp = path.toStdWString();
+	auto enumerator = this->create_file_enumerator(this->client, temp.c_str());
+	if (!enumerator)
+		return ret;
+	auto d = this->destroy_file_enumerator;
+	std::shared_ptr<file_enumerator_t> shared_p(enumerator, [d](file_enumerator_t *p){ if (p) d(p); });
+
+	const wchar_t *next_path;
+	while ((next_path = this->file_enumerator_next(enumerator)))
+		ret.push_back(QString::fromWCharArray(next_path));
+
 	return ret;
 }
 

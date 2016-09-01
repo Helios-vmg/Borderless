@@ -23,22 +23,27 @@ class ProtocolModule{
 
 	class protocol_client_t;
 	class unknown_stream_t;
+	class file_enumerator_t;
 
 	typedef const char *(*get_protocol_f)();
 	typedef protocol_client_t *(*initialize_client_f)(const wchar_t *, const wchar_t *);
 	typedef void (*terminate_client_f)(protocol_client_t *);
-	typedef unknown_stream_t *(*open_file_utf8_f)(protocol_client_t *, const char *);
 	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
 	typedef void (*close_file_f)(unknown_stream_t *);
-	typedef std::uint64_t (*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
+	typedef std::uint64_t(*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
+	typedef file_enumerator_t *(*create_file_enumerator_f)(protocol_client_t *, const wchar_t *);
+	typedef const wchar_t *(*file_enumerator_next_f)(file_enumerator_t *);
+	typedef void (*destroy_file_enumerator_f)(file_enumerator_t *);
 #define DECLARE_FUNCTION_POINTER(x) x##_f x
 	DECLARE_FUNCTION_POINTER(get_protocol);
 	DECLARE_FUNCTION_POINTER(initialize_client);
 	DECLARE_FUNCTION_POINTER(terminate_client);
-	DECLARE_FUNCTION_POINTER(open_file_utf8);
 	DECLARE_FUNCTION_POINTER(open_file_utf16);
 	DECLARE_FUNCTION_POINTER(close_file);
 	DECLARE_FUNCTION_POINTER(read_file);
+	DECLARE_FUNCTION_POINTER(create_file_enumerator);
+	DECLARE_FUNCTION_POINTER(file_enumerator_next);
+	DECLARE_FUNCTION_POINTER(destroy_file_enumerator);
 	protocol_client_t *client;
 
 	class Stream : public QIODevice{
@@ -62,6 +67,7 @@ public:
 		return this->protocol;
 	}
 	std::unique_ptr<QIODevice> open(const QString &s);
+	QStringList enumerate_directory(const QString &s);
 };
 
 class CustomProtocolHandler{
