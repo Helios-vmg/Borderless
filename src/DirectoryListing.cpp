@@ -99,6 +99,10 @@ bool LocalDirectoryListing::find(size_t &dst, const QString &s){
 	return true;
 }
 
+QString LocalDirectoryListing::get_filename(size_t i){
+	return this->entries.result()[i];
+}
+
 ProtocolDirectoryListing::list_t get_protocol_entries(QString path, CustomProtocolHandler *handler){
 	typedef ProtocolDirectoryListing::list_t::element_type t;
 
@@ -143,4 +147,8 @@ bool ProtocolDirectoryListing::find(size_t &dst, const QString &s){
 
 bool ProtocolDirectoryListing::operator==(const QString &path){
 	return this->get_result().size() && this->handler->paths_in_same_directory(this->get_result().front().first, path);
+}
+
+QString ProtocolDirectoryListing::get_filename(size_t i){
+	return this->get_result()[i].second;
 }

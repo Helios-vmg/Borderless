@@ -38,8 +38,10 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(create_sibling_enumerator);
 	INIT_FUNCTION(sibling_enumerator_next);
 	INIT_FUNCTION(destroy_sibling_enumerator);
-	INIT_FUNCTION(get_container_directory);
 	INIT_FUNCTION(release_returned_string);
+	INIT_FUNCTION(get_parent_directory);
+	INIT_FUNCTION(paths_in_same_directory);
+	INIT_FUNCTION(get_filename_from_url);
 
 	RESOLVE_FUNCTION(get_protocol);
 	RESOLVE_FUNCTION(initialize_client);
@@ -50,8 +52,10 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION(create_sibling_enumerator);
 	RESOLVE_FUNCTION(sibling_enumerator_next);
 	RESOLVE_FUNCTION(destroy_sibling_enumerator);
-	RESOLVE_FUNCTION(get_container_directory);
 	RESOLVE_FUNCTION(release_returned_string);
+	RESOLVE_FUNCTION(get_parent_directory);
+	RESOLVE_FUNCTION(paths_in_same_directory);
+	RESOLVE_FUNCTION(get_filename_from_url);
 
 	auto cl = config_location.toStdWString();
 	auto pl = plugins_location.toStdWString();
@@ -107,9 +111,24 @@ QStringList ProtocolModule::enumerate_siblings(const QString &path){
 	return ret;
 }
 
-QString ProtocolModule::get_container_path(const QString &path){
+QString ProtocolModule::get_parent(const QString &path){
 	auto temp = path.toStdWString();
-	auto wc = this->get_container_directory(temp.c_str());
+	auto wc = this->get_parent_directory(temp.c_str());
+	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
+	if (!wc)
+		return QString::null;
+	return QString::fromWCharArray(wc);
+}
+
+bool ProtocolModule::are_paths_in_same_directory(const QString &a, const QString &b){
+	auto A = a.toStdWString();
+	auto B = b.toStdWString();
+	return this->paths_in_same_directory(A.c_str(), B.c_str());
+}
+
+QString ProtocolModule::get_filename(const QString &path){
+	auto temp = path.toStdWString();
+	auto wc = this->get_filename_from_url(temp.c_str());
 	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
 	if (!wc)
 		return QString::null;
@@ -190,17 +209,58 @@ bool CustomProtocolHandler::is_url(const QString &path){
 	return ::is_url(unused, path);
 }
 
-std::unique_ptr<QIODevice> CustomProtocolHandler::open(const QString &s){
-	std::unique_ptr<QIODevice> ret;
+ProtocolModule *CustomProtocolHandler::find_module_by_url(const QString &path){
 	if (!this->modules.size())
-		return ret;
+		return nullptr;
 
 	std::string scheme;
-	if (!::is_url(scheme, s))
-		return ret;
+	if (!::is_url(scheme, path))
+		return nullptr;
+
 	auto it = this->modules.find(scheme);
 	if (it == this->modules.end())
-		return ret;
-	ret = it->second->open(s);
-	return ret;
+		return nullptr;
+	return it->second.get();
+}
+
+std::unique_ptr<QIODevice> CustomProtocolHandler::open(const QString &path){
+	auto mod = this->find_module_by_url(path);
+	if (!mod)
+		return std::unique_ptr<QIODevice>();
+	return mod->open(path);
+}
+
+QStringList CustomProtocolHandler::enumerate_siblings(const QString &path){
+	auto mod = this->find_module_by_url(path);
+	if (!mod)
+		return QStringList();
+	return mod->enumerate_siblings(path);
+}
+
+QString CustomProtocolHandler::get_parent_directory(const QString &path){
+	auto mod = this->find_module_by_url(path);
+	if (!mod)
+		return QString();
+	return mod->get_parent(path);
+}
+
+QString CustomProtocolHandler::get_filename(const QString &path){
+	auto mod = this->find_module_by_url(path);
+	if (!mod)
+		return QString();
+	return mod->get_filename(path);
+}
+
+bool CustomProtocolHandler::paths_in_same_directory(const QString &a, const QString &b){
+	if (!this->modules.size())
+		return false;
+
+	std::string scheme_a, scheme_b;
+	if (!::is_url(scheme_a, a) || !::is_url(scheme_b, b) || scheme_a != scheme_b)
+		return false;
+
+	auto it = this->modules.find(scheme_a);
+	if (it == this->modules.end())
+		return false;
+	return it->second->are_paths_in_same_directory(a, b);
 }

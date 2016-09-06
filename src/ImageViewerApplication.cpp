@@ -442,3 +442,7 @@ std::unique_ptr<QMovie> ImageViewerApplication::load_animation(const QString &pa
 bool ImageViewerApplication::is_animation(const QString &path){
 	return path.endsWith(".gif", Qt::CaseInsensitive);
 }
+
+QString ImageViewerApplication::get_filename_from_url(const QString &url){
+	return this->protocol_handler->get_filename(url);
+}
