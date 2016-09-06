@@ -31,9 +31,11 @@ class ProtocolModule{
 	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
 	typedef void (*close_file_f)(unknown_stream_t *);
 	typedef std::uint64_t(*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
-	typedef file_enumerator_t *(*create_file_enumerator_f)(protocol_client_t *, const wchar_t *);
-	typedef const wchar_t *(*file_enumerator_next_f)(file_enumerator_t *);
-	typedef void (*destroy_file_enumerator_f)(file_enumerator_t *);
+	typedef file_enumerator_t *(*create_sibling_enumerator_f)(protocol_client_t *, const wchar_t *);
+	typedef const wchar_t *(*sibling_enumerator_next_f)(file_enumerator_t *);
+	typedef void(*destroy_sibling_enumerator_f)(file_enumerator_t *);
+	typedef const wchar_t *(*get_container_directory_f)(const wchar_t *);
+	typedef void (*release_returned_string_f)(const wchar_t *);
 #define DECLARE_FUNCTION_POINTER(x) x##_f x
 	DECLARE_FUNCTION_POINTER(get_protocol);
 	DECLARE_FUNCTION_POINTER(initialize_client);
@@ -41,9 +43,11 @@ class ProtocolModule{
 	DECLARE_FUNCTION_POINTER(open_file_utf16);
 	DECLARE_FUNCTION_POINTER(close_file);
 	DECLARE_FUNCTION_POINTER(read_file);
-	DECLARE_FUNCTION_POINTER(create_file_enumerator);
-	DECLARE_FUNCTION_POINTER(file_enumerator_next);
-	DECLARE_FUNCTION_POINTER(destroy_file_enumerator);
+	DECLARE_FUNCTION_POINTER(create_sibling_enumerator);
+	DECLARE_FUNCTION_POINTER(sibling_enumerator_next);
+	DECLARE_FUNCTION_POINTER(destroy_sibling_enumerator);
+	DECLARE_FUNCTION_POINTER(get_container_directory);
+	DECLARE_FUNCTION_POINTER(release_returned_string);
 	protocol_client_t *client;
 
 	class Stream : public QIODevice{
@@ -66,8 +70,9 @@ public:
 	const std::string &get_protocol_string() const{
 		return this->protocol;
 	}
-	std::unique_ptr<QIODevice> open(const QString &s);
-	QStringList enumerate_directory(const QString &s);
+	std::unique_ptr<QIODevice> open(const QString &);
+	QStringList enumerate_siblings(const QString &);
+	QString get_container_path(const QString &);
 };
 
 class CustomProtocolHandler{
@@ -76,6 +81,10 @@ public:
 	CustomProtocolHandler(const QString &config_location);
 	std::unique_ptr<QIODevice> open(const QString &s);
 	static bool is_url(const QString &);
+	QStringList enumerate_siblings(const QString &);
+	QString get_parent_directory(const QString &);
+	QString get_filename(const QString &);
+	bool paths_in_same_directory(const QString &, const QString &);
 };
 
 #endif

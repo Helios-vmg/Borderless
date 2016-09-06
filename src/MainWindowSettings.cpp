@@ -12,12 +12,16 @@ Distributed under a permissive license. See COPYING.txt for details.
 void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
-	auto path = QString::fromStdWString(this->window_state->get_current_directory());
-	auto c = QDir::separator();
-	if (CustomProtocolHandler::is_url(path))
-		c = '/';
-	path += c;
-	path += QString::fromStdWString(this->window_state->get_current_filename());
+	std::wstring wspath;
+	if (!this->window_state->get_file_is_url()){
+		wspath = this->window_state->get_current_directory();
+		auto c = QDir::separator().toLatin1();
+		wspath += c;
+		wspath += this->window_state->get_current_filename();
+	}else
+		wspath = this->window_state->get_current_url();
+
+	auto path = QString::fromStdWString(wspath);
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
 	bool success = this->open_path_and_display_image(path);

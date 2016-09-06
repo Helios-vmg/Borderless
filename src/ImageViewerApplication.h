@@ -31,7 +31,7 @@ class ImageViewerApplication : public SingleInstanceApplication
 
 	typedef std::shared_ptr<MainWindow> sharedp_t;
 	std::map<uintptr_t, sharedp_t> windows;
-	std::vector<std::pair<DirectoryListing *, unsigned> > listings;
+	std::vector<std::pair<std::shared_ptr<DirectoryListing>, unsigned>> listings;
 	bool do_not_save;
 	std::vector<std::shared_ptr<QAction> > actions;
 	ApplicationShortcuts shortcuts;
@@ -70,7 +70,8 @@ protected:
 public:
 	ImageViewerApplication(int &argc, char **argv, const QString &unique_name);
 	~ImageViewerApplication();
-	std::shared_ptr<DirectoryIterator> request_directory(const QString &path);
+	std::shared_ptr<DirectoryIterator> request_local_directory_iterator(const QString &path);
+	std::shared_ptr<DirectoryIterator> request_directory_iterator_by_url(const QString &url);
 	void release_directory(std::shared_ptr<DirectoryIterator>);
 	bool get_clamp_to_edges() const{
 		return this->settings->get_clamp_to_edges();
@@ -112,6 +113,7 @@ public:
 	QImage load_image(const QString &);
 	std::unique_ptr<QMovie> load_animation(const QString &);
 	bool is_animation(const QString &);
+	QString get_filename_from_url(const QString &);
 
 public slots:
 	void window_closing(MainWindow *);

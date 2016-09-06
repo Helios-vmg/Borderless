@@ -16,4 +16,5 @@ WindowState::WindowState(){
 	this->fullscreen_zoom_mode = (std::uint32_t)ZoomMode::AutoFit;
 	this->border_size = this->default_border_size;
 	this->movement_size = 100;
+	this->file_is_url = false;
 }

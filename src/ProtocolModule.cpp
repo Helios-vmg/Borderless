@@ -35,9 +35,11 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(open_file_utf16);
 	INIT_FUNCTION(close_file);
 	INIT_FUNCTION(read_file);
-	INIT_FUNCTION(create_file_enumerator);
-	INIT_FUNCTION(file_enumerator_next);
-	INIT_FUNCTION(destroy_file_enumerator);
+	INIT_FUNCTION(create_sibling_enumerator);
+	INIT_FUNCTION(sibling_enumerator_next);
+	INIT_FUNCTION(destroy_sibling_enumerator);
+	INIT_FUNCTION(get_container_directory);
+	INIT_FUNCTION(release_returned_string);
 
 	RESOLVE_FUNCTION(get_protocol);
 	RESOLVE_FUNCTION(initialize_client);
@@ -45,9 +47,11 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION(open_file_utf16);
 	RESOLVE_FUNCTION(close_file);
 	RESOLVE_FUNCTION(read_file);
-	RESOLVE_FUNCTION(create_file_enumerator);
-	RESOLVE_FUNCTION(file_enumerator_next);
-	RESOLVE_FUNCTION(destroy_file_enumerator);
+	RESOLVE_FUNCTION(create_sibling_enumerator);
+	RESOLVE_FUNCTION(sibling_enumerator_next);
+	RESOLVE_FUNCTION(destroy_sibling_enumerator);
+	RESOLVE_FUNCTION(get_container_directory);
+	RESOLVE_FUNCTION(release_returned_string);
 
 	auto cl = config_location.toStdWString();
 	auto pl = plugins_location.toStdWString();
@@ -88,20 +92,28 @@ std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
 	return ret;
 }
 
-QStringList ProtocolModule::enumerate_directory(const QString &path){
+QStringList ProtocolModule::enumerate_siblings(const QString &path){
 	QStringList ret;
 	auto temp = path.toStdWString();
-	auto enumerator = this->create_file_enumerator(this->client, temp.c_str());
+	auto enumerator = this->create_sibling_enumerator(this->client, temp.c_str());
+	std::shared_ptr<file_enumerator_t> shared_p(enumerator, this->destroy_sibling_enumerator);
 	if (!enumerator)
 		return ret;
-	auto d = this->destroy_file_enumerator;
-	std::shared_ptr<file_enumerator_t> shared_p(enumerator, [d](file_enumerator_t *p){ if (p) d(p); });
 
 	const wchar_t *next_path;
-	while ((next_path = this->file_enumerator_next(enumerator)))
+	while ((next_path = this->sibling_enumerator_next(enumerator)))
 		ret.push_back(QString::fromWCharArray(next_path));
 
 	return ret;
+}
+
+QString ProtocolModule::get_container_path(const QString &path){
+	auto temp = path.toStdWString();
+	auto wc = this->get_container_directory(temp.c_str());
+	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
+	if (!wc)
+		return QString::null;
+	return QString::fromWCharArray(wc);
 }
 
 std::vector<QString> read_all_lines_from_file(QFile &file){

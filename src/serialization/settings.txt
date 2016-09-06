@@ -21,8 +21,10 @@ cpp settings{
 		UintPair size;
 		IntPair label_pos;
 		bool using_checkerboard_pattern;
+		bool file_is_url;
 		wstring current_directory;
 		wstring current_filename;
+		wstring current_url;
 		double zoom;
 		double fullscreen_zoom;
 		bool fullscreen;

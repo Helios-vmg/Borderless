@@ -11,8 +11,10 @@ public:
 		this->set_using_checkerboard_pattern(!this->using_checkerboard_pattern);
 	}
 	DEFINE_INLINE_SETTER_GETTER(using_checkerboard_pattern_updated)
+	DEFINE_INLINE_SETTER_GETTER(file_is_url)
 	DEFINE_INLINE_SETTER_GETTER(current_directory)
 	DEFINE_INLINE_SETTER_GETTER(current_filename)
+	DEFINE_INLINE_SETTER_GETTER(current_url)
 	DEFINE_INLINE_SETTER_GETTER(zoom)
 	DEFINE_INLINE_SETTER_GETTER(fullscreen_zoom)
 	DEFINE_INLINE_SETTER_GETTER(fullscreen)

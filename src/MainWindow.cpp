@@ -260,7 +260,13 @@ void MainWindow::advance(){
 }
 
 void MainWindow::set_iterator(){
-	this->directory_iterator->advance_to(QString::fromStdWString(this->window_state->get_current_filename()));
+	std::wstring wsname;
+	assert(this->window_state->get_file_is_url() == !this->directory_iterator->get_is_local());
+	if (!this->window_state->get_file_is_url())
+		wsname = this->window_state->get_current_filename();
+	else
+		wsname = this->window_state->get_current_url();
+	this->directory_iterator->advance_to(QString::fromStdWString(wsname));
 }
 
 double MainWindow::get_current_zoom() const{
@@ -317,13 +323,34 @@ bool MainWindow::open_path_and_display_image(QString path){
 		}else
 			break;
 	}
-	QString current_directory,
-		current_filename;
-	split_path(current_directory, current_filename, path);
-	this->window_state->set_current_directory(current_directory.toStdWString());
-	this->window_state->set_current_filename(current_filename.toStdWString());
-	if (!this->directory_iterator)
-		this->directory_iterator = this->app->request_directory(current_directory);
+
+	QString current_filename;
+
+	bool unset = true;
+	if (!this->directory_iterator){
+		auto di = this->app->request_directory_iterator_by_url(path);
+		if (di){
+			this->directory_iterator = di;
+			current_filename = this->app->get_filename_from_url(path);
+			this->window_state->set_file_is_url(true);
+			this->window_state->set_current_url(path.toStdWString());
+			unset = false;
+		}
+	}else if (!this->directory_iterator->get_is_local()){
+		current_filename = this->directory_iterator->get_current_filename();
+		this->window_state->set_file_is_url(true);
+		this->window_state->set_current_url(path.toStdWString());
+		unset = false;
+	}
+	if (unset){
+		QString current_directory;
+		split_path(current_directory, current_filename, path);
+		this->window_state->set_current_directory(current_directory.toStdWString());
+		this->window_state->set_current_filename(current_filename.toStdWString());
+		if (!this->directory_iterator)
+			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
+	}
+
 	if (li->is_null()){
 		this->show_nothing();
 		return false;

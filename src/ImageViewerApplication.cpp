@@ -63,26 +63,33 @@ void ImageViewerApplication::window_closing(MainWindow *window){
 	this->windows.erase(it);
 }
 
-std::shared_ptr<DirectoryIterator> ImageViewerApplication::request_directory(const QString &path){
+template <typename ListingT, typename ListT>
+std::shared_ptr<DirectoryIterator> generic_get_dir(ListT &list, const QString &path, bool local, CustomProtocolHandler &handler){
+	for (auto &p : list){
+		if (p.first->is_local() == local && *p.first == path){
+			p.second++;
+			return std::make_shared<DirectoryIterator>(*p.first);
+		}
+	}
+	auto listing = std::make_shared<ListingT>(path, handler);
+	if (!*listing)
+		return std::shared_ptr<DirectoryIterator>();
+	list.push_back(std::make_pair(listing, 1));
+	return std::make_shared<DirectoryIterator>(*listing);
+}
+
+std::shared_ptr<DirectoryIterator> ImageViewerApplication::request_local_directory_iterator(const QString &path){
 	auto clean = path;
 	std::shared_ptr<DirectoryIterator> ret;
 	if (!check_and_clean_path(clean))
 		return ret;
-	for (auto &p : this->listings){
-		if (*p.first == clean){
-			ret.reset(new DirectoryIterator(*p.first));
-			p.second++;
-			return ret;
-		}
-	}
-	auto list = new DirectoryListing(clean);
-	if (!*list){
-		delete list;
-		return ret;
-	}
-	this->listings.push_back(std::make_pair(list, 1));
-	ret.reset(new DirectoryIterator(*list));
-	return ret;
+	return generic_get_dir<LocalDirectoryListing>(this->listings, clean, true, *this->protocol_handler);
+}
+
+std::shared_ptr<DirectoryIterator> ImageViewerApplication::request_directory_iterator_by_url(const QString &url){
+	if (!this->protocol_handler->is_url(url))
+		return std::shared_ptr<DirectoryIterator>();
+	return generic_get_dir<ProtocolDirectoryListing>(this->listings, url, false, *this->protocol_handler);
 }
 
 void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator> it){
@@ -91,7 +98,7 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	bool found = false;
 	size_t i = 0;
 	for (auto &p : this->listings){
-		if (p.first == it->get_listing()){
+		if (p.first.get() == it->get_listing()){
 			found = true;
 			break;
 		}
@@ -100,10 +107,8 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	if (!found)
 		return;
 	auto *pair = &this->listings[i];
-	if (!--pair->second){
-		delete pair->first;
+	if (!--pair->second)
 		this->listings.erase(this->listings.begin() + i);
-	}
 }
 
 void ImageViewerApplication::save_current_state(std::shared_ptr<ApplicationState> &state){
