@@ -12,6 +12,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "Misc.h"
 #include "OptionsDialog.h"
 #include "GenericException.h"
+#include "ProtocolModule.h"
 #include <QShortcut>
 #include <QMessageBox>
 #include <sstream>
@@ -433,15 +434,21 @@ QImage ImageViewerApplication::load_image(const QString &path){
 	return ret;
 }
 
-std::unique_ptr<QMovie> ImageViewerApplication::load_animation(const QString &path){
+std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> ImageViewerApplication::load_animation(const QString &path){
 	auto dev = this->protocol_handler->open(path);
+	std::unique_ptr<QMovie> mov;
 	if (!dev)
-		return std::make_unique<QMovie>(path);
-	return std::make_unique<QMovie>(dev.get());
+		mov = std::make_unique<QMovie>(path);
+	else
+		mov = std::make_unique<QMovie>(dev.get());
+	return std::make_pair(std::move(mov), std::move(dev));
 }
 
 bool ImageViewerApplication::is_animation(const QString &path){
-	return path.endsWith(".gif", Qt::CaseInsensitive);
+	auto testString = this->protocol_handler->get_filename(path);
+	if (testString.isNull())
+		testString = path;
+	return testString.endsWith(".gif", Qt::CaseInsensitive);
 }
 
 QString ImageViewerApplication::get_filename_from_url(const QString &url){

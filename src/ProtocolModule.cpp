@@ -42,6 +42,8 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(get_parent_directory);
 	INIT_FUNCTION(paths_in_same_directory);
 	INIT_FUNCTION(get_filename_from_url);
+	INIT_FUNCTION(seek_file);
+	INIT_FUNCTION(file_length);
 
 	RESOLVE_FUNCTION(get_protocol);
 	RESOLVE_FUNCTION(initialize_client);
@@ -56,6 +58,8 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION(get_parent_directory);
 	RESOLVE_FUNCTION(paths_in_same_directory);
 	RESOLVE_FUNCTION(get_filename_from_url);
+	RESOLVE_FUNCTION(seek_file);
+	RESOLVE_FUNCTION(file_length);
 
 	auto cl = config_location.toStdWString();
 	auto pl = plugins_location.toStdWString();
@@ -76,6 +80,8 @@ ProtocolModule::~ProtocolModule(){
 ProtocolModule::Stream::Stream(ProtocolModule *module, unknown_stream_t *stream){
 	this->module = module;
 	this->stream = stream;
+	this->position = 0;
+	this->length = this->module->file_length(this->stream);
 }
 
 ProtocolModule::Stream::~Stream(){
@@ -83,17 +89,26 @@ ProtocolModule::Stream::~Stream(){
 }
 
 qint64 ProtocolModule::Stream::readData(char *data, qint64 maxSize){
-	return this->module->read_file(this->stream, data, maxSize);
+	auto ret = this->module->read_file(this->stream, data, maxSize);
+	this->position += ret;
+	return ret;
+}
+
+bool ProtocolModule::Stream::seek(qint64 position){
+	if (!QIODevice::seek(position))
+		return false;
+	auto ret = this->module->seek_file(this->stream, position);
+	if (ret)
+		this->position = position;
+	return ret;
 }
 
 std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
 	auto temp = path.toStdWString();
 	auto stream = this->open_file_utf16(this->client, temp.c_str());
-	std::unique_ptr<QIODevice> ret;
 	if (!stream)
-		return ret;
-	ret.reset(new Stream(this, stream));
-	return ret;
+		return std::unique_ptr<QIODevice>();
+	return std::unique_ptr<QIODevice>(new Stream(this, stream));
 }
 
 QStringList ProtocolModule::enumerate_siblings(const QString &path){
@@ -223,10 +238,10 @@ ProtocolModule *CustomProtocolHandler::find_module_by_url(const QString &path){
 	return it->second.get();
 }
 
-std::unique_ptr<QIODevice> CustomProtocolHandler::open(const QString &path){
+std::unique_ptr<QIODevice>CustomProtocolHandler::open(const QString &path){
 	auto mod = this->find_module_by_url(path);
 	if (!mod)
-		return std::unique_ptr<QIODevice>();
+		return nullptr;
 	return mod->open(path);
 }
 

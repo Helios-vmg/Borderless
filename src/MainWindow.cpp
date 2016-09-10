@@ -260,12 +260,8 @@ void MainWindow::advance(){
 }
 
 void MainWindow::set_iterator(){
-	std::wstring wsname;
 	assert(this->window_state->get_file_is_url() == !this->directory_iterator->get_is_local());
-	if (!this->window_state->get_file_is_url())
-		wsname = this->window_state->get_current_filename();
-	else
-		wsname = this->window_state->get_current_url();
+	auto wsname = this->window_state->get_current_filename();
 	this->directory_iterator->advance_to(QString::fromStdWString(wsname));
 }
 
@@ -334,12 +330,14 @@ bool MainWindow::open_path_and_display_image(QString path){
 			current_filename = this->app->get_filename_from_url(path);
 			this->window_state->set_file_is_url(true);
 			this->window_state->set_current_url(path.toStdWString());
+			this->window_state->set_current_filename(current_filename.toStdWString());
 			unset = false;
 		}
 	}else if (!this->directory_iterator->get_is_local()){
 		current_filename = this->directory_iterator->get_current_filename();
 		this->window_state->set_file_is_url(true);
 		this->window_state->set_current_url(path.toStdWString());
+		this->window_state->set_current_filename(current_filename.toStdWString());
 		unset = false;
 	}
 	if (unset){

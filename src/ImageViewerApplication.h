@@ -14,13 +14,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "Shortcuts.h"
 #include "Streams.h"
 #include "Enums.h"
-#include "ProtocolModule.h"
 #include <QMenu>
 #include <memory>
 #include <exception>
 #include <QSystemTrayIcon>
 
 class QAction;
+class CustomProtocolHandler;
 struct lua_State;
 
 class NoWindowsException : public std::exception{};
@@ -111,7 +111,7 @@ public:
 	PluginCoreState &get_plugin_core_state();
 	void load_custom_file_protocols();
 	QImage load_image(const QString &);
-	std::unique_ptr<QMovie> load_animation(const QString &);
+	std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> load_animation(const QString &);
 	bool is_animation(const QString &);
 	QString get_filename_from_url(const QString &);
 

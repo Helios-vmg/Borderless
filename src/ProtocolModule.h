@@ -31,6 +31,8 @@ class ProtocolModule{
 	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
 	typedef void (*close_file_f)(unknown_stream_t *);
 	typedef std::uint64_t(*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
+	typedef int(*seek_file_f)(unknown_stream_t *, std::uint64_t);
+	typedef std::uint64_t (*file_length_f)(unknown_stream_t *);
 	typedef file_enumerator_t *(*create_sibling_enumerator_f)(protocol_client_t *, const wchar_t *);
 	typedef const wchar_t *(*sibling_enumerator_next_f)(file_enumerator_t *);
 	typedef void(*destroy_sibling_enumerator_f)(file_enumerator_t *);
@@ -45,6 +47,8 @@ class ProtocolModule{
 	DECLARE_FUNCTION_POINTER(open_file_utf16);
 	DECLARE_FUNCTION_POINTER(close_file);
 	DECLARE_FUNCTION_POINTER(read_file);
+	DECLARE_FUNCTION_POINTER(seek_file);
+	DECLARE_FUNCTION_POINTER(file_length);
 	DECLARE_FUNCTION_POINTER(create_sibling_enumerator);
 	DECLARE_FUNCTION_POINTER(sibling_enumerator_next);
 	DECLARE_FUNCTION_POINTER(destroy_sibling_enumerator);
@@ -57,12 +61,29 @@ class ProtocolModule{
 	class Stream : public QIODevice{
 		ProtocolModule *module;
 		unknown_stream_t *stream;
+		qint64 position, length;
 	public:
 		Stream(ProtocolModule *module, unknown_stream_t *stream);
 		~Stream();
 		qint64 readData(char *data, qint64 maxSize) override;
+		bool seek(qint64 position) override;
+		bool isSequential() const override{
+			return false;
+		}
 		qint64 writeData(const char *data, qint64 maxSize) override{
 			return 0;
+		}
+		qint64 pos() const override{
+			return this->position;
+		}
+		bool reset() override{
+			return this->seek(0);
+		}
+		qint64 size() const override{
+			return this->length;
+		}
+		bool atEnd() const override{
+			return this->position >= this->length;
 		}
 	};
 public:
