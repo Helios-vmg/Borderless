@@ -34,11 +34,10 @@ class ProtocolModule{
 	typedef file_enumerator_t *(*create_sibling_enumerator_f)(protocol_client_t *, const wchar_t *);
 	typedef const wchar_t *(*sibling_enumerator_next_f)(file_enumerator_t *);
 	typedef void(*destroy_sibling_enumerator_f)(file_enumerator_t *);
-	typedef const wchar_t *(*get_container_directory_f)(const wchar_t *);
 	typedef void (*release_returned_string_f)(const wchar_t *);
-	typedef const wchar_t *(*get_parent_directory_f)(const wchar_t *);
-	typedef int (*paths_in_same_directory_f)(const wchar_t *, const wchar_t *);
-	typedef const wchar_t *(*get_filename_from_url_f)(const wchar_t *);
+	typedef const wchar_t *(*get_parent_directory_f)(protocol_client_t *, const wchar_t *);
+	typedef int (*paths_in_same_directory_f)(protocol_client_t *, const wchar_t *, const wchar_t *);
+	typedef const wchar_t *(*get_filename_from_url_f)(protocol_client_t *, const wchar_t *);
 #define DECLARE_FUNCTION_POINTER(x) x##_f x
 	DECLARE_FUNCTION_POINTER(get_protocol);
 	DECLARE_FUNCTION_POINTER(initialize_client);

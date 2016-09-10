@@ -113,7 +113,7 @@ QStringList ProtocolModule::enumerate_siblings(const QString &path){
 
 QString ProtocolModule::get_parent(const QString &path){
 	auto temp = path.toStdWString();
-	auto wc = this->get_parent_directory(temp.c_str());
+	auto wc = this->get_parent_directory(this->client, temp.c_str());
 	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
 	if (!wc)
 		return QString::null;
@@ -123,12 +123,12 @@ QString ProtocolModule::get_parent(const QString &path){
 bool ProtocolModule::are_paths_in_same_directory(const QString &a, const QString &b){
 	auto A = a.toStdWString();
 	auto B = b.toStdWString();
-	return this->paths_in_same_directory(A.c_str(), B.c_str());
+	return this->paths_in_same_directory(this->client, A.c_str(), B.c_str());
 }
 
 QString ProtocolModule::get_filename(const QString &path){
 	auto temp = path.toStdWString();
-	auto wc = this->get_filename_from_url(temp.c_str());
+	auto wc = this->get_filename_from_url(this->client, temp.c_str());
 	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
 	if (!wc)
 		return QString::null;
