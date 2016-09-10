@@ -427,7 +427,8 @@ QImage ImageViewerApplication::load_image(const QString &path){
 	if (!dev)
 		return QImage(path);
 	QImage ret;
-	auto extension = QFileInfo(path).suffix().toStdString();
+	auto filename = this->protocol_handler->get_filename(path);
+	auto extension = QFileInfo(filename).suffix().toStdString();
 	ret.load(dev.get(), extension.c_str());
 	return ret;
 }
