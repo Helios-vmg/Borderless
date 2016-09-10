@@ -122,8 +122,10 @@ ProtocolDirectoryListing::list_t::element_type &ProtocolDirectoryListing::get_re
 }
 
 ProtocolDirectoryListing::ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &handler): handler(&handler){
+	this->ok = false;
 	this->base_path = handler.get_parent_directory(path);
 	this->future = QtConcurrent::run(get_protocol_entries, path, &handler);
+	this->ok = true;
 }
 
 size_t ProtocolDirectoryListing::size(){
