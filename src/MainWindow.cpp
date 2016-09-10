@@ -347,6 +347,7 @@ bool MainWindow::open_path_and_display_image(QString path){
 		split_path(current_directory, current_filename, path);
 		this->window_state->set_current_directory(current_directory.toStdWString());
 		this->window_state->set_current_filename(current_filename.toStdWString());
+		this->window_state->set_file_is_url(false);
 		if (!this->directory_iterator)
 			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
 	}
