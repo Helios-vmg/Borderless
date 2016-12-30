@@ -63,6 +63,17 @@ void MainWindow::init(){
 	connect(this->ui->label, SIGNAL(transform_updated()), this, SLOT(label_transform_updated()));
 }
 
+void MainWindow::set_desktop_size_by_window_position(){
+	auto screen_number = this->app->desktop()->screenNumber(this->window_rect.topLeft());
+	auto old_size = this->desktop_size;
+	if (screen_number >= 0){
+		this->set_desktop_size(screen_number);
+		auto new_size = this->desktop_size;
+		if (new_size != old_size)
+			this->fix_positions_and_zoom();
+	}
+}
+
 void MainWindow::set_desktop_size(int screen){
 	this->desktop_size = this->app->desktop()->availableGeometry(screen);
 	this->desktop_size.setHeight(this->desktop_size.height());
@@ -476,12 +487,14 @@ void MainWindow::move_window_rect(const QPoint &p){
 	this->window_rect.setY(p.y());
 	if (!this->window_state->get_fullscreen())
 		this->move(p);
+	this->set_desktop_size_by_window_position();
 }
 
 void MainWindow::set_window_rect(const QRect &r){
 	this->window_rect = r;
 	if (!this->window_state->get_fullscreen())
 		this->setGeometry(r);
+	this->set_desktop_size_by_window_position();
 }
 
 void MainWindow::label_transform_updated(){
