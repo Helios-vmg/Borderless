@@ -83,7 +83,7 @@ class MainWindow : public QMainWindow{
 	void cleanup();
 	void move_in_direction(bool forward);
 	void advance();
-	void init();
+	void init(bool restoring);
 	void setup_shortcut(const QKeySequence &sequence, const char *slot);
 	void show_context_menu(QMouseEvent *);
 	void change_zoom(bool in);

@@ -23,7 +23,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
-	this->init();
+	this->init(false);
 	if (arguments.size() >= 2)
 		this->open_path_and_display_image(arguments[1]);
 }
@@ -32,7 +32,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<Window
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
-	this->init();
+	this->init(true);
 	this->restore_state(state);
 	this->set_background();
 }
@@ -41,7 +41,7 @@ MainWindow::~MainWindow(){
 	this->cleanup();
 }
 
-void MainWindow::init(){
+void MainWindow::init(bool restoring){
 	if (!this->window_state)
 		this->window_state = std::make_shared<WindowState>();
 	this->moving_forward = true;
@@ -54,7 +54,12 @@ void MainWindow::init(){
 	this->setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint);
 	this->reset_settings();
 	this->setup_backgrounds();
-	this->set_desktop_size();
+
+	if (restoring)
+		this->set_desktop_size();
+	else
+		this->set_desktop_size(this->app->desktop()->screenNumber(QCursor::pos()));
+
 	this->move(this->desktop_size.topLeft());
 	this->setMouseTracking(true);
 	this->ui->centralWidget->setAttribute(Qt::WA_TransparentForMouseEvents);
