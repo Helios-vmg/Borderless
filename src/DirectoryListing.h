@@ -69,4 +69,45 @@ public:
 	}
 };
 
+class ExtensionIterator{
+	const char **p;
+	ExtensionIterator(const char **p): p(p){}
+public:
+	ExtensionIterator(const ExtensionIterator &) = default;
+	const ExtensionIterator &operator=(const ExtensionIterator &other){
+		this->p = other.p;
+		return *this;
+	}
+	static ExtensionIterator begin();
+	static ExtensionIterator end();
+	const ExtensionIterator &operator++(){
+		this->p++;
+		return *this;
+	}
+	const ExtensionIterator &operator++(int){
+		auto ret = *this;
+		this->p++;
+		return ret;
+	}
+	bool operator==(const ExtensionIterator &other) const{
+		return this->p == other.p;
+	}
+	bool operator!=(const ExtensionIterator &other) const{
+		return this->p != other.p;
+	}
+	const char *operator*() const{
+		return *this->p;
+	}
+};
+
+class SupportedExtensions{
+public:
+	ExtensionIterator begin(){
+		return ExtensionIterator::begin();
+	}
+	ExtensionIterator end(){
+		return ExtensionIterator::end();
+	}
+};
+
 #endif // DIRECTORYLISTING_H

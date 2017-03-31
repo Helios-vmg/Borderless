@@ -6,6 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "DirectoryListing.h"
+#include "Misc.h"
 #include <QDir>
 #include <QtConcurrent/QtConcurrentRun>
 #include <algorithm>
@@ -26,6 +27,14 @@ static const char *supported_extensions[] = {
 	"*.tiff",
 	"*.jp2",
 };
+
+ExtensionIterator ExtensionIterator::begin(){
+	return ExtensionIterator(supported_extensions);
+}
+
+ExtensionIterator ExtensionIterator::end(){
+	return ExtensionIterator(supported_extensions + array_length(supported_extensions));
+}
 
 template <Qt::CaseSensitivity CS>
 bool strcmpci(const QString &a, const QString &b){
