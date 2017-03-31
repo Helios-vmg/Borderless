@@ -9,6 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 int main(int argc, char **argv){
 	try{
+		initialize_supported_extensions();
 		ImageViewerApplication app(argc, argv, "BorderlessViewer" + get_per_user_unique_id());
 		return app.exec();
 	}catch (ApplicationAlreadyRunningException &){
