@@ -6,14 +6,22 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "LoadedImage.h"
+#include "DirectoryListing.h"
 #include <QImage>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QLabel>
 
+extern const char *supported_extensions[];
+
 LoadedImage::LoadedImage(ImageViewerApplication &app, const QString &path){
 	auto img = app.load_image(path);
-	if ((this->null = img.isNull()))
-		return;
+	if ((this->null = img.isNull())){
+		//Weird QImage behavior. Passing "*" allows it to load images where the
+		//file extension doesn't match the file contents.
+		img = QImage(path, "*");
+		if ((this->null = img.isNull()))
+			return;
+	}
 	this->compute_average_color(img);
 	this->image = QtConcurrent::run([](QImage img){ return QPixmap::fromImage(img); }, img);
 	this->size = img.size();

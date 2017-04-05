@@ -16,6 +16,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <memory>
 
 class CustomProtocolHandler;
+void initialize_supported_extensions();
 class DirectoryIterator;
 
 bool check_and_clean_path(QString &path);
@@ -24,6 +25,7 @@ class DirectoryListing{
 protected:
 	bool ok;
 	QString base_path;
+	QFuture<QStringList> entries;
 public:
 	virtual ~DirectoryListing(){}
 	DirectoryIterator begin();
@@ -114,6 +116,33 @@ public:
 	QString get_directory();
 	QString get_current_filename() const{
 		return this->dl->get_filename(this->position);
+	}
+};
+
+class ExtensionIterator{
+	std::unique_ptr<void, void (*)(void *)> pimpl;
+	ExtensionIterator(const void *);
+	static void release_pointer(void *);
+public:
+	ExtensionIterator(const ExtensionIterator &);
+	const ExtensionIterator &operator=(const ExtensionIterator &other);
+	static ExtensionIterator begin();
+	static ExtensionIterator end();
+	const ExtensionIterator &operator++();
+	bool operator==(const ExtensionIterator &other) const;
+	bool operator!=(const ExtensionIterator &other) const{
+		return !(*this != other);
+	}
+	QString operator*() const;
+};
+
+class SupportedExtensions{
+public:
+	ExtensionIterator begin(){
+		return ExtensionIterator::begin();
+	}
+	ExtensionIterator end(){
+		return ExtensionIterator::end();
 	}
 };
 

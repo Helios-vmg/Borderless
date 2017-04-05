@@ -65,9 +65,9 @@ class MainWindow : public QMainWindow{
 	std::shared_ptr<WindowState> window_state;
 
 	bool move_image(const QPoint &new_position);
-	QPoint compute_movement(const QPoint &new_position);
-	void compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset);
-	void move_window(const QPoint &new_position);
+	QPoint compute_movement(const QPoint &new_position, const QPoint &mouse_position);
+	void compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
+	void move_window(const QPoint &new_position, const QPoint &mouse_position);
 	void reset_settings();
 	void compute_average_color(QImage img);
 	void set_background(bool force = false);
@@ -83,12 +83,13 @@ class MainWindow : public QMainWindow{
 	void cleanup();
 	void move_in_direction(bool forward);
 	void advance();
-	void init();
+	void init(bool restoring);
 	void setup_shortcut(const QKeySequence &sequence, const char *slot);
 	void show_context_menu(QMouseEvent *);
 	void change_zoom(bool in);
 	void apply_zoom(bool, double);
 	void offset_image(const QPoint &);
+	void set_desktop_size_by_window_position();
 	void set_desktop_size(int screen = -1);
 	void set_iterator();
 	double get_current_zoom() const;

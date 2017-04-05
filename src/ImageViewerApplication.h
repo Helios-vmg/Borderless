@@ -126,4 +126,6 @@ public slots:
 	}
 };
 
+QString get_per_user_unique_id();
+
 #endif // IMAGEVIEWERAPPLICATION_H

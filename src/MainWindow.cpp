@@ -23,7 +23,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
-	this->init();
+	this->init(false);
 	if (arguments.size() >= 2)
 		this->open_path_and_display_image(arguments[1]);
 }
@@ -32,7 +32,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<Window
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
-	this->init();
+	this->init(true);
 	this->restore_state(state);
 	this->set_background();
 }
@@ -41,7 +41,7 @@ MainWindow::~MainWindow(){
 	this->cleanup();
 }
 
-void MainWindow::init(){
+void MainWindow::init(bool restoring){
 	if (!this->window_state)
 		this->window_state = std::make_shared<WindowState>();
 	this->moving_forward = true;
@@ -54,13 +54,29 @@ void MainWindow::init(){
 	this->setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint);
 	this->reset_settings();
 	this->setup_backgrounds();
-	this->set_desktop_size();
+
+	if (restoring)
+		this->set_desktop_size();
+	else
+		this->set_desktop_size(this->app->desktop()->screenNumber(QCursor::pos()));
+
 	this->move(this->desktop_size.topLeft());
 	this->setMouseTracking(true);
 	this->ui->centralWidget->setAttribute(Qt::WA_TransparentForMouseEvents);
 	this->setup_shortcuts();
 
 	connect(this->ui->label, SIGNAL(transform_updated()), this, SLOT(label_transform_updated()));
+}
+
+void MainWindow::set_desktop_size_by_window_position(){
+	auto screen_number = this->app->desktop()->screenNumber(this->window_rect.topLeft());
+	auto old_size = this->desktop_size;
+	if (screen_number >= 0){
+		this->set_desktop_size(screen_number);
+		auto new_size = this->desktop_size;
+		if (new_size != old_size)
+			this->fix_positions_and_zoom();
+	}
 }
 
 void MainWindow::set_desktop_size(int screen){
@@ -502,12 +518,14 @@ void MainWindow::move_window_rect(const QPoint &p){
 	this->window_rect.setY(p.y());
 	if (!this->window_state->get_fullscreen())
 		this->move(p);
+	this->set_desktop_size_by_window_position();
 }
 
 void MainWindow::set_window_rect(const QRect &r){
 	this->window_rect = r;
 	if (!this->window_state->get_fullscreen())
 		this->setGeometry(r);
+	this->set_desktop_size_by_window_position();
 }
 
 void MainWindow::label_transform_updated(){

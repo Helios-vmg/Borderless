@@ -19,6 +19,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <cassert>
 #include <QDir>
 #include <QStandardPaths>
+#include <random>
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
@@ -297,26 +298,32 @@ void ImageViewerApplication::propagate_shortcuts(){
 		w.second->setup_shortcuts();
 }
 
-QString ImageViewerApplication::get_config_location(){
-	auto &ret = this->config_location;
-	if (ret.isNull()){
-		auto list = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
-		if (!list.size())
-			return QString::null;
-		ret = list[0];
+QString get_config_location(bool strip_last_item = true){
+	QString ret;
+	auto list = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+	if (!list.size())
+		return QString::null;
+	ret = list[0];
+	if (strip_last_item){
 		int index = ret.lastIndexOf('/');
 		if (index < 0)
 			index = ret.lastIndexOf('\\');
 		ret = ret.mid(0, index);
-		auto c = QDir::separator();
-		ret += c;
-		ret += "BorderlessImageViewer";
-		ret += c;
-		QDir dir(ret);
-		if (!dir.mkpath(ret))
-			return ret = QString::null;
 	}
+	auto c = QDir::separator();
+	ret += c;
+	ret += "BorderlessImageViewer";
+	ret += c;
+	QDir dir(ret);
+	if (!dir.mkpath(ret))
+		return QString::null;
 	return ret;
+}
+
+QString ImageViewerApplication::get_config_location(){
+	if (this->config_location.isNull())
+		this->config_location = ::get_config_location();
+	return this->config_location;
 }
 
 QString ImageViewerApplication::get_config_filename(){
@@ -434,6 +441,21 @@ QImage ImageViewerApplication::load_image(const QString &path){
 	return ret;
 }
 
+QString generate_random_string(){
+	std::random_device rd;
+	std::mt19937 rng(rd());
+	std::uniform_int_distribution<int> dist1('a', 'z');
+	std::uniform_int_distribution<int> dist2(0, 1);
+	QString ret;
+	for (int i = 16; i--;){
+		int c = dist1(rng);
+		if (dist2(rng))
+			c = toupper(c);
+		ret += (char)c;
+	}
+	return ret;
+}
+
 std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> ImageViewerApplication::load_animation(const QString &path){
 	auto dev = this->protocol_handler->open(path);
 	std::unique_ptr<QMovie> mov;
@@ -453,4 +475,26 @@ bool ImageViewerApplication::is_animation(const QString &path){
 
 QString ImageViewerApplication::get_filename_from_url(const QString &url){
 	return this->protocol_handler->get_filename(url);
+}
+
+QString get_per_user_unique_id(){
+	auto location = get_config_location(false);
+	if (location == QString::null)
+		return "";
+	location += "user_id.txt";
+	QFile file(location);
+	if (!file.exists()){
+		if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+			return "";
+		auto ret = generate_random_string();
+		auto bytes = ret.toUtf8();
+		file.write(bytes.data(), bytes.size());
+		return ret;
+	}
+	if (!file.open(QIODevice::ReadOnly))
+		return "";
+	auto bytes = file.readAll();
+	if (bytes.isNull())
+		return "";
+	return QString::fromUtf8(bytes);
 }
