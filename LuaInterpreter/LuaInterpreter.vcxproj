@@ -161,6 +161,7 @@
       <PreprocessorDefinitions>WIN32;BUILDING_LUAINTERPRETER;NDEBUG;_WINDOWS;_USRDLL;LUAINTERPRETER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)luajit-2.0\src</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
