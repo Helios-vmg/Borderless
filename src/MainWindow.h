@@ -29,9 +29,9 @@ class MainWindow : public QMainWindow{
 
 	std::shared_ptr<Ui::MainWindow> ui;
 	ImageViewerApplication *app;
-	QRect desktop_size,
-		screen_size,
-		window_rect;
+	std::vector<QRect> desktop_sizes,
+		screen_sizes;
+	QRect window_rect;
 	QPoint first_mouse_pos,
 		first_window_pos,
 		first_label_pos;
@@ -89,8 +89,10 @@ class MainWindow : public QMainWindow{
 	void change_zoom(bool in);
 	void apply_zoom(bool, double);
 	void offset_image(const QPoint &);
+	int get_current_desktop_number();
 	void set_desktop_size_by_window_position();
-	void set_desktop_size(int screen = -1);
+	void set_desktop_size();
+	void set_desktop_size(int screen);
 	void set_iterator();
 	double get_current_zoom() const;
 	void set_current_zoom(double);
