@@ -66,7 +66,9 @@ void MainWindow::init(bool restoring){
 		auto index = this->app->desktop()->screenNumber(QCursor::pos());
 		if (index < 0 || index >= this->desktop_sizes.size())
 			index = 0;
-		this->move(this->desktop_sizes[index].topLeft());
+		auto pos = this->desktop_sizes[index].topLeft();
+		this->move(pos);
+		this->window_rect.moveTopLeft(pos);
 	}
 
 	this->setMouseTracking(true);

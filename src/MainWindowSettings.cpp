@@ -24,9 +24,7 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->ui->label->move(this->window_state->get_label_pos().to_QPoint());
 	auto pos = this->window_state->get_pos().to_QPoint();
 	this->move(pos);
-	auto size = this->window_rect.size();
-	this->window_rect.setTopLeft(pos);
-	this->window_rect.setSize(size);
+	this->window_rect.moveTopLeft(pos);
 	if (!success)
 		return;
 	this->resize(this->window_state->get_size().to_QSize());
