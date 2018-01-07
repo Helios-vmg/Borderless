@@ -250,6 +250,7 @@ void MainWindow::set_background(bool force){
 	p1->show();
 	p2->hide();
 	this->window_state->set_using_checkerboard_pattern_updated(false);
+	this->app->save_settings();
 }
 
 void MainWindow::set_background_sizes(){
@@ -316,6 +317,7 @@ void MainWindow::set_current_zoom(double value){
 		this->window_state->set_fullscreen_zoom(value);
 	else
 		this->window_state->set_zoom(value);
+	this->app->save_settings();
 }
 
 void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
@@ -323,6 +325,7 @@ void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
 		this->window_state->set_zoom_mode(mode);
 	else
 		this->window_state->set_fullscreen_zoom_mode(mode);
+	this->app->save_settings();
 }
 
 ZoomMode MainWindow::get_current_zoom_mode() const{
@@ -340,6 +343,7 @@ void MainWindow::move_in_direction(bool forward){
 		return;
 	this->clear_image_pos();
 	this->open_path_and_display_image(**this->directory_iterator);
+	this->app->save_settings();
 }
 
 bool MainWindow::open_path_and_display_image(QString path){

@@ -18,6 +18,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <cassert>
 #include <QDir>
 #include <QStandardPaths>
+#include <QCryptographicHash>
 #include <random>
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
@@ -45,6 +46,7 @@ void ImageViewerApplication::new_instance(const QStringList &args){
 	sharedp_t p(new MainWindow(*this, args));
 	if (!p->is_null())
 		this->add_window(p);
+	this->save_settings();
 }
 
 void ImageViewerApplication::add_window(sharedp_t p){
@@ -179,13 +181,29 @@ void ImageViewerApplication::save_settings(bool with_state){
 		this->save_current_state(settings.state);
 	settings.shortcuts = this->shortcuts.save_settings();
 
+	std::vector<std::uint8_t> mem;
+	QByteArray digest;
 	QFile file(path);
+	mem.reserve(4096);
+	{
+		boost::iostreams::stream<MemoryStream> stream(&mem);
+		SerializerStream ss(stream);
+		ss.serialize(settings, true);
+	}
+	QCryptographicHash hash(QCryptographicHash::Md5);
+	if (mem.size())
+		hash.addData((const char *)&mem[0], mem.size());
+	digest = hash.result();
+	if (!this->last_saved_settings_digest.isNull() && digest == this->last_saved_settings_digest)
+		return;
+
 	file.open(QFile::WriteOnly | QFile::Truncate);
 	if (!file.isOpen())
 		return;
-	boost::iostreams::stream<QFileOutputStream> stream(&file);
-	SerializerStream ss(stream);
-	ss.serialize(settings, true);
+	if (mem.size())
+		file.write((const char *)&mem[0], mem.size());
+
+	this->last_saved_settings_digest = digest;
 }
 
 void ImageViewerApplication::restore_current_state(const ApplicationState &windows_state){

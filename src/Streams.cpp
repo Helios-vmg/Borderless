@@ -27,3 +27,12 @@ std::streamsize QFileInputStream::read(char *s, std::streamsize n){
 std::streamsize QFileOutputStream::write(const char *s, std::streamsize n){
 	return this->file->write(s, n);
 }
+
+std::streamsize MemoryStream::write(const char *s, std::streamsize n){
+	if (!n)
+		return n;
+	auto m = this->data->size();
+	this->data->resize(m + n);
+	memcpy(&(*this->data)[m], s, n);
+	return n;
+}
