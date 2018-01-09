@@ -61,11 +61,13 @@ void MainWindow::init(bool restoring){
 		auto index = this->app->desktop()->screenNumber(this->pos());
 		if (index < 0 || index >= this->desktop_sizes.size())
 			index = 0;
+		this->current_desktop = index;
 		this->move(this->desktop_sizes[index].topLeft());
 	}else{
 		auto index = this->app->desktop()->screenNumber(QCursor::pos());
 		if (index < 0 || index >= this->desktop_sizes.size())
 			index = 0;
+		this->current_desktop = index;
 		auto pos = this->desktop_sizes[index].topLeft();
 		this->move(pos);
 		this->window_rect.moveTopLeft(pos);
@@ -79,18 +81,15 @@ void MainWindow::init(bool restoring){
 }
 
 int MainWindow::get_current_desktop_number(){
-	auto ret = this->app->desktop()->screenNumber(this->window_rect.topLeft());
+	auto ret = this->app->desktop()->screenNumber(this->pos());
 	if (ret < 0)
 		ret = 0;
 	return ret;
 }
 
-void MainWindow::set_desktop_size_by_window_position(){
-	auto screen_number = this->get_current_desktop_number();
-	auto old_size = this->desktop_sizes[screen_number];
-	this->set_desktop_size(screen_number);
-	auto new_size = this->desktop_sizes[screen_number];
-	if (new_size != old_size)
+void MainWindow::set_current_desktop_and_fix_positions_by_window_position(int old_desktop){
+	this->current_desktop = this->get_current_desktop_number();
+	if (this->current_desktop != old_desktop)
 		this->fix_positions_and_zoom();
 }
 
@@ -526,14 +525,14 @@ void MainWindow::move_window_rect(const QPoint &p){
 	this->window_rect.setY(p.y());
 	if (!this->window_state->get_fullscreen())
 		this->move(p);
-	this->set_desktop_size_by_window_position();
+	this->set_current_desktop_and_fix_positions_by_window_position(this->current_desktop);
 }
 
 void MainWindow::set_window_rect(const QRect &r){
 	this->window_rect = r;
 	if (!this->window_state->get_fullscreen())
 		this->setGeometry(r);
-	this->set_desktop_size_by_window_position();
+	this->set_current_desktop_and_fix_positions_by_window_position(this->current_desktop);
 }
 
 void MainWindow::label_transform_updated(){
