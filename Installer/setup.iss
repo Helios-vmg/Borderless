@@ -39,13 +39,13 @@ Source: "{#SourceBasePath}\bin64\{#MyAppExeName}"; DestDir: "{app}\bin"; Flags: 
 Source: "{#SourceBasePath}\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion; Components: main
 Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: main
 Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs; Components: main
-Source: "custom\redist\*"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: main
 Source: "{#SourceBasePath}\doc\*"; DestDir: "{app}\doc"; Flags: ignoreversion; Components: main
 Source: "{#SourceBasePath}\samples\*"; DestDir: "{app}\samples"; Flags: ignoreversion; Components: cppi luai
 Source: "{#SourceBasePath}\bin64\LuaInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: luai
 Source: "{#SourceBasePath}\bin64\CppInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: cppi
 Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs; Components: cppi
 Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\3.8.0\include"; Flags: ignoreversion; Components: cppi
+Source: "{#SourceBasePath}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall; Components: main
 
 [Components]
 Name: "main"; Description: "Main Executable"; Types: full minimum custom; Flags: fixed
@@ -73,4 +73,4 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; Tas
 
 [Run]
 Filename: "{app}\bin\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
+Filename: "{tmp}\vc_redist.x64.exe"; WorkingDir: "{tmp}"; StatusMsg: "Installing vcredist..."; Parameters: "/install /quiet /norestart"; Flags: runascurrentuser waituntilterminated runhidden
