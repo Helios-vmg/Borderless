@@ -12,8 +12,10 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QStringList>
 #include <QFuture>
 #include <vector>
+#include <memory>
 
 bool check_and_clean_path(QString &path);
+void initialize_supported_extensions();
 
 class DirectoryIterator;
 
@@ -66,6 +68,33 @@ public:
 	void to_end(){
 		this->to_start();
 		--*this;
+	}
+};
+
+class ExtensionIterator{
+	std::unique_ptr<void, void (*)(void *)> pimpl;
+	ExtensionIterator(const void *);
+	static void release_pointer(void *);
+public:
+	ExtensionIterator(const ExtensionIterator &);
+	const ExtensionIterator &operator=(const ExtensionIterator &other);
+	static ExtensionIterator begin();
+	static ExtensionIterator end();
+	const ExtensionIterator &operator++();
+	bool operator==(const ExtensionIterator &other) const;
+	bool operator!=(const ExtensionIterator &other) const{
+		return !(*this != other);
+	}
+	QString operator*() const;
+};
+
+class SupportedExtensions{
+public:
+	ExtensionIterator begin(){
+		return ExtensionIterator::begin();
+	}
+	ExtensionIterator end(){
+		return ExtensionIterator::end();
 	}
 };
 

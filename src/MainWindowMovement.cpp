@@ -38,6 +38,8 @@ void MainWindow::mousePressEvent(QMouseEvent *ev){
 void MainWindow::mouseReleaseEvent(QMouseEvent *ev){
 	if (this->not_moved)
 		this->show_context_menu(ev);
+	else
+		this->app->save_settings();
 	this->not_moved = false;
 }
 
@@ -48,6 +50,8 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 	this->not_moved = false;
 	if (sum > 1)
 		return;
+
+	auto mouse_pos = ev->globalPos();
 
 	ResizeMode rm;
 	if (!sum)
@@ -86,17 +90,17 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 		if (this->window_state->get_fullscreen())
 			return;
 		if (this->resize_mode == ResizeMode::None)
-			this->move_window(this->first_window_pos + ev->globalPos() - this->first_mouse_pos);
+			this->move_window(this->first_window_pos + mouse_pos - this->first_mouse_pos, mouse_pos);
 		else{
 			QPoint pos;
 			QRect rect;
-			this->compute_resize(pos, rect, ev->globalPos() - this->first_mouse_pos);
+			this->compute_resize(pos, rect, mouse_pos - this->first_mouse_pos, mouse_pos);
 			this->set_window_rect(rect);
 			this->ui->label->move(pos);
 #define FTEMP(a, A, b, B) \
 	if (this->first_label_pos.a() != this->ui->label->pos().a() || this->first_window_pos.a() != this->pos().a() || this->first_window_size.b() != this->size().b()){ \
 		this->first_label_pos.set##A(this->ui->label->pos().a()); \
-		this->first_mouse_pos.set##A(ev->globalPos().a()); \
+		this->first_mouse_pos.set##A(mouse_pos.a()); \
 		this->first_window_pos.set##A(this->pos().a()); \
 		this->first_window_size.set##B(this->size().b()); \
 	}
@@ -106,16 +110,16 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 #undef FTEMP
 
 	}else if (right){
-		auto new_position = this->first_label_pos + ev->globalPos() - this->first_mouse_pos;
+		auto new_position = this->first_label_pos + mouse_pos - this->first_mouse_pos;
 		if (this->move_image(new_position)){
-			this->first_mouse_pos = ev->globalPos();
+			this->first_mouse_pos = mouse_pos;
 			this->first_label_pos = this->ui->label->pos();
 		}
 	}
 }
 
-void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset){
-	auto ds = this->desktop_size;
+void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
+	auto ds = this->app->desktop()->availableGeometry(mouse_position);
 	int left = 0,
 		top = 0,
 		right = 0,
@@ -204,8 +208,9 @@ void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 	out_window_rect = rect;
 }
 
-void MainWindow::move_window(const QPoint &new_position){
-	this->move_window_rect(this->compute_movement(new_position));
+void MainWindow::move_window(const QPoint &requested_position, const QPoint &mouse_position){
+	auto computed_position = this->compute_movement(requested_position, mouse_position);
+	this->move_window_rect(computed_position);
 }
 
 bool MainWindow::move_image(const QPoint &_new_position){
@@ -253,10 +258,10 @@ bool MainWindow::force_keep_window_in_desktop(){
 	return this->perform_clamping();
 }
 
-QPoint MainWindow::compute_movement(const QPoint &_new_position){
+QPoint MainWindow::compute_movement(const QPoint &_new_position, const QPoint &mouse_position){
 	auto new_position = _new_position;
 	if (this->perform_clamping()){
-		auto ds = this->desktop_size;
+		auto ds = this->app->desktop()->availableGeometry(mouse_position);
 		int x[] = {
 			ds.x(),
 			ds.x() + ds.width() - this->size().width(),
@@ -290,8 +295,8 @@ QPoint MainWindow::compute_movement(const QPoint &_new_position){
 	return new_position;
 }
 
-void MainWindow::reposition_window(){
-	this->resize_to_max();
+void MainWindow::reposition_window(bool do_not_enlarge){
+	this->resize_to_max(do_not_enlarge);
 	if (this->window_state->get_fullscreen())
 		this->resolution_to_window_size();
 	this->reposition_image();

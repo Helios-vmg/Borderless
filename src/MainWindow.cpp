@@ -23,7 +23,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
-	this->init();
+	this->init(false);
 	if (arguments.size() >= 2)
 		this->open_path_and_display_image(arguments[1]);
 }
@@ -32,7 +32,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<Window
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
-	this->init();
+	this->init(true);
 	this->restore_state(state);
 	this->set_background();
 }
@@ -41,7 +41,7 @@ MainWindow::~MainWindow(){
 	this->cleanup();
 }
 
-void MainWindow::init(){
+void MainWindow::init(bool restoring){
 	if (!this->window_state)
 		this->window_state = std::make_shared<WindowState>();
 	this->moving_forward = true;
@@ -54,8 +54,25 @@ void MainWindow::init(){
 	this->setWindowFlags(this->windowFlags() | Qt::FramelessWindowHint);
 	this->reset_settings();
 	this->setup_backgrounds();
+
 	this->set_desktop_size();
-	this->move(this->desktop_size.topLeft());
+	assert(this->desktop_sizes.size());
+	if (restoring){
+		auto index = this->app->desktop()->screenNumber(this->pos());
+		if (index < 0 || index >= this->desktop_sizes.size())
+			index = 0;
+		this->current_desktop = index;
+		this->move(this->desktop_sizes[index].topLeft());
+	}else{
+		auto index = this->app->desktop()->screenNumber(QCursor::pos());
+		if (index < 0 || index >= this->desktop_sizes.size())
+			index = 0;
+		this->current_desktop = index;
+		auto pos = this->desktop_sizes[index].topLeft();
+		this->move(pos);
+		this->window_rect.moveTopLeft(pos);
+	}
+
 	this->setMouseTracking(true);
 	this->ui->centralWidget->setAttribute(Qt::WA_TransparentForMouseEvents);
 	this->setup_shortcuts();
@@ -63,10 +80,35 @@ void MainWindow::init(){
 	connect(this->ui->label, SIGNAL(transform_updated()), this, SLOT(label_transform_updated()));
 }
 
+int MainWindow::get_current_desktop_number(){
+	auto ret = this->app->desktop()->screenNumber(this->pos());
+	if (ret < 0)
+		ret = 0;
+	return ret;
+}
+
+void MainWindow::set_current_desktop_and_fix_positions_by_window_position(int old_desktop){
+	this->current_desktop = this->get_current_desktop_number();
+	if (this->current_desktop != old_desktop)
+		this->fix_positions_and_zoom();
+}
+
+void MainWindow::set_desktop_size(){
+	auto n = this->app->desktop()->screenCount();
+	for (decltype(n) i = 0; i < n; i++)
+		this->set_desktop_size(i);
+}
+
 void MainWindow::set_desktop_size(int screen){
-	this->desktop_size = this->app->desktop()->availableGeometry(screen);
-	this->desktop_size.setHeight(this->desktop_size.height());
-	this->screen_size = this->app->desktop()->screenGeometry(screen);
+	assert(screen >= 0);
+	assert(this->desktop_sizes.size() == this->screen_sizes.size());
+	if (this->desktop_sizes.size() <= screen){
+		this->desktop_sizes.resize(screen + 1);
+		this->screen_sizes.resize(screen + 1);
+	}
+	this->desktop_sizes[screen] = this->app->desktop()->availableGeometry(screen);
+	this->desktop_sizes[screen].setHeight(this->desktop_sizes[screen].height()); //???
+	this->screen_sizes[screen] = this->app->desktop()->screenGeometry(screen);
 }
 
 void MainWindow::save_image_pos(bool force){
@@ -94,9 +136,10 @@ void MainWindow::clear_image_pos(){
 }
 
 void MainWindow::set_zoom(){
-	auto ds = this->desktop_size.size();
+	auto screen_number = this->get_current_desktop_number();
+	auto ds = this->desktop_sizes[screen_number].size();
 	if (this->window_state->get_fullscreen())
-		ds = this->screen_size.size();
+		ds = this->screen_sizes[screen_number].size();
 	auto ps = this->displayed_image->get_size();
 	this->ui->label->compute_size_no_zoom(ps);
 	double dr = (double)ds.width() / (double)ds.height();
@@ -208,6 +251,7 @@ void MainWindow::set_background(bool force){
 	p1->show();
 	p2->hide();
 	this->window_state->set_using_checkerboard_pattern_updated(false);
+	this->app->save_settings();
 }
 
 void MainWindow::set_background_sizes(){
@@ -230,19 +274,25 @@ void MainWindow::show_nothing(){
 	this->resize_to_max();
 }
 
-void MainWindow::resize_to_max(){
+void MainWindow::resize_to_max(bool do_not_enlarge){
 	auto rect = this->geometry();
 	auto &label = this->ui->label;
 	label->resize(label->get_size());
-	rect.setSize(label->size().boundedTo(this->desktop_size.size()));
-	if (rect.left() < this->desktop_size.left())
-		rect.moveLeft(this->desktop_size.left());
-	else if (rect.right() > this->desktop_size.right())
-		rect.moveRight(this->desktop_size.right());
-	if (rect.top() < this->desktop_size.top())
-		rect.moveTop(this->desktop_size.top());
-	else if (rect.bottom() > this->desktop_size.bottom())
-		rect.moveBottom(this->desktop_size.bottom());
+	auto screen_number = this->get_current_desktop_number();
+	auto ds = this->desktop_sizes[screen_number];
+	auto new_size = ds.size();
+	new_size = label->size().boundedTo(new_size);
+	if (do_not_enlarge)
+		new_size = new_size.boundedTo(this->size());
+	rect.setSize(new_size);
+	if (rect.left() < ds.left())
+		rect.moveLeft(ds.left());
+	else if (rect.right() > ds.right())
+		rect.moveRight(ds.right());
+	if (rect.top() < ds.top())
+		rect.moveTop(ds.top());
+	else if (rect.bottom() > ds.bottom())
+		rect.moveBottom(ds.bottom());
 	this->set_window_rect(rect);
 }
 
@@ -268,6 +318,7 @@ void MainWindow::set_current_zoom(double value){
 		this->window_state->set_fullscreen_zoom(value);
 	else
 		this->window_state->set_zoom(value);
+	this->app->save_settings();
 }
 
 void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
@@ -275,6 +326,7 @@ void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
 		this->window_state->set_zoom_mode(mode);
 	else
 		this->window_state->set_fullscreen_zoom_mode(mode);
+	this->app->save_settings();
 }
 
 ZoomMode MainWindow::get_current_zoom_mode() const{
@@ -292,6 +344,7 @@ void MainWindow::move_in_direction(bool forward){
 		return;
 	this->clear_image_pos();
 	this->open_path_and_display_image(**this->directory_iterator);
+	this->app->save_settings();
 }
 
 bool MainWindow::open_path_and_display_image(QString path){
@@ -438,16 +491,16 @@ void MainWindow::resolution_change(int screen){
 }
 
 void MainWindow::resolution_to_window_size(){
-	this->setGeometry(this->screen_size);
+	this->setGeometry(this->screen_sizes[this->get_current_desktop_number()]);
 }
 
-void MainWindow::fix_positions_and_zoom(){
+void MainWindow::fix_positions_and_zoom(bool do_not_enlarge){
 	if (this->current_zoom_mode_is_auto()){
 		auto zoom = this->get_current_zoom();
 		this->set_zoom();
 		this->apply_zoom(false, zoom);
 	}
-	this->reposition_window();
+	this->reposition_window(do_not_enlarge);
 	this->reposition_image();
 	this->ui->label->repaint();
 }
@@ -472,12 +525,14 @@ void MainWindow::move_window_rect(const QPoint &p){
 	this->window_rect.setY(p.y());
 	if (!this->window_state->get_fullscreen())
 		this->move(p);
+	this->set_current_desktop_and_fix_positions_by_window_position(this->current_desktop);
 }
 
 void MainWindow::set_window_rect(const QRect &r){
 	this->window_rect = r;
 	if (!this->window_state->get_fullscreen())
 		this->setGeometry(r);
+	this->set_current_desktop_and_fix_positions_by_window_position(this->current_desktop);
 }
 
 void MainWindow::label_transform_updated(){

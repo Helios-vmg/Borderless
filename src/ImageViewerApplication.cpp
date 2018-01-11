@@ -18,6 +18,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <cassert>
 #include <QDir>
 #include <QStandardPaths>
+#include <QCryptographicHash>
+#include <random>
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
@@ -44,6 +46,7 @@ void ImageViewerApplication::new_instance(const QStringList &args){
 	sharedp_t p(new MainWindow(*this, args));
 	if (!p->is_null())
 		this->add_window(p);
+	this->save_settings();
 }
 
 void ImageViewerApplication::add_window(sharedp_t p){
@@ -178,13 +181,29 @@ void ImageViewerApplication::save_settings(bool with_state){
 		this->save_current_state(settings.state);
 	settings.shortcuts = this->shortcuts.save_settings();
 
+	std::vector<std::uint8_t> mem;
+	QByteArray digest;
 	QFile file(path);
+	mem.reserve(4096);
+	{
+		boost::iostreams::stream<MemoryStream> stream(&mem);
+		SerializerStream ss(stream);
+		ss.serialize(settings, true);
+	}
+	QCryptographicHash hash(QCryptographicHash::Md5);
+	if (mem.size())
+		hash.addData((const char *)&mem[0], mem.size());
+	digest = hash.result();
+	if (!this->last_saved_settings_digest.isNull() && digest == this->last_saved_settings_digest)
+		return;
+
 	file.open(QFile::WriteOnly | QFile::Truncate);
 	if (!file.isOpen())
 		return;
-	boost::iostreams::stream<QFileOutputStream> stream(&file);
-	SerializerStream ss(stream);
-	ss.serialize(settings, true);
+	if (mem.size())
+		file.write((const char *)&mem[0], mem.size());
+
+	this->last_saved_settings_digest = digest;
 }
 
 void ImageViewerApplication::restore_current_state(const ApplicationState &windows_state){
@@ -290,26 +309,32 @@ void ImageViewerApplication::propagate_shortcuts(){
 		w.second->setup_shortcuts();
 }
 
-QString ImageViewerApplication::get_config_location(){
-	auto &ret = this->config_location;
-	if (ret.isNull()){
-		auto list = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
-		if (!list.size())
-			return QString::null;
-		ret = list[0];
+QString get_config_location(bool strip_last_item = true){
+	QString ret;
+	auto list = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+	if (!list.size())
+		return QString::null;
+	ret = list[0];
+	if (strip_last_item){
 		int index = ret.lastIndexOf('/');
 		if (index < 0)
 			index = ret.lastIndexOf('\\');
 		ret = ret.mid(0, index);
-		auto c = QDir::separator();
-		ret += c;
-		ret += "BorderlessImageViewer";
-		ret += c;
-		QDir dir(ret);
-		if (!dir.mkpath(ret))
-			return ret = QString::null;
 	}
+	auto c = QDir::separator();
+	ret += c;
+	ret += "BorderlessImageViewer";
+	ret += c;
+	QDir dir(ret);
+	if (!dir.mkpath(ret))
+		return QString::null;
 	return ret;
+}
+
+QString ImageViewerApplication::get_config_location(){
+	if (this->config_location.isNull())
+		this->config_location = ::get_config_location();
+	return this->config_location;
 }
 
 QString ImageViewerApplication::get_config_filename(){
@@ -410,4 +435,41 @@ void ImageViewerApplication::conditional_tray_show(){
 		this->tray_icon.show();
 	else
 		this->tray_icon.hide();
+}
+
+QString generate_random_string(){
+	std::random_device rd;
+	std::mt19937 rng(rd());
+	std::uniform_int_distribution<int> dist1('a', 'z');
+	std::uniform_int_distribution<int> dist2(0, 1);
+	QString ret;
+	for (int i = 16; i--;){
+		int c = dist1(rng);
+		if (dist2(rng))
+			c = toupper(c);
+		ret += (char)c;
+	}
+	return ret;
+}
+
+QString get_per_user_unique_id(){
+	auto location = get_config_location(false);
+	if (location == QString::null)
+		return "";
+	location += "user_id.txt";
+	QFile file(location);
+	if (!file.exists()){
+		if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+			return "";
+		auto ret = generate_random_string();
+		auto bytes = ret.toUtf8();
+		file.write(bytes.data(), bytes.size());
+		return ret;
+	}
+	if (!file.open(QIODevice::ReadOnly))
+		return "";
+	auto bytes = file.readAll();
+	if (bytes.isNull())
+		return "";
+	return QString::fromUtf8(bytes);
 }

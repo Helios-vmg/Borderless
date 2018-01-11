@@ -29,9 +29,10 @@ class MainWindow : public QMainWindow{
 
 	std::shared_ptr<Ui::MainWindow> ui;
 	ImageViewerApplication *app;
-	QRect desktop_size,
-		screen_size,
-		window_rect;
+	std::vector<QRect> desktop_sizes,
+		screen_sizes;
+	int current_desktop = -1;
+	QRect window_rect;
 	QPoint first_mouse_pos,
 		first_window_pos,
 		first_label_pos;
@@ -65,9 +66,9 @@ class MainWindow : public QMainWindow{
 	std::shared_ptr<WindowState> window_state;
 
 	bool move_image(const QPoint &new_position);
-	QPoint compute_movement(const QPoint &new_position);
-	void compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset);
-	void move_window(const QPoint &new_position);
+	QPoint compute_movement(const QPoint &new_position, const QPoint &mouse_position);
+	void compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
+	void move_window(const QPoint &new_position, const QPoint &mouse_position);
 	void reset_settings();
 	void compute_average_color(QImage img);
 	void set_background(bool force = false);
@@ -77,32 +78,35 @@ class MainWindow : public QMainWindow{
 	ResizeMode get_resize_mode(const QPoint &pos);
 	void set_resize_mode(const QPoint &pos);
 	void setup_backgrounds();
-	void resize_to_max();
+	void resize_to_max(bool do_not_enlarge = false);
 	bool perform_clamping();
 	bool force_keep_window_in_desktop();
 	void cleanup();
 	void move_in_direction(bool forward);
 	void advance();
-	void init();
+	void init(bool restoring);
 	void setup_shortcut(const QKeySequence &sequence, const char *slot);
 	void show_context_menu(QMouseEvent *);
 	void change_zoom(bool in);
 	void apply_zoom(bool, double);
 	void offset_image(const QPoint &);
-	void set_desktop_size(int screen = -1);
+	int get_current_desktop_number();
+	void set_current_desktop_and_fix_positions_by_window_position(int old_desktop);
+	void set_desktop_size();
+	void set_desktop_size(int screen);
 	void set_iterator();
 	double get_current_zoom() const;
 	void set_current_zoom(double);
 	void set_current_zoom_mode(const ZoomMode &);
 	ZoomMode get_current_zoom_mode() const;
 	void resolution_to_window_size();
-	void reposition_window();
+	void reposition_window(bool do_not_enlarge = false);
 	void reposition_image();
 	void save_image_pos(bool force = false);
 	void restore_image_pos();
 	void clear_image_pos();
 	void rotate(bool right, bool fine = false);
-	void fix_positions_and_zoom();
+	void fix_positions_and_zoom(bool do_not_enlarge = false);
 
 protected:
 	void mousePressEvent(QMouseEvent *ev) override;
