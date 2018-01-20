@@ -81,10 +81,9 @@ public:
 
 class ImageStore{
 	std::unordered_map<int, std::shared_ptr<Image>> images;
-	Image *current_traversal_image;
-	int next_index;
+	Image *current_traversal_image = nullptr;
+	int next_index = 0;
 public:
-	ImageStore(): current_traversal_image(nullptr){}
 	ImageOperationResult load(const char *path);
 	ImageOperationResult load(const QString &path);
 	Image *load_image(const char *path);

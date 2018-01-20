@@ -98,7 +98,7 @@ void PluginCoreState::display_in_caller(int handle){
 
 void PluginCoreState::display_in_caller(Image *image){
 	if (image)
-		this->latest_caller->display_filtered_image(std::make_shared<LoadedImage>(image->get_bitmap()));
+		this->latest_caller->display_filtered_image(std::make_shared<FilteredImage>(image));
 }
 
 char *clone_string(const char *s){
