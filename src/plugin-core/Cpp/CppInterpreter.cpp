@@ -102,10 +102,9 @@ CallResult CppInterpreter::execute_path(const char *filename){
 #endif
 
 		IntrusiveRefCntPtr<DiagnosticOptions> diagnostic_options = new DiagnosticOptions();
-		TextDiagnosticPrinter *text_diagnostic_printer = new TextDiagnosticPrinter(llvm::errs(), &*diagnostic_options);
 
-		IntrusiveRefCntPtr<DiagnosticIDs> diagnostic_ids(new DiagnosticIDs());
-		DiagnosticsEngine diagnostics_engine(diagnostic_ids, &*diagnostic_options, text_diagnostic_printer);
+		IntrusiveRefCntPtr<DiagnosticIDs> diagnostic_ids = new DiagnosticIDs();
+		DiagnosticsEngine diagnostics_engine(diagnostic_ids, &*diagnostic_options, new TextDiagnosticPrinter(llvm::errs(), &*diagnostic_options));
 
 		// Use ELF on windows for now.
 		std::string TripleStr = llvm::sys::getProcessTriple();
@@ -156,7 +155,7 @@ CallResult CppInterpreter::execute_path(const char *filename){
 
 		// Initialize a compiler invocation object from the clang (-cc1) arguments.
 		const driver::ArgStringList &ccargs = command.getArguments();
-		std::unique_ptr<CompilerInvocation> invocation(new CompilerInvocation);
+		auto invocation = std::make_unique<CompilerInvocation>();
 		CompilerInvocation::CreateFromArgs(
 			*invocation,
 			const_cast<const char **>(ccargs.data()),
@@ -178,14 +177,14 @@ CallResult CppInterpreter::execute_path(const char *filename){
 		}
 
 		// Create and execute the frontend to generate an LLVM bitcode module.
-		std::shared_ptr<llvm::LLVMContext> context(new llvm::LLVMContext);
-		std::unique_ptr<CodeGenAction> action(new EmitLLVMOnlyAction(context.get()));
+		auto context = std::make_shared<llvm::LLVMContext>();
+		auto action = std::make_unique<EmitLLVMOnlyAction>(context.get());
 		if (!clang.ExecuteAction(*action)){
 			error_message = "Code generation failed.";
 			break;
 		}
 
-		std::unique_ptr<llvm::Module> module = action->takeModule();
+		auto module = action->takeModule();
 		if (!module){
 			error_message = "No module generated.";
 			break;
