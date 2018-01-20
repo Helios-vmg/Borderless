@@ -147,10 +147,11 @@ The following features are known NOT to work:
   stringstream replacement is provided (see borderless_runtime.h for details).
 * Random functions, including both <cstdlib> and <random>. [TODO]A replacement
   is provided.[/TODO]
-* Time functions, including both <ctime> and <chrono>. A clock() replacement is provided.
+* Time functions, including both <ctime> and <chrono>. A clock() replacement is
+  provided.
 * std::shared_ptr. std::unique_ptr and std::auto_ptr haven't been tested, but
   they might work.
-Other features may be unavailable. If you happen to use a feature that not
+Other features may be unavailable. If you happen to use a feature that's not
 available, the program will abort, with libclang sending the linker error
 message to stderr. I don't seem to be able to override this behavior. To see the
 error message, redirect stderr to a file. Unfortunately, this only reveals the
