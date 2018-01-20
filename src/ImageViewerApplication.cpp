@@ -25,6 +25,7 @@ ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QSt
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false),
 		tray_icon(QIcon(":/icon16.png"), this){
+	QDir::setCurrent(this->applicationDirPath());
 	if (!this->restore_settings())
 		this->settings = std::make_shared<MainSettings>();
 	this->reset_tray_menu();
