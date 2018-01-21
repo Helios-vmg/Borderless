@@ -11,6 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QtWidgets/QMessageBox>
 #include <ctime>
 #include <sstream>
+#include <random>
 #ifdef WIN32
 #include <Windows.h>
 #endif
@@ -78,6 +79,12 @@ EXPORT_C void show_message_box(const char *string){
 	QMessageBox msgbox;
 	msgbox.setText(QString::fromUtf8(string));
 	msgbox.exec();
+}
+
+EXPORT_C void random_seed(uint32_t *dst){
+	std::random_device dev;
+	for (int i = 4; i--;)
+		dst[i] = dev();
 }
 
 EXPORT_C int save_image(Image *image, const char *path){

@@ -14,6 +14,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 #define EXTERN_C extern "C"
 #endif
 
+#include <stdint.h>
+
 #if defined WIN32 && defined BUILDING_BORDERLESS
 #define EXPORT_C EXTERN_C __declspec(dllexport)
 #else
@@ -57,12 +59,14 @@ EXPORT_C u8 *get_image_pixel_data(Image *image, int *stride, int *pitch);
 EXPORT_C Image *get_displayed_image(PluginCoreState *state);
 EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image);
 
+
 /* Utility functions. */
 
 EXPORT_C void rgb_to_hsv(u8_quad *hsv, u8_quad rgb);
 EXPORT_C void hsv_to_rgb(u8_quad *rgb, u8_quad hsv);
 EXPORT_C void debug_print(const char *string);
 EXPORT_C void show_message_box(const char *string);
+EXPORT_C void random_seed(uint32_t *);
 
 
 /* Miscellaneous functions. */

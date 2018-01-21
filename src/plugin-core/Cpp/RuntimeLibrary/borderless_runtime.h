@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <cstdint>
+#include <array>
 
 namespace B{
 	typedef ::Image *handle_t;
@@ -286,6 +287,35 @@ namespace B{
 	StreamCommand endl = StreamCommand::Endl;
 	StreamCommand debugprint = StreamCommand::DebugPrint;
 	StreamCommand msgbox = StreamCommand::MsgBox;
+	
+	typedef std::array<std::uint32_t, 4> xorshift128_state;
+	
+	class XorShift128{
+		xorshift128_state state;
+	public:
+		XorShift128();
+		XorShift128(const xorshift128_state &seed): state(seed){}
+		XorShift128(xorshift128_state &&seed): state(std::move(seed)){}
+		std::uint32_t operator()();
+		void generate_block(void *buffer, size_t size);
+		std::uint32_t get32(){
+			return (*this)();
+		}
+		std::uint64_t get64(){
+			return (*this)() | ((std::uint64_t)(*this)() << 32);
+		}
+		double get_float(){
+			auto bits = this->get64();
+			double ret = 0;
+			double addend = 0.5;
+			for (int i = 52; i--;){
+				ret += addend * (bits % 2);
+				bits >>= 1;
+				addend *= 0.5;
+			}
+			return ret;
+		}
+	};
 	
 	#include "borderless_runtime.cpp"
 }
