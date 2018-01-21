@@ -146,7 +146,7 @@ bool CppInterpreter::compile_and_execute(const char *filename, std::string &erro
 
 	// Initialize a compiler invocation object from the clang (-cc1) arguments.
 	const driver::ArgStringList &ccargs = command.getArguments();
-	auto invocation = std::make_unique<CompilerInvocation>();
+	auto invocation = std::make_shared<CompilerInvocation>();
 	CompilerInvocation::CreateFromArgs(
 		*invocation,
 		const_cast<const char **>(ccargs.data()),
@@ -158,7 +158,7 @@ bool CppInterpreter::compile_and_execute(const char *filename, std::string &erro
 
 	// Create a compiler instance to handle the actual work.
 	CompilerInstance clang;
-	clang.setInvocation(invocation.release());
+	clang.setInvocation(invocation);
 
 	// Create the compilers actual diagnostics engine.
 	clang.createDiagnostics();
