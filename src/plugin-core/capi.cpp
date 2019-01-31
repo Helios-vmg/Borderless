@@ -10,11 +10,19 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "PluginCoreState.h"
 #include <QtWidgets/QMessageBox>
 #include <ctime>
+#include <cmath>
 #include <sstream>
 #include <random>
 #ifdef WIN32
 #include <Windows.h>
+#undef max
+#undef min
 #endif
+
+const double pi = 3.1415926535897932384626433832795;
+const double tau = 3.1415926535897932384626433832795;
+const float pif = 3.1415926535897932384626433832795f;
+const float tauf = 3.1415926535897932384626433832795f;
 
 EXPORT_C Image *load_image(PluginCoreState *state, const char *path){
 	return state->get_store().load_image(path);
@@ -24,12 +32,21 @@ EXPORT_C Image *allocate_image(PluginCoreState *state, int w, int h){
 	return state->get_store().allocate_image(w, h);
 }
 
-EXPORT_C Image *clone_image(Image *){
-	return nullptr;
+EXPORT_C Image *clone_image(Image *image){
+	int w, h;
+	unsigned stride, pitch, s, p;
+	image->get_dimensions(w, h);
+	auto src = image->get_pixels_pointer(stride, pitch);
+	auto ret = image->get_owner()->allocate_image(w, h);
+	auto dst = ret->get_pixels_pointer(s, p);
+	memcpy(dst, src, h * pitch);
+	return ret;
 }
 
-EXPORT_C Image *clone_image_without_data(Image *){
-	return nullptr;
+EXPORT_C Image *clone_image_without_data(Image *image){
+	int w, h;
+	image->get_dimensions(w, h);
+	return image->get_owner()->allocate_image(w, h);
 }
 
 EXPORT_C void unload_image(Image *image){
@@ -59,11 +76,77 @@ EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image){
 	state->display_in_caller(image);
 }
 
-EXPORT_C void rgb_to_hsv(u8_quad *, u8_quad){
+template <typename T>
+T max(const T &a, const T &b, const T &c){
+	return std::max(a, std::max(b, c));
 }
 
-EXPORT_C void hsv_to_rgb(u8_quad *, u8_quad){
+template <typename T>
+T min(const T &a, const T &b, const T &c){
+	return std::min(a, std::min(b, c));
+}
 
+template <typename T>
+T fmod2(T x, T y){
+	if (x < 0)
+		return fmod(y - fmod(x, y), y);
+	return fmod(x, y);
+}
+
+EXPORT_C void rgb_to_hsv(hsv_quad *dst, u8_quad src){
+	auto r = src.data[0] * float(1.f / 255.f);
+	auto g = src.data[1] * float(1.f / 255.f);
+	auto b = src.data[2] * float(1.f / 255.f);
+	auto a = src.data[3] * float(1.f / 255.f);
+	auto &h = dst->hue;
+	auto &s = dst->saturation;
+	auto &v = dst->value;
+	auto max = ::max(r, g, b);
+	auto min = ::min(r, g, b);
+	auto chroma = max - min;
+	if (!chroma)
+		h = 0;
+	else if (max == r)
+		h = (g - b) / chroma;
+	else if (max == g)
+		h = (b - r) / chroma + 2;
+	else
+		h = (r - g) / chroma + 4;
+	h = fmod2<float>(h, 6) * (tauf / 6.f);
+	v = max;
+	s = !dst->value ? 0 : chroma / dst->value;
+	dst->alpha = a;
+}
+
+static void set_rgb(u8 &r, u8 &g, u8 &b, float x, float y, float z){
+	r = (u8)(x * 255);
+	g = (u8)(y * 255);
+	b = (u8)(z * 255);
+}
+
+EXPORT_C void hsv_to_rgb(u8_quad *dst, const hsv_quad *src){
+	auto h = src->hue;
+	auto s = src->saturation;
+	auto v = src->value;
+	auto &r = dst->data[0];
+	auto &g = dst->data[1];
+	auto &b = dst->data[2];
+	dst->data[3] = (unsigned char)(src->alpha * 255.f);
+	auto h2 = h * (6.f / tauf);
+	auto chroma = s * v;
+	auto x = chroma * (1 - abs(fmod2<float>(h2, 2) - 1));
+
+	typedef void (*f)(u8 &r, u8 &g, u8 &b, float c, float x);
+	static const f functions[] = {
+		[](u8 &r, u8 &g, u8 &b, float c, float x){ set_rgb(r, g, b, c, x, 0); },
+		[](u8 &r, u8 &g, u8 &b, float c, float x){ set_rgb(r, g, b, x, c, 0); },
+		[](u8 &r, u8 &g, u8 &b, float c, float x){ set_rgb(r, g, b, 0, c, x); },
+		[](u8 &r, u8 &g, u8 &b, float c, float x){ set_rgb(r, g, b, 0, x, c); },
+		[](u8 &r, u8 &g, u8 &b, float c, float x){ set_rgb(r, g, b, x, 0, c); },
+		[](u8 &r, u8 &g, u8 &b, float c, float x){ set_rgb(r, g, b, c, 0, x); },
+	};
+
+	functions[(int)h](r, g, b, chroma, x);
 }
 
 #ifdef WIN32

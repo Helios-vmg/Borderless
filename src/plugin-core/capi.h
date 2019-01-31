@@ -36,6 +36,13 @@ struct u8_quad{
 	u8 data[4];
 };
 
+struct hsv_quad{
+	float hue;        //[0; 1) <-- Open interval!
+	float saturation; //[0; 1]
+	float value;      //[0; 1]
+	float alpha;      //[0; 1]
+};
+
 typedef struct u8_quad u8_quad;
 
 /* Note: Paths must be UTF-8 strings.*/
@@ -62,8 +69,8 @@ EXPORT_C void display_in_current_window(PluginCoreState *state, Image *image);
 
 /* Utility functions. */
 
-EXPORT_C void rgb_to_hsv(u8_quad *hsv, u8_quad rgb);
-EXPORT_C void hsv_to_rgb(u8_quad *rgb, u8_quad hsv);
+EXPORT_C void rgb_to_hsv(hsv_quad *hsv, u8_quad rgb);
+EXPORT_C void hsv_to_rgb(u8_quad *rgb, const hsv_quad *hsv);
 EXPORT_C void debug_print(const char *string);
 EXPORT_C void show_message_box(const char *string);
 EXPORT_C void random_seed(uint32_t *);
