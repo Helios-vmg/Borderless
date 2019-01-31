@@ -44,7 +44,7 @@ Source: "{#SourceBasePath}\samples\*"; DestDir: "{app}\samples"; Flags: ignoreve
 Source: "{#SourceBasePath}\bin64\LuaInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: luai
 Source: "{#SourceBasePath}\bin64\CppInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: cppi
 Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs; Components: cppi
-Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\3.8.0\include"; Flags: ignoreversion; Components: cppi
+Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\5.0.1\include"; Flags: ignoreversion; Components: cppi
 Source: "{#SourceBasePath}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall; Components: main
 
 [Components]
