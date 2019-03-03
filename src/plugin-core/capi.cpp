@@ -134,7 +134,7 @@ EXPORT_C void hsv_to_rgb(u8_quad *dst, const hsv_quad *src){
 	dst->data[3] = (unsigned char)(src->alpha * 255.f);
 	auto h2 = h * (6.f / tauf);
 	auto chroma = s * v;
-	auto x = chroma * (1 - abs(fmod2<float>(h2, 2) - 1));
+	auto x = chroma * (1 - fabs(fmod2<float>(h2, 2) - 1));
 
 	typedef void (*f)(u8 &r, u8 &g, u8 &b, float c, float x);
 	static const f functions[] = {
