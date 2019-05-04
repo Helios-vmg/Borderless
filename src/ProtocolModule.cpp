@@ -107,8 +107,8 @@ std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
 	auto temp = path.toStdWString();
 	auto stream = this->open_file_utf16(this->client, temp.c_str());
 	if (!stream)
-		return std::unique_ptr<QIODevice>();
-	return std::unique_ptr<QIODevice>(new Stream(this, stream));
+		return nullptr;
+	return std::make_unique<Stream>(this, stream);
 }
 
 QStringList ProtocolModule::enumerate_siblings(const QString &path){
