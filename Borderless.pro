@@ -43,6 +43,7 @@ SOURCES +=  src/ClangErrorMessage.cpp               \
             src/OptionsDialog.cpp                   \
             src/RotateDialog.cpp                    \
             src/Shortcuts.cpp                       \
+            src/Streams.cpp                         \
             src/SingleInstanceApplication.cpp       \
             src/ZoomModeDropDown.cpp                \
             src/plugin-core/capi.cpp                \
@@ -72,6 +73,7 @@ HEADERS += src/ClangErrorMessage.hpp         \
            src/SingleInstanceApplication.h   \
            src/stdafx.h                      \
            src/StreamRedirector.h            \
+           src/Streams.h                     \
            src/ZoomModeDropDown.h            \
            src/plugin-core/capi.h            \
            src/plugin-core/ImageStore.h      \

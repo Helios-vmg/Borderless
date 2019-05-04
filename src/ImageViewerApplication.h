@@ -18,6 +18,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <memory>
 #include <exception>
 #include <QSystemTrayIcon>
+#include <QWindow>
 
 class QAction;
 class CustomProtocolHandler;
@@ -25,8 +26,7 @@ struct lua_State;
 
 class NoWindowsException : public std::exception{};
 
-class ImageViewerApplication : public SingleInstanceApplication
-{
+class ImageViewerApplication : public SingleInstanceApplication{
 	Q_OBJECT
 
 	typedef std::shared_ptr<MainWindow> sharedp_t;
@@ -47,6 +47,7 @@ class ImageViewerApplication : public SingleInstanceApplication
 	QSystemTrayIcon tray_icon;
 	std::shared_ptr<QMenu> tray_context_menu,
 		last_tray_context_menu;
+	QByteArray last_saved_settings_digest;
 
 	void save_current_state(std::shared_ptr<ApplicationState> &);
 	void save_current_windows(std::vector<std::shared_ptr<WindowState>> &);

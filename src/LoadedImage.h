@@ -48,7 +48,7 @@ class LoadedImage : public LoadedGraphics{
 public:
 	LoadedImage(ImageViewerApplication &app, const QString &path);
 	LoadedImage(const QImage &image);
-	~LoadedImage();
+	virtual ~LoadedImage();
 	QColor get_background_color() override{
 		return this->background_color.result();
 	}
@@ -57,6 +57,15 @@ public:
 	}
 	void assign_to_QLabel(QLabel &) override;
 	QImage get_QImage() const override;
+};
+
+class Image;
+
+class FilteredImage : public LoadedImage{
+	Image *img;
+public:
+	FilteredImage(Image *img);
+	~FilteredImage();
 };
 
 class LoadedAnimation : public LoadedGraphics{

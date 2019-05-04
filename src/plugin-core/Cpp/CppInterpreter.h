@@ -44,9 +44,11 @@ class CppInterpreter{
 	CppInterpreterParameters parameters;
 	hash_function hf;
 	void *return_value;
+	bool already_initialized = false;
 	std::map<std::string, std::shared_ptr<CachedProgram>> cached_programs;
 	bool attempt_cache_reuse(CallResult &, const char *);
 	void save_in_cache(const char *, const std::shared_ptr<llvm::LLVMContext> &, const std::shared_ptr<llvm::ExecutionEngine> &, llvm::Module *);
+	bool compile_and_execute(const char *, std::string &, std::string &);
 public:
 	CppInterpreter(const CppInterpreterParameters &);
 	~CppInterpreter();

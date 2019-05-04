@@ -87,6 +87,122 @@ void CppInterpreter::display_return_value_in_current_window(){
 
 }
 
+bool CppInterpreter::compile_and_execute(const char *filename, std::string &error_message, std::string &redirection){
+#if defined(WIN32) && defined(_CONSOLE) || !defined(WIN32)
+	StdStreamRedirectionGuard guard(redirection);
+#endif
+
+	IntrusiveRefCntPtr<DiagnosticOptions> diagnostic_options = new DiagnosticOptions();
+
+	IntrusiveRefCntPtr<DiagnosticIDs> diagnostic_ids = new DiagnosticIDs();
+	DiagnosticsEngine diagnostics_engine(diagnostic_ids, &*diagnostic_options, new TextDiagnosticPrinter(llvm::errs(), &*diagnostic_options));
+
+	// Use ELF on windows for now.
+	std::string TripleStr = llvm::sys::getProcessTriple();
+	llvm::Triple triple(TripleStr);
+	if (triple.isOSBinFormatCOFF())
+		triple.setObjectFormat(llvm::Triple::COFF);
+
+	Driver driver("driver", triple.str(), diagnostics_engine);
+	driver.setTitle("clang interpreter");
+	driver.setCheckInputsExist(false);
+
+	// FIXME: This is a hack to try to force the driver to do something we can
+	// recognize. We need to extend the driver library to support this use model
+	// (basically, exactly one input, and the operation mode is hard wired).
+	SmallVector<const char *, 16> args;
+	args.push_back("clang");
+	args.push_back(filename);
+	args.push_back("-fsyntax-only");
+	args.push_back("-fms-compatibility-version=19");
+	args.push_back("-O3");
+	std::unique_ptr<Compilation> C(driver.BuildCompilation(args));
+	if (!C){
+		error_message = "Error initializing compiler.";
+		return false;
+	}
+
+	// FIXME: This is copied from ASTUnit.cpp; simplify and eliminate.
+
+	// We expect to get back exactly one command job, if we didn't something
+	// failed. Extract that job from the compilation.
+	const driver::JobList &jobs = C->getJobs();
+	auto jobs_size = jobs.size();
+	if (jobs_size != 1 || !isa<driver::Command>(*jobs.begin())) {
+		SmallString<256> Msg;
+		llvm::raw_svector_ostream OS(Msg);
+		jobs.Print(OS, "; ", true);
+		//Diags.Report(diag::err_fe_expected_compiler_job) << OS.str();
+		error_message = OS.str();
+		return false;
+	}
+
+	const driver::Command &command = cast<driver::Command>(*jobs.begin());
+	if (llvm::StringRef(command.getCreator().getName()) != "clang") {
+		//Diags.Report(diag::err_fe_expected_clang_command);
+		error_message = "Expected clang command.";
+		return false;
+	}
+
+	// Initialize a compiler invocation object from the clang (-cc1) arguments.
+	const driver::ArgStringList &ccargs = command.getArguments();
+	auto invocation = std::make_shared<CompilerInvocation>();
+	CompilerInvocation::CreateFromArgs(
+		*invocation,
+		const_cast<const char **>(ccargs.data()),
+		const_cast<const char **>(ccargs.data()) + ccargs.size(),
+		diagnostics_engine
+	);
+
+	// FIXME: This is copied from cc1_main.cpp; simplify and eliminate.
+
+	// Create a compiler instance to handle the actual work.
+	CompilerInstance clang;
+	clang.setInvocation(invocation);
+
+	// Create the compilers actual diagnostics engine.
+	clang.createDiagnostics();
+	if (!clang.hasDiagnostics()){
+		error_message = "No diagnostics.";
+		return false;
+	}
+
+	// Create and execute the frontend to generate an LLVM bitcode module.
+	auto context = std::make_shared<llvm::LLVMContext>();
+	auto action = std::make_unique<EmitLLVMOnlyAction>(context.get());
+	if (!clang.ExecuteAction(*action)){
+		error_message = "Code generation failed.";
+		return false;
+	}
+
+	auto module = action->takeModule();
+	if (!module){
+		error_message = "No module generated.";
+		return false;
+	}
+
+	auto mod = module.get();
+
+	if (!this->already_initialized){
+		llvm::InitializeNativeTarget();
+		llvm::InitializeNativeTargetAsmPrinter();
+	}
+
+	std::shared_ptr<llvm::ExecutionEngine> execution_engine(create_execution_engine(std::move(module), &error_message));
+
+	if (!execution_engine){
+		error_message = "Unable to make execution engine: " + error_message;
+		return false;
+	}
+
+	if (!execute(*mod, *execution_engine, *this, error_message))
+		return false;
+
+	this->save_in_cache(filename, context, execution_engine, mod);
+
+	return true;
+}
+
 CallResult CppInterpreter::execute_path(const char *filename){
 	{
 		CallResult ret;
@@ -96,126 +212,15 @@ CallResult CppInterpreter::execute_path(const char *filename){
 
 	std::string error_message;
 	std::string redirection;
-	while (true){
-#if defined(WIN32) && defined(_CONSOLE) || !defined(WIN32)
-		StdStreamRedirectionGuard guard(redirection);
-#endif
 
-		IntrusiveRefCntPtr<DiagnosticOptions> diagnostic_options = new DiagnosticOptions();
-		TextDiagnosticPrinter *text_diagnostic_printer = new TextDiagnosticPrinter(llvm::errs(), &*diagnostic_options);
-
-		IntrusiveRefCntPtr<DiagnosticIDs> diagnostic_ids(new DiagnosticIDs());
-		DiagnosticsEngine diagnostics_engine(diagnostic_ids, &*diagnostic_options, text_diagnostic_printer);
-
-		// Use ELF on windows for now.
-		std::string TripleStr = llvm::sys::getProcessTriple();
-		llvm::Triple triple(TripleStr);
-		if (triple.isOSBinFormatCOFF())
-			triple.setObjectFormat(llvm::Triple::COFF);
-
-		Driver driver("driver", triple.str(), diagnostics_engine);
-		driver.setTitle("clang interpreter");
-		driver.setCheckInputsExist(false);
-
-		// FIXME: This is a hack to try to force the driver to do something we can
-		// recognize. We need to extend the driver library to support this use model
-		// (basically, exactly one input, and the operation mode is hard wired).
-		SmallVector<const char *, 16> args;
-		args.push_back("clang");
-		args.push_back(filename);
-		args.push_back("-fsyntax-only");
-		args.push_back("-fms-compatibility-version=19");
-		args.push_back("-O3");
-		std::unique_ptr<Compilation> C(driver.BuildCompilation(args));
-		if (!C){
-			error_message = "Error initializing compiler.";
-			break;
-		}
-
-		// FIXME: This is copied from ASTUnit.cpp; simplify and eliminate.
-
-		// We expect to get back exactly one command job, if we didn't something
-		// failed. Extract that job from the compilation.
-		const driver::JobList &jobs = C->getJobs();
-		auto jobs_size = jobs.size();
-		if (jobs_size != 1 || !isa<driver::Command>(*jobs.begin())) {
-			SmallString<256> Msg;
-			llvm::raw_svector_ostream OS(Msg);
-			jobs.Print(OS, "; ", true);
-			//Diags.Report(diag::err_fe_expected_compiler_job) << OS.str();
-			error_message = OS.str();
-			break;
-		}
-
-		const driver::Command &command = cast<driver::Command>(*jobs.begin());
-		if (llvm::StringRef(command.getCreator().getName()) != "clang") {
-			//Diags.Report(diag::err_fe_expected_clang_command);
-			error_message = "Expected clang command.";
-			break;
-		}
-
-		// Initialize a compiler invocation object from the clang (-cc1) arguments.
-		const driver::ArgStringList &ccargs = command.getArguments();
-		std::unique_ptr<CompilerInvocation> invocation(new CompilerInvocation);
-		CompilerInvocation::CreateFromArgs(
-			*invocation,
-			const_cast<const char **>(ccargs.data()),
-			const_cast<const char **>(ccargs.data()) + ccargs.size(),
-			diagnostics_engine
-		);
-
-		// FIXME: This is copied from cc1_main.cpp; simplify and eliminate.
-
-		// Create a compiler instance to handle the actual work.
-		CompilerInstance clang;
-		clang.setInvocation(invocation.release());
-
-		// Create the compilers actual diagnostics engine.
-		clang.createDiagnostics();
-		if (!clang.hasDiagnostics()){
-			error_message = "No diagnostics.";
-			break;
-		}
-
-		// Create and execute the frontend to generate an LLVM bitcode module.
-		std::shared_ptr<llvm::LLVMContext> context(new llvm::LLVMContext);
-		std::unique_ptr<CodeGenAction> action(new EmitLLVMOnlyAction(context.get()));
-		if (!clang.ExecuteAction(*action)){
-			error_message = "Code generation failed.";
-			break;
-		}
-
-		std::unique_ptr<llvm::Module> module = action->takeModule();
-		if (!module){
-			error_message = "No module generated.";
-			break;
-		}
-
-		auto mod = module.get();
-
-		llvm::InitializeNativeTarget();
-		llvm::InitializeNativeTargetAsmPrinter();
-
-		std::shared_ptr<llvm::ExecutionEngine> execution_engine(create_execution_engine(std::move(module), &error_message));
-
-		if (!execution_engine){
-			error_message = "Unable to make execution engine: " + error_message;
-			break;
-		}
-
-		if (!execute(*mod, *execution_engine, *this, error_message))
-			break;
-
-		this->save_in_cache(filename, context, execution_engine, mod);
-
-		return CallResult();
+	if (!this->compile_and_execute(filename, error_message, redirection)){
+		CallResult ret;
+		ret.impl = new CallResultImpl(redirection + "\n\n" + error_message);
+		ret.success = false;
+		ret.error_message = ret.impl->message.c_str();
+		return ret;
 	}
-
-	CallResult ret;
-	ret.impl = new CallResultImpl(redirection + "\n\n" + error_message);
-	ret.success = false;
-	ret.error_message = ret.impl->message.c_str();
-	return ret;
+	return CallResult();
 }
 
 void CppInterpreter::pass_main_arguments(void *&state, void *&image) const{

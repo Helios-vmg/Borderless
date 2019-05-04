@@ -97,6 +97,7 @@ QString ExtensionIterator::operator*() const{
 void initialize_supported_extensions(){
 	for (auto p : hardcoded_supported_extensions)
 		supported_extensions[p] = ImageSupport::ExternalOnly;
+#if 0
 	for (auto s : QImageReader::supportedImageFormats()){
 		auto s2 = "*." + s;
 		auto it = supported_extensions.find(s2);
@@ -105,6 +106,7 @@ void initialize_supported_extensions(){
 		else
 			supported_extensions[s2] = ImageSupport::Qt;
 	}
+#endif
 }
 
 template <Qt::CaseSensitivity CS>

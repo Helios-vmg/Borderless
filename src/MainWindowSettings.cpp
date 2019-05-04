@@ -29,7 +29,9 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 
 	this->ui->label->move(this->window_state->get_label_pos().to_QPoint());
-	this->move(this->window_state->get_pos().to_QPoint());
+	auto pos = this->window_state->get_pos().to_QPoint();
+	this->move(pos);
+	this->window_rect.moveTopLeft(pos);
 	if (!success)
 		return;
 	this->resize(this->window_state->get_size().to_QSize());

@@ -38,6 +38,8 @@ void MainWindow::mousePressEvent(QMouseEvent *ev){
 void MainWindow::mouseReleaseEvent(QMouseEvent *ev){
 	if (this->not_moved)
 		this->show_context_menu(ev);
+	else
+		this->app->save_settings();
 	this->not_moved = false;
 }
 

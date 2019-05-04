@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "LoadedImage.h"
 #include "DirectoryListing.h"
+#include "plugin-core/ImageStore.h"
 #include <QImage>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QLabel>
@@ -113,4 +114,11 @@ std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &a
 	else
 		ret.reset(new LoadedImage(app, path));
 	return ret;
+}
+
+FilteredImage::FilteredImage(Image *img): LoadedImage(img->get_bitmap()), img(img){
+}
+
+FilteredImage::~FilteredImage(){
+	this->img->get_owner()->unload(this->img);
 }
