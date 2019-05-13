@@ -349,7 +349,22 @@ void MainWindow::move_in_direction(bool forward){
 	this->app->save_settings();
 }
 
+class ElapsedTimer{
+	QString task;
+	clock_t t0;
+public:
+	ElapsedTimer(const QString &task): task(task){
+		qDebug() << "Task " << this->task << " started.";
+		this->t0 = clock();
+	}
+	~ElapsedTimer(){
+		auto t1 = clock();
+		qDebug() << "Task " << this->task << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC << " seconds.";
+	}
+};
+
 bool MainWindow::open_path_and_display_image(QString path){
+	ElapsedTimer et((QString)"open_path_and_display_image(" + path + ")");
 	std::shared_ptr<LoadedGraphics> li;
 	size_t i = 0;
 	auto &label = this->ui->label;

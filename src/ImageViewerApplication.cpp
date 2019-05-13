@@ -456,7 +456,10 @@ QImage ImageViewerApplication::load_image(const QString &path){
 	QImage ret;
 	auto filename = this->protocol_handler->get_filename(path);
 	auto extension = QFileInfo(filename).suffix().toStdString();
+	auto t0 = clock();
 	ret.load(dev.get(), extension.c_str());
+	auto t1 = clock();
+	qDebug() << "Load " << path << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC;
 	return ret;
 }
 
