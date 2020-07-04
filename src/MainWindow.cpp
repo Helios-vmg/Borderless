@@ -391,22 +391,22 @@ bool MainWindow::open_path_and_display_image(QString path){
 			this->directory_iterator = di;
 			current_filename = this->app->get_filename_from_url(path);
 			this->window_state->set_file_is_url(true);
-			this->window_state->set_current_url(path.toStdWString());
-			this->window_state->set_current_filename(current_filename.toStdWString());
+			this->window_state->set_current_url(path);
+			this->window_state->set_current_filename(current_filename);
 			unset = false;
 		}
 	}else if (!this->directory_iterator->get_is_local()){
 		current_filename = this->directory_iterator->get_current_filename();
 		this->window_state->set_file_is_url(true);
-		this->window_state->set_current_url(path.toStdWString());
-		this->window_state->set_current_filename(current_filename.toStdWString());
+		this->window_state->set_current_url(path);
+		this->window_state->set_current_filename(current_filename);
 		unset = false;
 	}
 	if (unset){
 		QString current_directory;
 		split_path(current_directory, current_filename, path);
-		this->window_state->set_current_directory(current_directory.toStdWString());
-		this->window_state->set_current_filename(current_filename.toStdWString());
+		this->window_state->set_current_directory(current_directory);
+		this->window_state->set_current_filename(current_filename);
 		this->window_state->set_file_is_url(false);
 		if (!this->directory_iterator)
 			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
