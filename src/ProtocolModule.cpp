@@ -37,6 +37,7 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(read_file);
 	INIT_FUNCTION(create_sibling_enumerator);
 	INIT_FUNCTION(sibling_enumerator_next);
+	INIT_FUNCTION(sibling_enumerator_find);
 	INIT_FUNCTION(destroy_sibling_enumerator);
 	INIT_FUNCTION(release_returned_string);
 	INIT_FUNCTION(get_parent_directory);
@@ -53,6 +54,7 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION(read_file);
 	RESOLVE_FUNCTION(create_sibling_enumerator);
 	RESOLVE_FUNCTION(sibling_enumerator_next);
+	RESOLVE_FUNCTION(sibling_enumerator_find);
 	RESOLVE_FUNCTION(destroy_sibling_enumerator);
 	RESOLVE_FUNCTION(release_returned_string);
 	RESOLVE_FUNCTION(get_parent_directory);
@@ -111,19 +113,12 @@ std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
 	return std::make_unique<Stream>(this, stream);
 }
 
-QStringList ProtocolModule::enumerate_siblings(const QString &path){
-	QStringList ret;
+ProtocolFileEnumerator ProtocolModule::enumerate_siblings(const QString &path){
 	auto temp = path.toStdWString();
 	auto enumerator = this->create_sibling_enumerator(this->client, temp.c_str());
-	std::shared_ptr<file_enumerator_t> shared_p(enumerator, this->destroy_sibling_enumerator);
 	if (!enumerator)
-		return ret;
-
-	const wchar_t *next_path;
-	while ((next_path = this->sibling_enumerator_next(enumerator)))
-		ret.push_back(QString::fromWCharArray(next_path));
-
-	return ret;
+		return {};
+	return ProtocolFileEnumerator(*this, *enumerator);
 }
 
 QString ProtocolModule::get_parent(const QString &path){
@@ -245,10 +240,10 @@ std::unique_ptr<QIODevice>CustomProtocolHandler::open(const QString &path){
 	return mod->open(path);
 }
 
-QStringList CustomProtocolHandler::enumerate_siblings(const QString &path){
+ProtocolFileEnumerator CustomProtocolHandler::enumerate_siblings(const QString &path){
 	auto mod = this->find_module_by_url(path);
 	if (!mod)
-		return QStringList();
+		return ProtocolFileEnumerator();
 	return mod->enumerate_siblings(path);
 }
 
@@ -278,4 +273,35 @@ bool CustomProtocolHandler::paths_in_same_directory(const QString &a, const QStr
 	if (it == this->modules.end())
 		return false;
 	return it->second->are_paths_in_same_directory(a, b);
+}
+
+ProtocolFileEnumerator::ProtocolFileEnumerator(ProtocolFileEnumerator &&other){
+	*this = std::move(other);
+}
+
+const ProtocolFileEnumerator &ProtocolFileEnumerator::operator=(ProtocolFileEnumerator &&other){
+	this->mod = other.mod;
+	this->handle = other.handle;
+	other.mod = nullptr;
+	other.handle = nullptr;
+	return *this;
+}
+
+ProtocolFileEnumerator::~ProtocolFileEnumerator(){
+	if (!this->mod)
+		return;
+	this->mod->destroy_sibling_enumerator(this->handle);
+}
+
+QString ProtocolFileEnumerator::next(){
+	auto s = this->mod->sibling_enumerator_next(this->handle);
+	if (!s)
+		return {};
+	auto ret = QString::fromWCharArray(s);
+	this->mod->release_returned_string(s);
+	return ret;
+}
+
+bool ProtocolFileEnumerator::find(const QString &, size_t &dst){
+	return !!this->mod->sibling_enumerator_find(this->handle, &dst);
 }

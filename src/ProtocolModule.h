@@ -24,6 +24,7 @@ class ProtocolModule{
 	class protocol_client_t;
 	class unknown_stream_t;
 	class file_enumerator_t;
+	friend class ProtocolFileEnumerator;
 
 	typedef const char *(*get_protocol_f)();
 	typedef protocol_client_t *(*initialize_client_f)(const wchar_t *, const wchar_t *);
@@ -31,11 +32,14 @@ class ProtocolModule{
 	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
 	typedef void (*close_file_f)(unknown_stream_t *);
 	typedef std::uint64_t(*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
-	typedef int(*seek_file_f)(unknown_stream_t *, std::uint64_t);
+	typedef int (*seek_file_f)(unknown_stream_t *, std::uint64_t);
 	typedef std::uint64_t (*file_length_f)(unknown_stream_t *);
+	///////
 	typedef file_enumerator_t *(*create_sibling_enumerator_f)(protocol_client_t *, const wchar_t *);
 	typedef const wchar_t *(*sibling_enumerator_next_f)(file_enumerator_t *);
-	typedef void(*destroy_sibling_enumerator_f)(file_enumerator_t *);
+	typedef int (*sibling_enumerator_find_f)(file_enumerator_t *, size_t *);
+	typedef void (*destroy_sibling_enumerator_f)(file_enumerator_t *);
+	///////
 	typedef void (*release_returned_string_f)(const wchar_t *);
 	typedef const wchar_t *(*get_parent_directory_f)(protocol_client_t *, const wchar_t *);
 	typedef int (*paths_in_same_directory_f)(protocol_client_t *, const wchar_t *, const wchar_t *);
@@ -51,6 +55,7 @@ class ProtocolModule{
 	DECLARE_FUNCTION_POINTER(file_length);
 	DECLARE_FUNCTION_POINTER(create_sibling_enumerator);
 	DECLARE_FUNCTION_POINTER(sibling_enumerator_next);
+	DECLARE_FUNCTION_POINTER(sibling_enumerator_find);
 	DECLARE_FUNCTION_POINTER(destroy_sibling_enumerator);
 	DECLARE_FUNCTION_POINTER(release_returned_string);
 	DECLARE_FUNCTION_POINTER(get_parent_directory);
@@ -96,7 +101,7 @@ public:
 		return this->protocol;
 	}
 	std::unique_ptr<QIODevice> open(const QString &);
-	QStringList enumerate_siblings(const QString &);
+	ProtocolFileEnumerator enumerate_siblings(const QString &);
 	QString get_parent(const QString &);
 	bool are_paths_in_same_directory(const QString &, const QString &);
 	QString get_filename(const QString &);
@@ -110,10 +115,29 @@ public:
 	CustomProtocolHandler(const QString &config_location);
 	std::unique_ptr<QIODevice> open(const QString &s);
 	static bool is_url(const QString &);
-	QStringList enumerate_siblings(const QString &);
+	ProtocolFileEnumerator enumerate_siblings(const QString &);
 	QString get_parent_directory(const QString &);
 	QString get_filename(const QString &);
 	bool paths_in_same_directory(const QString &, const QString &);
+};
+
+class ProtocolFileEnumerator{
+	ProtocolModule *mod;
+	ProtocolModule::file_enumerator_t *handle;
+public:
+	ProtocolFileEnumerator(): mod(nullptr), handle(nullptr){}
+	ProtocolFileEnumerator(ProtocolModule &mod, ProtocolModule::file_enumerator_t &handle): mod(&mod), handle(&handle){}
+	ProtocolFileEnumerator(ProtocolFileEnumerator &&);
+	const ProtocolFileEnumerator &operator=(ProtocolFileEnumerator &&);
+	ProtocolFileEnumerator(const ProtocolFileEnumerator &) = delete;
+	ProtocolFileEnumerator &operator=(const ProtocolFileEnumerator &) = delete;
+	~ProtocolFileEnumerator();
+
+	QString next();
+	bool find(const QString &, size_t &dst);
+	operator bool() const{
+		return !!this->mod && !!this->handle;
+	}
 };
 
 #endif

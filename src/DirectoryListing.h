@@ -8,14 +8,15 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef DIRECTORYLISTING_H
 #define DIRECTORYLISTING_H
 
+#include "ProtocolModule.h"
 #include <QString>
 #include <QStringList>
 #include <QFuture>
 #include <vector>
 #include <QtCore/qatomic.h>
 #include <memory>
+#include <unordered_map>
 
-class CustomProtocolHandler;
 void initialize_supported_extensions();
 class DirectoryIterator;
 
@@ -57,13 +58,16 @@ public:
 
 class ProtocolDirectoryListing : public DirectoryListing{
 public:
-	typedef std::shared_ptr<std::vector<std::pair<QString, QString>>> list_t;
+	typedef std::shared_ptr<std::vector<QString>> list_t;
 private:
 	list_t future_result;
+	std::unordered_map<size_t, QString> filenames;
 	QFuture<list_t> future;
 	CustomProtocolHandler *handler;
+	ProtocolFileEnumerator enumerator;
 
 	list_t::element_type &get_result();
+	static ProtocolDirectoryListing::list_t get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler);
 public:
 	ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &);
 	size_t size() override;
