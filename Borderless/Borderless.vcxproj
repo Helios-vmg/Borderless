@@ -234,11 +234,9 @@
     <ClCompile Include="$(SolutionDir)\src\plugin-core\capi.cpp" />
     <ClCompile Include="$(SolutionDir)\src\plugin-core\ImageStore.cpp" />
     <ClCompile Include="$(SolutionDir)\src\plugin-core\PluginCoreState.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\serialization\MainSettings.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\serialization\ShortcutsSettings.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\serialization\WindowState.cpp" />
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp" />
     <ClCompile Include="..\src\Settings.cpp" />
+    <ClCompile Include="..\src\ShortcutsSettings.cpp" />
     <ClCompile Include="GeneratedFiles\DebugRelease\moc_ClangErrorMessage.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

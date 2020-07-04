@@ -6,7 +6,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "Settings.h"
-#include "../ShortcutInfo.h"
+#include "ShortcutInfo.h"
 #include <QString>
 
 #define DEFINE_COMMAND_INTERNAL_NAME(x) const char *x##_command = #x
