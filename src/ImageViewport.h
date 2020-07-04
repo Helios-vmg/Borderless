@@ -8,11 +8,11 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef IMAGEVIEWPORT_H
 #define IMAGEVIEWPORT_H
 
+#include "Quadrangular.h"
+#include "Settings.h"
 #include <QLabel>
 #include <QImage>
 #include <QMatrix>
-#include "Quadrangular.h"
-#include "serialization/settings.generated.h"
 
 class LoadedGraphics;
 

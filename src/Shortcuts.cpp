@@ -19,12 +19,12 @@ void ApplicationShortcuts::restore_settings(const Shortcuts &shortcuts){
 	this->current_shortcuts.clear();
 	for (auto &s : shortcuts.shortcuts){
 		auto ss = std::make_shared<ShortcutSetting>();
-		auto key = QString::fromStdString(s.first);
+		auto key = s.first;
 		ss->command = key;
 		this->current_shortcuts[key] = ss;
 
 		for (auto &s2 : s.second)
-			ss->sequences.emplace_back(QKeySequence(QString::fromStdWString(s2)));
+			ss->sequences.emplace_back(QKeySequence(s2));
 	}
 }
 
@@ -44,10 +44,10 @@ void ApplicationShortcuts::reset_settings(){
 std::shared_ptr<Shortcuts> ApplicationShortcuts::save_settings() const{
 	auto ret = std::make_shared<Shortcuts>();
 	for (auto &s : this->current_shortcuts){
-		auto key = s.first.toStdString();
+		auto key = s.first;
 		auto &shortcuts = ret->shortcuts[key];
 		for (auto &seq : s.second->sequences)
-			shortcuts.push_back(seq.toString().toStdWString());
+			shortcuts.push_back(seq.toString());
 	}
 	return ret;
 }

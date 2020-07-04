@@ -163,28 +163,13 @@
     <ClCompile Include="$(SolutionDir)\src\plugin-core\PluginCoreState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\Implementations.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\Inlining.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\MainSettings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\settings.aux.generated.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\settings.generated.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\ShortcutsSettings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\serialization\WindowState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Settings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ShortcutsSettings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\ProtocolModule.cpp">
@@ -223,7 +208,6 @@
       <Filter>Form Files</Filter>
     </CustomBuild>
     <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.hpp" />
-    <CustomBuild Include="$(SolutionDir)\src\serialization\settings.txt" />
     <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.ui">
       <Filter>Form Files</Filter>
     </CustomBuild>
@@ -271,9 +255,6 @@
     <ClInclude Include="$(SolutionDir)\src\plugin-core\PluginCoreState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(SolutionDir)\src\serialization\settings.generated.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="$(SolutionDir)\src\Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -281,6 +262,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="$(SolutionDir)\src\Streams.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Settings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

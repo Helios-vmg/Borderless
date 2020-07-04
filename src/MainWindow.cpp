@@ -306,9 +306,7 @@ void MainWindow::advance(){
 }
 
 void MainWindow::set_iterator(){
-	assert(this->window_state->get_file_is_url() == !this->directory_iterator->get_is_local());
-	auto wsname = this->window_state->get_current_filename();
-	this->directory_iterator->advance_to(QString::fromStdWString(wsname));
+	this->directory_iterator->advance_to(this->window_state->get_current_filename());
 }
 
 double MainWindow::get_current_zoom() const{
