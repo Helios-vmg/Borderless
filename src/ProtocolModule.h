@@ -37,7 +37,7 @@ class ProtocolModule{
 	///////
 	typedef file_enumerator_t *(*create_sibling_enumerator_f)(protocol_client_t *, const wchar_t *);
 	typedef const wchar_t *(*sibling_enumerator_next_f)(file_enumerator_t *);
-	typedef int (*sibling_enumerator_find_f)(file_enumerator_t *, size_t *);
+	typedef int (*sibling_enumerator_find_f)(file_enumerator_t *, size_t *, const wchar_t *);
 	typedef void (*destroy_sibling_enumerator_f)(file_enumerator_t *);
 	///////
 	typedef void (*release_returned_string_f)(const wchar_t *);
@@ -134,7 +134,7 @@ public:
 	~ProtocolFileEnumerator();
 
 	QString next();
-	bool find(const QString &, size_t &dst);
+	bool find(const QString &path, size_t &dst);
 	operator bool() const{
 		return !!this->mod && !!this->handle;
 	}

@@ -302,6 +302,7 @@ QString ProtocolFileEnumerator::next(){
 	return ret;
 }
 
-bool ProtocolFileEnumerator::find(const QString &, size_t &dst){
-	return !!this->mod->sibling_enumerator_find(this->handle, &dst);
+bool ProtocolFileEnumerator::find(const QString &path, size_t &dst){
+	auto temp = path.toStdWString();
+	return !!this->mod->sibling_enumerator_find(this->handle, &dst, temp.c_str());
 }
