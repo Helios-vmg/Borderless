@@ -20,6 +20,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QStandardPaths>
 #include <QCryptographicHash>
 #include <random>
+#include <QJsonDocument>
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
@@ -124,52 +125,6 @@ public:
 	SettingsException(const char *what) : GenericException(what){}
 };
 
-class DeserializationException : public std::exception {
-protected:
-	const char *message;
-public:
-	DeserializationException(DeserializerStream::ErrorType type){
-		switch (type){
-		case DeserializerStream::ErrorType::UnexpectedEndOfFile:
-			this->message = "Unexpected end of file.";
-			break;
-		case DeserializerStream::ErrorType::InconsistentSmartPointers:
-			this->message = "Serialized stream uses smart pointers inconsistently.";
-			break;
-		case DeserializerStream::ErrorType::UnknownObjectId:
-			this->message = "Serialized stream contains a reference to an unknown object.";
-			break;
-		case DeserializerStream::ErrorType::InvalidProgramState:
-			this->message = "The program is in an unknown state.";
-			break;
-		case DeserializerStream::ErrorType::MainObjectNotSerializable:
-			this->message = "The root object is not an instance of a Serializable subclass.";
-			break;
-		case DeserializerStream::ErrorType::AllocateAbstractObject:
-			this->message = "The stream contains a concrete object with an abstract class type ID.";
-			break;
-		case DeserializerStream::ErrorType::AllocateObjectOfUnknownType:
-			this->message = "The stream contains an object of an unknown type. Did you try to import a configuration created by a newer version of the program?";
-			break;
-		default:
-			this->message = "Unknown error.";
-			break;
-		}
-	}
-	virtual const char *what() const NOEXCEPT override {
-		return this->message;
-	}
-};
-
-class ImplementedDeserializerStream : public DeserializerStream {
-protected:
-	void report_error(ErrorType type, const char *) override {
-		throw DeserializationException(type);
-	}
-public:
-	ImplementedDeserializerStream(std::istream &stream) : DeserializerStream(stream){}
-};
-
 void ImageViewerApplication::save_settings(bool with_state){
 	if (this->do_not_save)
 		return;
@@ -182,27 +137,21 @@ void ImageViewerApplication::save_settings(bool with_state){
 		this->save_current_state(settings.state);
 	settings.shortcuts = this->shortcuts.save_settings();
 
-	std::vector<std::uint8_t> mem;
-	QByteArray digest;
-	QFile file(path);
-	mem.reserve(4096);
-	{
-		boost::iostreams::stream<MemoryStream> stream(&mem);
-		SerializerStream ss(stream);
-		ss.serialize(settings, true);
-	}
+	QJsonDocument doc;
+	doc.setObject(settings.serialize().toObject());
+	auto contents = doc.toJson(QJsonDocument::Indented);
+	
 	QCryptographicHash hash(QCryptographicHash::Md5);
-	if (mem.size())
-		hash.addData((const char *)&mem[0], mem.size());
-	digest = hash.result();
+	hash.addData(contents);
+	auto digest = hash.result();
 	if (!this->last_saved_settings_digest.isNull() && digest == this->last_saved_settings_digest)
 		return;
 
+	QFile file(path);
 	file.open(QFile::WriteOnly | QFile::Truncate);
 	if (!file.isOpen())
 		return;
-	if (mem.size())
-		file.write((const char *)&mem[0], mem.size());
+	file.write(contents);
 
 	this->last_saved_settings_digest = digest;
 }
@@ -259,28 +208,19 @@ bool ImageViewerApplication::restore_settings(){
 	file.open(QFile::ReadOnly);
 	if (!file.isOpen())
 		return false;
-	boost::iostreams::stream<QFileInputStream> stream(&file);
-	ImplementedDeserializerStream ds(stream);
-	std::shared_ptr<Settings> settings;
-	try{
-		settings.reset(ds.deserialize<Settings>(true));
-	}catch (std::bad_cast &){
-		return false;
-	}catch (DeserializationException &ex){
-		QMessageBox msgbox;
-		msgbox.setWindowTitle("Error reading configuration");
-		msgbox.setText(ex.what());
-		msgbox.setIcon(QMessageBox::Critical);
-		msgbox.exec();
-		return false;
-	}
-	this->settings = settings->main;
+	auto doc = QJsonDocument::fromJson(file.readAll());
 
-	if (settings->shortcuts)
-		this->shortcuts.restore_settings(*settings->shortcuts);
+	Settings settings;
+	if (!doc.isNull())
+		settings = Settings(doc.object());
 
-	if (settings->state)
-		this->restore_current_state(*settings->state);
+	this->settings = settings.main;
+
+	if (settings.shortcuts)
+		this->shortcuts.restore_settings(*settings.shortcuts);
+
+	if (settings.state)
+		this->restore_current_state(*settings.state);
 
 	return true;
 }
@@ -344,7 +284,7 @@ QString ImageViewerApplication::get_config_filename(){
 		ret = this->get_config_location();
 		if (ret.isNull())
 			return ret;
-		ret += "settings.dat";
+		ret += "settings.json";
 	}
 	return ret;
 }

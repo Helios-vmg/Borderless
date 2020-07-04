@@ -5,7 +5,7 @@ All rights reserved.
 Distributed under a permissive license. See COPYING.txt for details.
 */
 
-#include "settings.generated.h"
+#include "Settings.h"
 #include "../ShortcutInfo.h"
 #include <QString>
 
@@ -87,7 +87,7 @@ void Shortcuts::initialize_to_defaults(){
 		auto &v = this->shortcuts[key];
 		for (size_t i = 0; i < s.second.sequences_count; i++) {
 			auto str = s.second.default_sequences_str[i];
-			v.push_back(std::wstring(str, str + strlen(str)));
+			v.push_back(QString::fromUtf8(str));
 		}
 	}
 }

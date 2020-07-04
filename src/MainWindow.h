@@ -19,6 +19,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <vector>
 #include <memory>
 #include "Misc.h"
+#include "Settings.h"
 
 namespace Ui {
 class MainWindow;

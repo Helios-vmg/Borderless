@@ -8,13 +8,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef SHORTCUTS_H
 #define SHORTCUTS_H
 
+#include "ShortcutInfo.h"
+#include "Settings.h"
 #include <QString>
 #include <QKeySequence>
 #include <map>
 #include <vector>
 #include <memory>
-#include "serialization/settings.generated.h"
-#include "ShortcutInfo.h"
 
 #define DECLARE_COMMAND_INTERNAL_NAME(x) extern const char *x##_command
 

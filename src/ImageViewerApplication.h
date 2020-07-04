@@ -9,8 +9,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 #define IMAGEVIEWERAPPLICATION_H
 
 #include "SingleInstanceApplication.h"
-#include "serialization/settings.generated.h"
 #include "plugin-core/PluginCoreState.h"
+#include "Settings.h"
 #include "Shortcuts.h"
 #include "Streams.h"
 #include "Enums.h"

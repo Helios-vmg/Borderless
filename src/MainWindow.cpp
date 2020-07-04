@@ -306,7 +306,7 @@ void MainWindow::advance(){
 }
 
 void MainWindow::set_iterator(){
-	this->directory_iterator->advance_to(QString::fromStdWString(this->window_state->get_current_filename()));
+	this->directory_iterator->advance_to(this->window_state->get_current_filename());
 }
 
 double MainWindow::get_current_zoom() const{
@@ -369,8 +369,8 @@ bool MainWindow::open_path_and_display_image(QString path){
 	QString current_directory,
 		current_filename;
 	split_path(current_directory, current_filename, path);
-	this->window_state->set_current_directory(current_directory.toStdWString());
-	this->window_state->set_current_filename(current_filename.toStdWString());
+	this->window_state->set_current_directory(current_directory);
+	this->window_state->set_current_filename(current_filename);
 	if (!this->directory_iterator)
 		this->directory_iterator = this->app->request_directory(current_directory);
 	if (li->is_null()){
