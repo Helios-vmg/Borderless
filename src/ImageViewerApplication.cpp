@@ -398,6 +398,14 @@ QImage ImageViewerApplication::load_image(const QString &path){
 	auto extension = QFileInfo(filename).suffix().toStdString();
 	auto t0 = clock();
 	ret.load(dev.get(), extension.c_str());
+	if (ret.isNull()){
+		//Workaround. QImage refuses to read certain files correctly.
+		auto n = dev->size();
+		std::unique_ptr<uchar[]> temp(new uchar[n]);
+		dev->seek(0);
+		dev->read((char *)temp.get(), n);
+		ret.loadFromData(temp.get(), n, extension.c_str());
+	}
 	auto t1 = clock();
 	qDebug() << "Load " << path << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC;
 	return ret;
