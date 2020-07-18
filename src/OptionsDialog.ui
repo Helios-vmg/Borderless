@@ -187,6 +187,13 @@
                 </item>
                </layout>
               </item>
+              <item>
+               <widget class="QCheckBox" name="resize_windows_cb">
+                <property name="text">
+                 <string>Resize windows on monitor change</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>

@@ -275,24 +275,28 @@ void MainWindow::show_nothing(){
 }
 
 void MainWindow::resize_to_max(bool do_not_enlarge){
-	auto rect = this->geometry();
 	auto &label = this->ui->label;
-	label->resize(label->get_size());
-	auto screen_number = this->get_current_desktop_number();
-	auto ds = this->desktop_sizes[screen_number];
-	auto new_size = ds.size();
-	new_size = label->size().boundedTo(new_size);
-	if (do_not_enlarge)
-		new_size = new_size.boundedTo(this->size());
-	rect.setSize(new_size);
-	if (rect.left() < ds.left())
-		rect.moveLeft(ds.left());
-	else if (rect.right() > ds.right())
-		rect.moveRight(ds.right());
-	if (rect.top() < ds.top())
-		rect.moveTop(ds.top());
-	else if (rect.bottom() > ds.bottom())
-		rect.moveBottom(ds.bottom());
+	auto label_size = label->get_size();
+	label->resize(label_size);
+	auto rect = this->geometry();
+	if (this->app->get_option_values()->get_resize_windows_on_monitor_change()){
+		auto screen_number = this->get_current_desktop_number();
+		auto ds = this->desktop_sizes[screen_number];
+		auto new_size = ds.size();
+		new_size = label->size().boundedTo(new_size);
+		if (do_not_enlarge)
+			new_size = new_size.boundedTo(this->size());
+		rect.setSize(new_size);
+		if (rect.left() < ds.left())
+			rect.moveLeft(ds.left());
+		else if (rect.right() > ds.right())
+			rect.moveRight(ds.right());
+		if (rect.top() < ds.top())
+			rect.moveTop(ds.top());
+		else if (rect.bottom() > ds.bottom())
+			rect.moveBottom(ds.bottom());
+	}else
+		rect.setSize(label_size);
 	this->set_window_rect(rect);
 }
 

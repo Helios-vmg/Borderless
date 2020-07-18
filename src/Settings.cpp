@@ -6,6 +6,7 @@
 
 #define DEFINE_JSON_STRING(name) const char * const json_string_##name = #name
 #define READ_JSON(dst, src) parse_json(this->dst, src, json_string_##dst)
+#define READ_JSON_DEFAULT(dst, src, def) parse_json(this->dst, src, json_string_##dst, def)
 #define WRITE_JSON(src, dst) set_value(dst[json_string_##src], this->src)
 
 DEFINE_JSON_STRING(main);
@@ -39,6 +40,7 @@ DEFINE_JSON_STRING(x);
 DEFINE_JSON_STRING(y);
 DEFINE_JSON_STRING(w);
 DEFINE_JSON_STRING(h);
+DEFINE_JSON_STRING(resize_windows_on_monitor_change);
 
 template <typename T>
 struct json_cast{
@@ -76,12 +78,12 @@ struct json_cast<QString>{
 };
 
 template <typename DstT>
-void parse_json(DstT &dst, QJsonObject &json, const char *name){
+void parse_json(DstT &dst, QJsonObject &json, const char *name, const DstT &default_value = {}){
 	auto it = json.find(name);
 	if (it != json.end())
 		dst = json_cast<DstT>::f(it.value());
 	else
-		dst = DstT();
+		dst = default_value;
 }
 
 template <typename DstT>
@@ -92,40 +94,52 @@ void parse_json(std::shared_ptr<DstT> &dst, QJsonObject &json, const char *name)
 	dst.reset(new DstT(it.value()));
 }
 
-void parse_json(QPoint &dst, QJsonObject &json, const char *name){
+void parse_json(QPoint &dst, QJsonObject &json, const char *name, const QPoint &default_value = {}){
 	auto it = json.find(name);
 	dst = QPoint();
-	if (it == json.end())
+	if (it == json.end()){
+		dst = default_value;
 		return;
+	}
 	auto val = it.value();
-	if (!val.isObject())
+	if (!val.isObject()){
+		dst = default_value;
 		return;
+	}
 	auto obj = val.toObject();
 	dst.setX(obj[json_string_x].toInt());
 	dst.setY(obj[json_string_y].toInt());
 }
 
-void parse_json(QSize &dst, QJsonObject &json, const char *name){
+void parse_json(QSize &dst, QJsonObject &json, const char *name, const QSize &default_value = {}){
 	auto it = json.find(name);
 	dst = QSize();
-	if (it == json.end())
+	if (it == json.end()){
+		dst = default_value;
 		return;
+	}
 	auto val = it.value();
-	if (!val.isObject())
+	if (!val.isObject()){
+		dst = default_value;
 		return;
+	}
 	auto obj = val.toObject();
 	dst.setWidth(obj[json_string_w].toInt());
 	dst.setHeight(obj[json_string_h].toInt());
 }
 
-void parse_json(QMatrix &dst, QJsonObject &json, const char *name){
+void parse_json(QMatrix &dst, QJsonObject &json, const char *name, const QMatrix &default_value = {}){
 	auto it = json.find(name);
 	dst = QMatrix();
-	if (it == json.end())
+	if (it == json.end()){
+		dst = default_value;
 		return;
+	}
 	auto val = it.value();
-	if (!val.isArray())
+	if (!val.isArray()){
+		dst = default_value;
 		return;
+	}
 	auto array = val.toArray();
 	double m[4];
 	for (int i = 0; i < 4; i++)
@@ -227,6 +241,7 @@ MainSettings::MainSettings(QJsonValueRef &json){
 	READ_JSON(fullscreen_zoom_mode_for_new_windows, object);
 	READ_JSON(keep_application_in_background, object);
 	READ_JSON(save_state_on_exit, object);
+	READ_JSON_DEFAULT(resize_windows_on_monitor_change, object, true);
 }
 
 QJsonValue MainSettings::serialize() const{
@@ -239,6 +254,7 @@ QJsonValue MainSettings::serialize() const{
 	WRITE_JSON(fullscreen_zoom_mode_for_new_windows, object);
 	WRITE_JSON(keep_application_in_background, object);
 	WRITE_JSON(save_state_on_exit, object);
+	WRITE_JSON(resize_windows_on_monitor_change, object);
 	return object;
 }
 
@@ -319,5 +335,6 @@ bool MainSettings::operator==(const MainSettings &other) const{
 	CHECK_EQUALITY(fullscreen_zoom_mode_for_new_windows);
 	CHECK_EQUALITY(keep_application_in_background);
 	CHECK_EQUALITY(save_state_on_exit);
+	CHECK_EQUALITY(resize_windows_on_monitor_change);
 	return true;
 }
