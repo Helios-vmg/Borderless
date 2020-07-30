@@ -54,7 +54,7 @@ class WindowState : public Serializable{
 	bool using_checkerboard_pattern_updated = false; //Not saved.
 public:
 	WindowState();
-	WindowState(QJsonValueRef &);
+	WindowState(const QJsonValueRef &);
 	DEFINE_INLINE_SETTER_GETTER(pos)
 	DEFINE_INLINE_SETTER_GETTER(size)
 	DEFINE_INLINE_SETTER_GETTER(label_pos)
@@ -95,7 +95,7 @@ class MainSettings : public Serializable{
 
 public:
 	MainSettings();
-	MainSettings(QJsonValueRef &);
+	MainSettings(const QJsonValueRef &);
 	DEFINE_INLINE_SETTER_GETTER(clamp_strength)
 	DEFINE_INLINE_SETTER_GETTER(clamp_to_edges)
 	DEFINE_INLINE_SETTER_GETTER(use_checkerboard_pattern)
@@ -116,7 +116,7 @@ class ApplicationState : public Serializable{
 	std::vector<std::shared_ptr<WindowState>> windows;
 public:
 	ApplicationState() = default;
-	ApplicationState(QJsonValueRef &);
+	ApplicationState(const QJsonValueRef &);
 	DEFINE_INLINE_GETTER(windows)
 	DEFINE_INLINE_NONCONST_GETTER(windows)
 	QJsonValue serialize() const override;
@@ -127,7 +127,7 @@ public:
 	std::map<QString, std::vector<QString>> shortcuts;
 
 	Shortcuts() = default;
-	Shortcuts(QJsonValueRef &);
+	Shortcuts(const QJsonValueRef &);
 	void initialize_to_defaults();
 	QJsonValue serialize() const override;
 };
@@ -139,7 +139,7 @@ public:
 	std::shared_ptr<Shortcuts> shortcuts;
 
 	Settings() = default;
-	Settings(QJsonValueRef &json);
+	Settings(const QJsonValueRef &json);
 	Settings(QJsonObject &&);
 	QJsonValue serialize() const override;
 };
