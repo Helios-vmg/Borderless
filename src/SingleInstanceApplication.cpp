@@ -14,6 +14,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "MainWindow.h"
 #include <QProcess>
 #include <fstream>
+#include <iostream>
 
 //#define DISABLE_SINGLE_INSTANCE
 

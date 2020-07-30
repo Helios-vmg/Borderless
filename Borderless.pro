@@ -25,16 +25,17 @@ isEmpty(_BOOST_ROOT) {
 QT += core gui network widgets
 
 TARGET = Borderless
-QMAKE_EXTRA_TARGETS += SerializationCode
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++11
-INCLUDEPATH += $$PWD/serialization/postsrc $$PWD/src
+INCLUDEPATH += $$PWD/src
 
 SOURCES +=  src/ClangErrorMessage.cpp               \
             src/DirectoryListing.cpp                \
             src/ImageViewerApplication.cpp          \
             src/ImageViewport.cpp                   \
             src/LoadedImage.cpp                     \
+            src/Settings.cpp \
+            src/ShortcutsSettings.cpp \
             src/main.cpp                            \
             src/MainWindow.cpp                      \
             src/MainWindowMovement.cpp              \
@@ -48,12 +49,7 @@ SOURCES +=  src/ClangErrorMessage.cpp               \
             src/ZoomModeDropDown.cpp                \
             src/plugin-core/capi.cpp                \
             src/plugin-core/ImageStore.cpp          \
-            src/plugin-core/PluginCoreState.cpp     \
-            src/serialization/Implementations.cpp   \
-            src/serialization/Inlining.cpp          \
-            src/serialization/MainSettings.cpp      \
-            src/serialization/ShortcutsSettings.cpp \
-            src/serialization/WindowState.cpp
+            src/plugin-core/PluginCoreState.cpp
 
 HEADERS += src/ClangErrorMessage.hpp         \
            src/DirectoryListing.h            \
@@ -66,6 +62,7 @@ HEADERS += src/ClangErrorMessage.hpp         \
            src/Misc.h                        \
            src/OptionsDialog.h               \
            src/Quadrangular.h                \
+           src/Settings.h \
            src/resource.h                    \
            src/RotateDialog.h                \
            src/ShortcutInfo.h                \
@@ -88,11 +85,3 @@ FORMS += src/ClangErrorMessage.ui \
          src/RotateDialog.ui
 
 RESOURCES += src/resources.qrc
-
-LASC.target   = $$PWD/LAS
-#LASC.depends  = FORCE
-LASC.commands = chmod +x build_las.sh; ./build_las.sh
-
-SerializationCode.target   = $$PWD/src/serialization/settings.generated.cpp
-SerializationCode.depends  = LASC $$PWD/src/serialization/settings.txt
-SerializationCode.commands = chmod +x build_serialization.sh; ./build_serialization.sh

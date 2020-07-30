@@ -175,7 +175,7 @@ void set_value(QJsonValueRef &&dst, const QMatrix &src){
 	dst = temp;
 }
 
-Settings::Settings(QJsonValueRef &json): Settings(json.toObject()){}
+Settings::Settings(const QJsonValueRef &json): Settings(json.toObject()){}
 
 Settings::Settings(QJsonObject &&object){
 	READ_JSON(main, object);
@@ -194,7 +194,7 @@ QJsonValue Settings::serialize() const{
 	return ret;
 }
 
-Shortcuts::Shortcuts(QJsonValueRef &json){
+Shortcuts::Shortcuts(const QJsonValueRef &json){
 	auto object = json.toObject();
 	for (auto &key : object.keys()){
 		auto val = object[key];
@@ -203,7 +203,7 @@ Shortcuts::Shortcuts(QJsonValueRef &json){
 		auto &v = this->shortcuts[key];
 		auto array = val.toArray();
 		v.reserve(array.size());
-		for (auto &i : array)
+		for (const auto &i : array)
 			v.emplace_back(i.toString());
 	}
 }
@@ -219,8 +219,8 @@ QJsonValue Shortcuts::serialize() const{
 	return ret;
 }
 
-ApplicationState::ApplicationState(QJsonValueRef &json){
-	for (auto &val : json.toArray())
+ApplicationState::ApplicationState(const QJsonValueRef &json){
+	for (const auto &val : json.toArray())
 		this->windows.emplace_back(std::make_shared<WindowState>(val));
 }
 
@@ -231,7 +231,7 @@ QJsonValue ApplicationState::serialize() const{
 	return ret;
 }
 
-MainSettings::MainSettings(QJsonValueRef &json){
+MainSettings::MainSettings(const QJsonValueRef &json){
 	auto object = json.toObject();
 	READ_JSON(clamp_strength, object);
 	READ_JSON(clamp_to_edges, object);
@@ -258,7 +258,7 @@ QJsonValue MainSettings::serialize() const{
 	return object;
 }
 
-WindowState::WindowState(QJsonValueRef &json){
+WindowState::WindowState(const QJsonValueRef &json){
 	auto object = json.toObject();
 	READ_JSON(pos, object);
 	READ_JSON(size, object);
