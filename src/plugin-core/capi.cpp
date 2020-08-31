@@ -20,9 +20,9 @@ Distributed under a permissive license. See COPYING.txt for details.
 #endif
 
 const double pi = 3.1415926535897932384626433832795;
-const double tau = 3.1415926535897932384626433832795;
+const double tau = pi * 2;
 const float pif = 3.1415926535897932384626433832795f;
-const float tauf = 3.1415926535897932384626433832795f;
+const float tauf = pif * 2;
 
 EXPORT_C Image *load_image(PluginCoreState *state, const char *path){
 	return state->get_store().load_image(path);
