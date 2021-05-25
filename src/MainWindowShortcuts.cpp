@@ -45,6 +45,7 @@ void MainWindow::setup_shortcuts(){
 		SETUP_SHORTCUT(minimize_command, minimize_slot())
 		SETUP_SHORTCUT(minimize_all_command, minimize_all_slot())
 		SETUP_SHORTCUT(show_options_command, show_options_dialog())
+		SETUP_SHORTCUT(show_transparent_background_command, transparent_background())
 	};
 
 	for (auto &c : this->connections)

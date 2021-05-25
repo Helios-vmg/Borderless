@@ -41,6 +41,7 @@ MainWindow::~MainWindow(){
 }
 
 void MainWindow::init(bool restoring){
+	this->setAttribute(Qt::WA_TranslucentBackground);
 	if (!this->window_state)
 		this->window_state = std::make_shared<WindowState>();
 	this->moving_forward = true;
@@ -578,6 +579,11 @@ void MainWindow::set_window_rect(const QRect &r){
 
 void MainWindow::label_transform_updated(){
 	this->set_background_sizes();
+}
+
+void MainWindow::transparent_background(){
+	this->ui->checkerboard->hide();
+	this->ui->solid->hide();
 }
 
 QMatrix MainWindow::get_image_transform() const{

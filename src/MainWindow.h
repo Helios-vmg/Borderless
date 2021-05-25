@@ -154,6 +154,7 @@ public:
 
 public slots:
 	void label_transform_updated();
+	void transparent_background();
 
 	void quit_slot();
 	void quit2_slot();
