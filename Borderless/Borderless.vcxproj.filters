@@ -192,10 +192,9 @@
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.ui">
       <Filter>Form Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.hpp" />
-    </CustomBuild>
     <CustomBuild Include="..\src\ProtocolModule.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files</Filter> 
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h">
