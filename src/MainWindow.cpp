@@ -16,7 +16,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QDir>
 #include <exception>
 #include <cassert>
-#include "plugin-core/PluginCoreState.h"
 #include "GenericException.h"
 
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
@@ -437,9 +436,8 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 	this->app->postEvent(this, new QContextMenuEvent(QContextMenuEvent::Other, ev->screenPos().toPoint()));
 }
 
-void MainWindow::build_context_menu(QMenu &main_menu, QMenu &lua_submenu){
+void MainWindow::build_context_menu(QMenu &main_menu){
 	main_menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
-	main_menu.addMenu(&lua_submenu);
 	main_menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
@@ -565,12 +563,6 @@ void MainWindow::set_image_zoom(double x){
 	this->window_state->set_zoom(x);
 	this->ui->label->set_zoom(x);
 	this->set_current_zoom_mode(ZoomMode::Normal);
-}
-
-void MainWindow::process_user_script(const QString &path){
-	auto &plugin_core_state = this->app->get_plugin_core_state();
-	plugin_core_state.set_current_caller(this);
-	plugin_core_state.execute(path);
 }
 
 QImage MainWindow::get_image() const{

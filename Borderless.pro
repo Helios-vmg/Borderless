@@ -29,57 +29,46 @@ TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++11
 INCLUDEPATH += $$PWD/src
 
-SOURCES +=  src/ClangErrorMessage.cpp               \
-            src/DirectoryListing.cpp                \
-            src/ImageViewerApplication.cpp          \
-            src/ImageViewport.cpp                   \
-            src/LoadedImage.cpp                     \
-            src/Settings.cpp \
-            src/ShortcutsSettings.cpp \
-            src/main.cpp                            \
-            src/MainWindow.cpp                      \
-            src/MainWindowMovement.cpp              \
-            src/MainWindowSettings.cpp              \
-            src/MainWindowShortcuts.cpp             \
-            src/OptionsDialog.cpp                   \
-            src/RotateDialog.cpp                    \
-            src/Shortcuts.cpp                       \
-            src/Streams.cpp                         \
-            src/SingleInstanceApplication.cpp       \
-            src/ZoomModeDropDown.cpp                \
-            src/plugin-core/capi.cpp                \
-            src/plugin-core/ImageStore.cpp          \
-            src/plugin-core/PluginCoreState.cpp
+SOURCES +=  src/DirectoryListing.cpp          \
+            src/ImageViewerApplication.cpp    \
+            src/ImageViewport.cpp             \
+            src/LoadedImage.cpp               \
+            src/Settings.cpp                  \
+            src/ShortcutsSettings.cpp         \
+            src/main.cpp                      \
+            src/MainWindow.cpp                \
+            src/MainWindowMovement.cpp        \
+            src/MainWindowSettings.cpp        \
+            src/MainWindowShortcuts.cpp       \
+            src/OptionsDialog.cpp             \
+            src/RotateDialog.cpp              \
+            src/Shortcuts.cpp                 \
+            src/Streams.cpp                   \
+            src/SingleInstanceApplication.cpp \
+            src/ZoomModeDropDown.cpp
 
-HEADERS += src/ClangErrorMessage.hpp         \
-           src/DirectoryListing.h            \
-           src/Enums.h                       \
-           src/GenericException.h            \
-           src/ImageViewerApplication.h      \
-           src/ImageViewport.h               \
-           src/LoadedImage.h                 \
-           src/MainWindow.h                  \
-           src/Misc.h                        \
-           src/OptionsDialog.h               \
-           src/Quadrangular.h                \
-           src/Settings.h \
-           src/resource.h                    \
-           src/RotateDialog.h                \
-           src/ShortcutInfo.h                \
-           src/Shortcuts.h                   \
-           src/SingleInstanceApplication.h   \
-           src/stdafx.h                      \
-           src/StreamRedirector.h            \
-           src/Streams.h                     \
-           src/ZoomModeDropDown.h            \
-           src/plugin-core/capi.h            \
-           src/plugin-core/ImageStore.h      \
-           src/plugin-core/PluginCoreState.h \
-           src/plugin-core/Cpp/main.h        \
-           src/plugin-core/Lua/main.h
+HEADERS += src/DirectoryListing.h          \
+           src/Enums.h                     \
+           src/GenericException.h          \
+           src/ImageViewerApplication.h    \
+           src/ImageViewport.h             \
+           src/LoadedImage.h               \
+           src/MainWindow.h                \
+           src/Misc.h                      \
+           src/OptionsDialog.h             \
+           src/Quadrangular.h              \
+           src/Settings.h                  \
+           src/resource.h                  \
+           src/RotateDialog.h              \
+           src/ShortcutInfo.h              \
+           src/Shortcuts.h                 \
+           src/SingleInstanceApplication.h \
+           src/stdafx.h                    \
+           src/StreamRedirector.h          \
+           src/Streams.h                   \
+           src/ZoomModeDropDown.h
 
-FORMS += src/ClangErrorMessage.ui \
-         src/InfoDialog.ui        \
+FORMS += src/InfoDialog.ui        \
          src/MainWindow.ui        \
          src/OptionsDialog.ui     \
          src/RotateDialog.ui

@@ -143,11 +143,10 @@ public:
 	void set_image_zoom(double);
 	double set_image_transform(const QMatrix &);
 	void setup_shortcuts();
-	void build_context_menu(QMenu &main_menu, QMenu &lua_submenu);
+	void build_context_menu(QMenu &main_menu);
 	bool current_zoom_mode_is_auto() const{
 		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
 	}
-	void process_user_script(const QString &path);
 	QImage get_image() const;
 	ImageViewerApplication &get_app(){
 		return *this->app;

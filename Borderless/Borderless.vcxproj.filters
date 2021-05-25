@@ -148,21 +148,6 @@
     <ClCompile Include="GeneratedFiles\Debug\moc_ClangErrorMessage.cpp">
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_ClangErrorMessage.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\ClangErrorMessage.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\plugin-core\capi.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\plugin-core\ImageStore.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)\src\plugin-core\PluginCoreState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -205,9 +190,6 @@
       <Filter>Form Files</Filter>
     </CustomBuild>
     <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.hpp" />
-    <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.ui">
-      <Filter>Form Files</Filter>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h">
@@ -235,18 +217,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="$(SolutionDir)\src\Shortcuts.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GeneratedFiles\ui_ClangErrorMessage.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SolutionDir)\src\plugin-core\capi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SolutionDir)\src\plugin-core\ImageStore.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(SolutionDir)\src\plugin-core\PluginCoreState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="$(SolutionDir)\src\Enums.h">

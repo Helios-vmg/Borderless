@@ -230,10 +230,6 @@
     <ClCompile Include="$(SolutionDir)\src\RotateDialog.cpp" />
     <ClCompile Include="$(SolutionDir)\src\Shortcuts.cpp" />
     <ClCompile Include="$(SolutionDir)\src\SingleInstanceApplication.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\ClangErrorMessage.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\plugin-core\capi.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\plugin-core\ImageStore.cpp" />
-    <ClCompile Include="$(SolutionDir)\src\plugin-core\PluginCoreState.cpp" />
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp" />
     <ClCompile Include="..\src\Settings.cpp" />
     <ClCompile Include="..\src\ShortcutsSettings.cpp" />
@@ -335,12 +331,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_ClangErrorMessage.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\Release\moc_ImageViewerApplication.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -409,14 +399,10 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DBUILDING_BORDERLESS -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DBUILDING_BORDERLESSBUILDING_BORDERLESSQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_WIDGETS_LIB "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtNetwork" "-I$(QTDIR)\include\QtWidgets" "-I$(SolutionDir)\serialization\postsrc" "-I.\..\src"</Command>
     </CustomBuild>
-    <ClInclude Include="$(SolutionDir)\src\plugin-core\capi.h" />
-    <ClInclude Include="$(SolutionDir)\src\plugin-core\ImageStore.h" />
-    <ClInclude Include="$(SolutionDir)\src\plugin-core\PluginCoreState.h" />
     <ClInclude Include="$(SolutionDir)\src\Enums.h" />
     <ClInclude Include="$(SolutionDir)\src\ShortcutInfo.h" />
     <ClInclude Include="$(SolutionDir)\src\Streams.h" />
     <ClInclude Include="..\src\Settings.h" />
-    <ClInclude Include="GeneratedFiles\ui_ClangErrorMessage.h" />
     <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing OptionsDialog.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -702,34 +688,6 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="$(SolutionDir)\src\ClangErrorMessage.ui">
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugRelease|x64'">"$(QTDIR)\bin\uic.exe" -o "$(ProjectDir)\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugRelease|Win32'">"$(QTDIR)\bin\uic.exe" -o "$(ProjectDir)\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\uic.exe" -o "$(ProjectDir)\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\uic.exe" -o "$(ProjectDir)\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\uic.exe" -o "$(ProjectDir)\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\uic.exe" -o "$(ProjectDir)\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

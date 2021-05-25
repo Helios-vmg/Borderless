@@ -40,22 +40,13 @@ Source: "{#SourceBasePath}\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion;
 Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: main
 Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs; Components: main
 Source: "{#SourceBasePath}\doc\*"; DestDir: "{app}\doc"; Flags: ignoreversion; Components: main
-Source: "{#SourceBasePath}\samples\*"; DestDir: "{app}\samples"; Flags: ignoreversion; Components: cppi luai
-Source: "{#SourceBasePath}\bin64\LuaInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: luai
-Source: "{#SourceBasePath}\bin64\CppInterpreter.dll"; DestDir: "{app}\bin"; Flags: ignoreversion; Components: cppi
-Source: "custom\lib\*"; DestDir: "{app}\lib"; Flags: ignoreversion recursesubdirs; Components: cppi
-Source: "{#SourceBasePath}\src\plugin-core\Cpp\RuntimeLibrary\*"; DestDir: "{app}\lib\clang\5.0.1\include"; Flags: ignoreversion; Components: cppi
 Source: "{#SourceBasePath}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall; Components: main
 
 [Components]
-Name: "main"; Description: "Main Executable"; Types: full minimum custom; Flags: fixed
-Name: "luai"; Description: "Lua Interpreter Plugin"; Types: full custom; ExtraDiskSpaceRequired: 774656
-Name: "cppi"; Description: "C++ Interpreter Plugin"; Types: full custom; ExtraDiskSpaceRequired: 48755650
+Name: "main"; Description: "Main Executable"; Types: full; Flags: fixed
 
 [Types]
 Name: "full"; Description: "Full installation"
-Name: "minimum"; Description: "Minimal installation"
-Name: "custom"; Description: "Custom installation"; Flags: iscustom
 
 [Registry]
 ; Set up Applications subkey

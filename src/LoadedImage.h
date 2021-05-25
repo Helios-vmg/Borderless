@@ -58,15 +58,6 @@ public:
 	QImage get_QImage() const override;
 };
 
-class Image;
-
-class FilteredImage : public LoadedImage{
-	Image *img;
-public:
-	FilteredImage(Image *img);
-	~FilteredImage();
-};
-
 class LoadedAnimation : public LoadedGraphics{
 	QMovie animation;
 

@@ -3,8 +3,6 @@ Requirements:
   tested: MSVC 2013 and 2015, Clang 3.4.1, GCC 5.3.1.
 * Qt 5.4.1 or newer
 * Boost.Iostreams
-* LuaJIT (optional)
-* LLVM and libclang (optional)
 
 
 Building on Windows
@@ -17,23 +15,6 @@ as well as Boost.Iostreams and whatever other Boost libraries it depends on.
 Building the entire solution builds everything required by the application,
 including the serializer generator which is ran during the build process.
 
-To build the Lua plugin, LuaJIT >= 2.0 is required. Version 2.0.4 is included as
-a submodule and a project is included in the solution to build and link to it.
-
-To build the C++ plugin, LLVM and Clang are required. Since building these
-projects is time-consuming and non-trivial, a build of version 3.8 can be
-downloaded from here:
-https://drive.google.com/open?id=0B0RA3x3xMSnKV19IdDZYNU9BVEU
-If you wish to build LLVM and Clang yourself, note that the project expects to
-find the corresponding files in the following directories:
-$(SolutionDir)\LLVM\include\clang      Clang C++ headers
-$(SolutionDir)\LLVM\include\clang-c    Clang C headers
-$(SolutionDir)\LLVM\include\llvm       LLVM C++ headers
-$(SolutionDir)\LLVM\include\llvm-c     LLVM C headers
-$(SolutionDir)\LLVM\lib64\Debug        x86-64 libraries with debugging symbols
-$(SolutionDir)\LLVM\lib64\Release      x86-64 libraries with optimizations
-The libraries should link statically, without any DLLs.
-
 
 Building on Linux/BSD
 
@@ -45,6 +26,3 @@ A .pro file for use with Qt Creator is provided. Before building, it should be
 configured to use the correct Qt version, and the Boost libraries should be
 visible to the compiler.
 Building the project should generate the final executable.
-
-The plugins have yet to be tested on these platforms, but they may still work in
-their current state.

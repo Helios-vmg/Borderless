@@ -5,7 +5,6 @@ Current features:
 * Supported operating systems: Windows 7 and newer for the x86-64 architecture, FreeBSD, Linux.
 * Supported formats: BMP, JPEG, PNG, GIF, basic SVG support. Other formats may already be supported by Qt (which handles the decoding), but they haven't been tested.
 * Proper transparency display.
-* User-programmable filters in Lua (provided by LuaJIT) or C++ (provided by LLVM+Clang).
 
 Possible future features:
 * Support for traversing images in common archive formats.
