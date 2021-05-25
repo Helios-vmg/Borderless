@@ -59,15 +59,6 @@ public:
 	QImage get_QImage() const override;
 };
 
-class Image;
-
-class FilteredImage : public LoadedImage{
-	Image *img;
-public:
-	FilteredImage(Image *img);
-	~FilteredImage();
-};
-
 class LoadedAnimation : public LoadedGraphics{
 	std::unique_ptr<QIODevice> device;
 	std::unique_ptr<QMovie> animation;

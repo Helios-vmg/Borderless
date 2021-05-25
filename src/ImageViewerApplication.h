@@ -9,7 +9,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 #define IMAGEVIEWERAPPLICATION_H
 
 #include "SingleInstanceApplication.h"
-#include "plugin-core/PluginCoreState.h"
 #include "Settings.h"
 #include "Shortcuts.h"
 #include "Streams.h"
@@ -37,13 +36,11 @@ class ImageViewerApplication : public SingleInstanceApplication{
 	ApplicationShortcuts shortcuts;
 	MainWindow *context_menu_last_requester;
 	QString config_location,
-		config_filename,
-		user_filters_location;
+		config_filename;
 
 	std::shared_ptr<MainSettings> settings;
 
 	QMenu lua_submenu;
-	std::unique_ptr<PluginCoreState> plugin_core_state;
 	QSystemTrayIcon tray_icon;
 	std::shared_ptr<QMenu> tray_context_menu,
 		last_tray_context_menu;
@@ -54,11 +51,8 @@ class ImageViewerApplication : public SingleInstanceApplication{
 	void restore_current_state(const ApplicationState &);
 	void restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &);
 	void propagate_shortcuts();
-	QMenu &get_lua_submenu(MainWindow *caller);
 	QString get_config_location();
 	QString get_config_filename();
-	QString get_user_filters_location();
-	QStringList get_user_filter_list();
 	void setup_slots();
 	void reset_tray_menu();
 	void conditional_tray_show();
@@ -109,7 +103,6 @@ public:
 		return this->settings;
 	}
 	void set_option_values(MainSettings &settings);
-	PluginCoreState &get_plugin_core_state();
 	void load_custom_file_protocols();
 	QImage load_image(const QString &);
 	std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> load_animation(const QString &);
@@ -121,7 +114,6 @@ public slots:
 	void show_options();
 	void resolution_change(int screen);
 	void work_area_change(int screen);
-	void lua_script_activated(QAction *action);
 	void quit_slot(){
 		this->quit();
 	}

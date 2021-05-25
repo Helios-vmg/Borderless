@@ -6,7 +6,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "ImageViewerApplication.h"
-#include "plugin-core/PluginCoreState.h"
 #include "MainWindow.h"
 #include "RotateDialog.h"
 #include "Misc.h"
@@ -178,7 +177,7 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	std::shared_ptr<QMenu> ret(new QMenu);
 	auto initial = ret->actions().size();
 	if (caller){
-		caller->build_context_menu(*ret, this->get_lua_submenu(caller));
+		caller->build_context_menu(*ret);
 		if (ret->actions().size() != initial)
 			ret->addSeparator();
 	}
@@ -294,76 +293,6 @@ QString ImageViewerApplication::get_config_filename(){
 		ret += "settings.json";
 	}
 	return ret;
-}
-
-QString ImageViewerApplication::get_user_filters_location(){
-	auto &ret = this->user_filters_location;
-	if (ret.isNull()){
-		ret = this->get_config_location();
-		if (ret.isNull())
-			return ret;
-		ret += "filters";
-		ret += QDir::separator();
-		QDir dir(ret);
-		if (!dir.mkpath(ret))
-			return ret = QString::null;
-	}
-	return ret;
-}
-
-QStringList ImageViewerApplication::get_user_filter_list(){
-	QStringList ret;
-
-	auto user_filters_location = this->get_user_filters_location();
-	if (user_filters_location.isNull())
-		return ret;
-
-	QDir directory(user_filters_location);
-	directory.setFilter(QDir::Files | QDir::Hidden);
-	directory.setSorting(QDir::Name);
-	QStringList filters;
-	filters << "*.lua";
-	for (auto i = accepted_cpp_extensions_size; i--;)
-		filters << QString("*.") + accepted_cpp_extensions[i];
-	directory.setNameFilters(filters);
-	return directory.entryList();
-}
-
-QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *){
-	this->lua_submenu.clear();
-	this->lua_submenu.setTitle("User filters");
-	auto list = this->get_user_filter_list();
-	if (list.isEmpty()){
-		this->lua_submenu.addAction("(None)");
-		this->lua_submenu.actions()[0]->setEnabled(false);
-	}else
-		for (auto &i : list){
-			//this->lua_submenu.addAction("Quit", caller, SLOT(user_script_slot()));
-			this->lua_submenu.addAction(i);
-		}
-	return this->lua_submenu;
-}
-
-void ImageViewerApplication::lua_script_activated(QAction *action){
-	try{
-		this->context_menu_last_requester->process_user_script(this->get_user_filters_location() + action->text());
-	}catch (std::exception &e){
-		QMessageBox msgbox;
-		msgbox.setWindowTitle("Error");
-		QString text = "Error executing user script \"";
-		text += action->text();
-		text += "\": ";
-		text += e.what();
-		msgbox.setText(text);
-		msgbox.setIcon(QMessageBox::Critical);
-		msgbox.exec();
-	}
-}
-
-PluginCoreState &ImageViewerApplication::get_plugin_core_state(){
-	if (!this->plugin_core_state)
-		this->plugin_core_state.reset(new PluginCoreState);
-	return *this->plugin_core_state;
 }
 
 void ImageViewerApplication::setup_slots(){
