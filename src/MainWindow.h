@@ -28,6 +28,7 @@ class MainWindow;
 class MainWindow : public QMainWindow{
 	Q_OBJECT
 
+protected:
 	std::shared_ptr<Ui::MainWindow> ui;
 	ImageViewerApplication *app;
 	std::vector<QRect> desktop_sizes,
@@ -72,7 +73,7 @@ class MainWindow : public QMainWindow{
 	void move_window(const QPoint &new_position, const QPoint &mouse_position);
 	void reset_settings();
 	void compute_average_color(QImage img);
-	void set_background(bool force = false);
+	virtual void set_background(bool force = false);
 	void show_nothing();
 	void set_solid(const QColor &col);
 	void set_background_sizes();
@@ -124,7 +125,7 @@ protected:
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
-	~MainWindow();
+	virtual ~MainWindow();
 	bool open_path_and_display_image(QString path);
 	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
 	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
@@ -154,7 +155,7 @@ public:
 
 public slots:
 	void label_transform_updated();
-	void transparent_background();
+	virtual void transparent_background();
 
 	void quit_slot();
 	void quit2_slot();
@@ -193,6 +194,14 @@ public slots:
 signals:
 	void closing(MainWindow *);
 
+};
+
+class TransparentMainWindow : public MainWindow{
+protected:
+	void set_background(bool force = false) override;
+public:
+	explicit TransparentMainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
+	void transparent_background() override;
 };
 
 #endif // MAINWINDOW_H

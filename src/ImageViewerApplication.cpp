@@ -397,3 +397,13 @@ QString get_per_user_unique_id(){
 		return "";
 	return QString::fromUtf8(bytes);
 }
+
+void ImageViewerApplication::turn_transparent(MainWindow &window, bool yes){
+	auto state = window.save_state();
+	std::shared_ptr<MainWindow> new_window;
+	if (yes)
+		new_window = std::make_shared<TransparentMainWindow>(*this, state);
+	else
+		new_window = std::make_shared<MainWindow>(*this, state);
+	this->add_window(new_window);
+}

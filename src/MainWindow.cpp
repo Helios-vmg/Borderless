@@ -27,6 +27,14 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		this->open_path_and_display_image(arguments[1]);
 }
 
+TransparentMainWindow::TransparentMainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
+		MainWindow(app, state, parent){
+	this->setAttribute(Qt::WA_TranslucentBackground);
+	this->ui->checkerboard->hide();
+	this->ui->solid->hide();
+}
+
+
 MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
@@ -41,7 +49,6 @@ MainWindow::~MainWindow(){
 }
 
 void MainWindow::init(bool restoring){
-	this->setAttribute(Qt::WA_TranslucentBackground);
 	if (!this->window_state)
 		this->window_state = std::make_shared<WindowState>();
 	this->moving_forward = true;
@@ -582,8 +589,8 @@ void MainWindow::label_transform_updated(){
 }
 
 void MainWindow::transparent_background(){
-	this->ui->checkerboard->hide();
-	this->ui->solid->hide();
+	this->app->turn_transparent(*this, true);
+	this->close();
 }
 
 QMatrix MainWindow::get_image_transform() const{
@@ -612,4 +619,12 @@ void MainWindow::set_image_zoom(double x){
 
 QImage MainWindow::get_image() const{
 	return this->displayed_image->get_QImage();
+}
+
+void TransparentMainWindow::set_background(bool force){
+}
+
+void TransparentMainWindow::transparent_background(){
+	this->app->turn_transparent(*this, false);
+	this->close();
 }
