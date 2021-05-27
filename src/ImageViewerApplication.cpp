@@ -6,12 +6,12 @@ Distributed under a permissive license. See COPYING.txt for details.
 */
 
 #include "ImageViewerApplication.h"
-#include "plugin-core/PluginCoreState.h"
 #include "MainWindow.h"
 #include "RotateDialog.h"
 #include "Misc.h"
 #include "OptionsDialog.h"
 #include "GenericException.h"
+#include "ProtocolModule.h"
 #include <QShortcut>
 #include <QMessageBox>
 #include <sstream>
@@ -20,13 +20,46 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QStandardPaths>
 #include <QCryptographicHash>
 #include <random>
+#include <QJsonDocument>
+
+template <typename T>
+class AutoSetter{
+	T *dst;
+	T old_value;
+public:
+	AutoSetter(): dst(nullptr){}
+	AutoSetter(T &dst, T new_value): dst(&dst), old_value(dst){
+		*this->dst = new_value;
+	}
+	AutoSetter(const AutoSetter &) = delete;
+	AutoSetter &operator=(const AutoSetter &) = delete;
+	AutoSetter(AutoSetter &&other){
+		*this = std::move(other);
+	}
+	AutoSetter &operator=(AutoSetter &&other){
+		this->dst = other.dst;
+		other.dst = nullptr;
+		this->old_value = std::move(other.old_value);
+		return *this;
+	}
+	~AutoSetter(){
+		if (this->dst)
+			*this->dst = this->old_value;
+	}
+};
+
+template <typename T>
+AutoSetter<T> autoset(T &dst, T value){
+	return AutoSetter<T>(dst, value);
+}
 
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false),
 		tray_icon(QIcon(":/icon16.png"), this){
-	if (!this->restore_settings())
-		this->settings = std::make_shared<MainSettings>();
+	QDir::setCurrent(this->applicationDirPath());
+	this->load_custom_file_protocols();
+	this->restore_settings_only();
 	this->reset_tray_menu();
 	this->conditional_tray_show();
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
@@ -43,7 +76,9 @@ ImageViewerApplication::~ImageViewerApplication(){
 }
 
 void ImageViewerApplication::new_instance(const QStringList &args){
-	sharedp_t p(new MainWindow(*this, args));
+	if (args.size() < 2 && !this->app_state)
+		this->restore_state_only();
+	auto p = std::make_shared<MainWindow>(*this, args);
 	if (!p->is_null())
 		this->add_window(p);
 	this->save_settings();
@@ -65,26 +100,33 @@ void ImageViewerApplication::window_closing(MainWindow *window){
 	this->windows.erase(it);
 }
 
-std::shared_ptr<DirectoryIterator> ImageViewerApplication::request_directory(const QString &path){
+template <typename ListingT, typename ListT>
+std::shared_ptr<DirectoryIterator> generic_get_dir(ListT &list, const QString &path, bool local, CustomProtocolHandler &handler){
+	for (auto &p : list){
+		if (p.first->is_local() == local && *p.first == path){
+			p.second++;
+			return std::make_shared<DirectoryIterator>(*p.first);
+		}
+	}
+	auto listing = std::make_shared<ListingT>(path, handler);
+	if (!*listing)
+		return std::shared_ptr<DirectoryIterator>();
+	list.push_back(std::make_pair(listing, 1));
+	return std::make_shared<DirectoryIterator>(*listing);
+}
+
+std::shared_ptr<DirectoryIterator> ImageViewerApplication::request_local_directory_iterator(const QString &path){
 	auto clean = path;
 	std::shared_ptr<DirectoryIterator> ret;
 	if (!check_and_clean_path(clean))
 		return ret;
-	for (auto &p : this->listings){
-		if (*p.first == clean){
-			ret.reset(new DirectoryIterator(*p.first));
-			p.second++;
-			return ret;
-		}
-	}
-	auto list = new DirectoryListing(clean);
-	if (!*list){
-		delete list;
-		return ret;
-	}
-	this->listings.push_back(std::make_pair(list, 1));
-	ret.reset(new DirectoryIterator(*list));
-	return ret;
+	return generic_get_dir<LocalDirectoryListing>(this->listings, clean, true, *this->protocol_handler);
+}
+
+std::shared_ptr<DirectoryIterator> ImageViewerApplication::request_directory_iterator_by_url(const QString &url){
+	if (!this->protocol_handler->is_url(url))
+		return std::shared_ptr<DirectoryIterator>();
+	return generic_get_dir<ProtocolDirectoryListing>(this->listings, url, false, *this->protocol_handler);
 }
 
 void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator> it){
@@ -93,7 +135,7 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	bool found = false;
 	size_t i = 0;
 	for (auto &p : this->listings){
-		if (p.first == it->get_listing()){
+		if (p.first.get() == it->get_listing()){
 			found = true;
 			break;
 		}
@@ -102,18 +144,17 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	if (!found)
 		return;
 	auto *pair = &this->listings[i];
-	if (!--pair->second){
-		delete pair->first;
+	if (!--pair->second)
 		this->listings.erase(this->listings.begin() + i);
-	}
 }
 
-void ImageViewerApplication::save_current_state(std::shared_ptr<ApplicationState> &state){
-	state = std::make_shared<ApplicationState>();
-	this->save_current_windows(state->get_windows());
+void ImageViewerApplication::save_current_state(ApplicationState &state){
+	this->save_current_windows(state.get_windows());
 }
 
 void ImageViewerApplication::save_current_windows(std::vector<std::shared_ptr<WindowState>> &windows){
+	windows.clear();
+	windows.reserve(this->windows.size());
 	for (auto &w : this->windows)
 		windows.push_back(w.second->save_state());
 }
@@ -123,87 +164,63 @@ public:
 	SettingsException(const char *what) : GenericException(what){}
 };
 
-class DeserializationException : public std::exception {
-protected:
-	const char *message;
-public:
-	DeserializationException(DeserializerStream::ErrorType type){
-		switch (type){
-		case DeserializerStream::ErrorType::UnexpectedEndOfFile:
-			this->message = "Unexpected end of file.";
-			break;
-		case DeserializerStream::ErrorType::InconsistentSmartPointers:
-			this->message = "Serialized stream uses smart pointers inconsistently.";
-			break;
-		case DeserializerStream::ErrorType::UnknownObjectId:
-			this->message = "Serialized stream contains a reference to an unknown object.";
-			break;
-		case DeserializerStream::ErrorType::InvalidProgramState:
-			this->message = "The program is in an unknown state.";
-			break;
-		case DeserializerStream::ErrorType::MainObjectNotSerializable:
-			this->message = "The root object is not an instance of a Serializable subclass.";
-			break;
-		case DeserializerStream::ErrorType::AllocateAbstractObject:
-			this->message = "The stream contains a concrete object with an abstract class type ID.";
-			break;
-		case DeserializerStream::ErrorType::AllocateObjectOfUnknownType:
-			this->message = "The stream contains an object of an unknown type. Did you try to import a configuration created by a newer version of the program?";
-			break;
-		default:
-			this->message = "Unknown error.";
-			break;
-		}
-	}
-	virtual const char *what() const NOEXCEPT override {
-		return this->message;
-	}
-};
+QByteArray hash_file(const QByteArray &contents){
+	QCryptographicHash hash(QCryptographicHash::Md5);
+	hash.addData(contents);
+	return hash.result();
+}
 
-class ImplementedDeserializerStream : public DeserializerStream {
-protected:
-	void report_error(ErrorType type, const char *) override {
-		throw DeserializationException(type);
-	}
-public:
-	ImplementedDeserializerStream(std::istream &stream) : DeserializerStream(stream){}
-};
-
-void ImageViewerApplication::save_settings(bool with_state){
-	if (this->do_not_save)
+void ImageViewerApplication::conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest){
+	auto new_digest = hash_file(contents);
+	if (!last_digest.isNull() && new_digest == last_digest)
 		return;
-	QString path = this->get_config_filename();
+
+	QFile file(path);
+	file.open(QFile::WriteOnly | QFile::Truncate);
+	if (!file.isOpen())
+		return;
+	file.write(contents);
+
+	last_digest = new_digest;
+}
+
+void ImageViewerApplication::save_settings_only(){
+	if (this->restoring_settings)
+		return;
+	QString path = this->get_settings_filename();
 	if (path.isNull())
 		return;
 	Settings settings;
 	settings.main = this->settings;
-	if (with_state && this->settings->get_save_state_on_exit())
-		this->save_current_state(settings.state);
 	settings.shortcuts = this->shortcuts.save_settings();
 
-	std::vector<std::uint8_t> mem;
-	QByteArray digest;
-	QFile file(path);
-	mem.reserve(4096);
-	{
-		boost::iostreams::stream<MemoryStream> stream(&mem);
-		SerializerStream ss(stream);
-		ss.serialize(settings, true);
-	}
-	QCryptographicHash hash(QCryptographicHash::Md5);
-	if (mem.size())
-		hash.addData((const char *)&mem[0], mem.size());
-	digest = hash.result();
-	if (!this->last_saved_settings_digest.isNull() && digest == this->last_saved_settings_digest)
-		return;
+	QJsonDocument doc;
+	doc.setObject(settings.serialize().toObject());
+	this->conditionally_save_file(doc.toJson(QJsonDocument::Indented), path, this->last_saved_settings_digest);
+}
 
-	file.open(QFile::WriteOnly | QFile::Truncate);
-	if (!file.isOpen())
+void ImageViewerApplication::save_state_only(){
+	if (this->restoring_state)
 		return;
-	if (mem.size())
-		file.write((const char *)&mem[0], mem.size());
+	if (!this->app_state)
+		return;
+	auto path = this->get_state_filename();
+	if (path.isNull())
+		return;
+	this->save_current_state(*this->app_state);
+	QJsonDocument doc;
+	StateFile sf;
+	sf.state = this->app_state;
+	doc.setObject(sf.serialize().toObject());
+	this->conditionally_save_file(doc.toJson(QJsonDocument::Indented), path, this->last_saved_state_digest);
+}
 
-	this->last_saved_settings_digest = digest;
+void ImageViewerApplication::save_settings(bool with_state){
+	if (this->do_not_save)
+		return;
+	this->save_settings_only();
+	if (with_state && this->settings->get_save_state_on_exit())
+		this->save_state_only();
 }
 
 void ImageViewerApplication::restore_current_state(const ApplicationState &windows_state){
@@ -211,7 +228,6 @@ void ImageViewerApplication::restore_current_state(const ApplicationState &windo
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
-	this->windows.clear();
 	for (auto &state : window_states)
 		this->add_window(std::make_shared<MainWindow>(*this, state));
 }
@@ -221,7 +237,7 @@ std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *ca
 	std::shared_ptr<QMenu> ret(new QMenu);
 	auto initial = ret->actions().size();
 	if (caller){
-		caller->build_context_menu(*ret, this->get_lua_submenu(caller));
+		caller->build_context_menu(*ret);
 		if (ret->actions().size() != initial)
 			ret->addSeparator();
 	}
@@ -250,38 +266,43 @@ void ImageViewerApplication::quit_and_discard_state(){
 	this->quit();
 }
 
-bool ImageViewerApplication::restore_settings(){
-	QString path = this->get_config_filename();
+QJsonDocument ImageViewerApplication::load_json(const QString &path, QByteArray &digest){
 	if (path.isNull())
-		return false;
+		return {};
 	QFile file(path);
 	file.open(QFile::ReadOnly);
 	if (!file.isOpen())
-		return false;
-	boost::iostreams::stream<QFileInputStream> stream(&file);
-	ImplementedDeserializerStream ds(stream);
-	std::shared_ptr<Settings> settings;
-	try{
-		settings.reset(ds.deserialize<Settings>(true));
-	}catch (std::bad_cast &){
-		return false;
-	}catch (DeserializationException &ex){
-		QMessageBox msgbox;
-		msgbox.setWindowTitle("Error reading configuration");
-		msgbox.setText(ex.what());
-		msgbox.setIcon(QMessageBox::Critical);
-		msgbox.exec();
-		return false;
+		return {};
+	auto contents = file.readAll();
+	digest = hash_file(contents);
+	return QJsonDocument::fromJson(contents);
+}
+
+void ImageViewerApplication::restore_settings_only(){
+	auto as = autoset(this->restoring_settings, true);
+	auto json = this->load_json(this->get_settings_filename(), this->last_saved_settings_digest);
+	if (json.isNull()){
+		this->settings = std::make_shared<MainSettings>();
+		return;
 	}
-	this->settings = settings->main;
+	
+	Settings settings(json.object());
+	this->settings = settings.main;
+	if (settings.shortcuts)
+		this->shortcuts.restore_settings(*settings.shortcuts);
+}
 
-	if (settings->shortcuts)
-		this->shortcuts.restore_settings(*settings->shortcuts);
-
-	if (settings->state)
-		this->restore_current_state(*settings->state);
-
-	return true;
+void ImageViewerApplication::restore_state_only(){
+	auto as = autoset(this->restoring_state, true);
+	auto json = this->load_json(this->get_state_filename(), this->last_saved_state_digest);
+	if (json.isNull()){
+		this->app_state = std::make_shared<ApplicationState>();
+		return;
+	}
+	
+	StateFile state(json.object());
+	this->app_state = std::move(state.state);
+	this->restore_current_state(*this->app_state);
 }
 
 void ImageViewerApplication::resolution_change(int screen){
@@ -337,91 +358,28 @@ QString ImageViewerApplication::get_config_location(){
 	return this->config_location;
 }
 
-QString ImageViewerApplication::get_config_filename(){
-	auto &ret = this->config_filename;
+QString ImageViewerApplication::get_config_subpath(QString &dst, const char *sub){
+	auto &ret = dst;
 	if (ret.isNull()){
 		ret = this->get_config_location();
 		if (ret.isNull())
 			return ret;
-		ret += "settings.dat";
+		ret += sub;
 	}
 	return ret;
 }
 
-QString ImageViewerApplication::get_user_filters_location(){
-	auto &ret = this->user_filters_location;
-	if (ret.isNull()){
-		ret = this->get_config_location();
-		if (ret.isNull())
-			return ret;
-		ret += "filters";
-		ret += QDir::separator();
-		QDir dir(ret);
-		if (!dir.mkpath(ret))
-			return ret = QString::null;
-	}
-	return ret;
+QString ImageViewerApplication::get_settings_filename(){
+	return this->get_config_subpath(this->config_filename, "settings.json");
 }
 
-QStringList ImageViewerApplication::get_user_filter_list(){
-	QStringList ret;
-
-	auto user_filters_location = this->get_user_filters_location();
-	if (user_filters_location.isNull())
-		return ret;
-
-	QDir directory(user_filters_location);
-	directory.setFilter(QDir::Files | QDir::Hidden);
-	directory.setSorting(QDir::Name);
-	QStringList filters;
-	filters << "*.lua";
-	for (auto i = accepted_cpp_extensions_size; i--;)
-		filters << QString("*.") + accepted_cpp_extensions[i];
-	directory.setNameFilters(filters);
-	return directory.entryList();
-}
-
-QMenu &ImageViewerApplication::get_lua_submenu(MainWindow *){
-	this->lua_submenu.clear();
-	this->lua_submenu.setTitle("User filters");
-	auto list = this->get_user_filter_list();
-	if (list.isEmpty()){
-		this->lua_submenu.addAction("(None)");
-		this->lua_submenu.actions()[0]->setEnabled(false);
-	}else
-		for (auto &i : list){
-			//this->lua_submenu.addAction("Quit", caller, SLOT(user_script_slot()));
-			this->lua_submenu.addAction(i);
-		}
-	return this->lua_submenu;
-}
-
-void ImageViewerApplication::lua_script_activated(QAction *action){
-	try{
-		this->context_menu_last_requester->process_user_script(this->get_user_filters_location() + action->text());
-	}catch (std::exception &e){
-		QMessageBox msgbox;
-		msgbox.setWindowTitle("Error");
-		QString text = "Error executing user script \"";
-		text += action->text();
-		text += "\": ";
-		text += e.what();
-		msgbox.setText(text);
-		msgbox.setIcon(QMessageBox::Critical);
-		msgbox.exec();
-	}
-}
-
-PluginCoreState &ImageViewerApplication::get_plugin_core_state(){
-	if (!this->plugin_core_state)
-		this->plugin_core_state.reset(new PluginCoreState);
-	return *this->plugin_core_state;
+QString ImageViewerApplication::get_state_filename(){
+	return this->get_config_subpath(this->state_filename, "state.json");
 }
 
 void ImageViewerApplication::setup_slots(){
 	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
 	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
-	connect(&this->lua_submenu, SIGNAL(triggered(QAction *)), this, SLOT(lua_script_activated(QAction *)));
 }
 
 void ImageViewerApplication::reset_tray_menu(){
@@ -437,6 +395,32 @@ void ImageViewerApplication::conditional_tray_show(){
 		this->tray_icon.hide();
 }
 
+void ImageViewerApplication::load_custom_file_protocols(){
+	this->protocol_handler.reset(new CustomProtocolHandler(this->get_config_location()));
+}
+
+QImage ImageViewerApplication::load_image(const QString &path){
+	auto dev = this->protocol_handler->open(path);
+	if (!dev)
+		return QImage(path);
+	QImage ret;
+	auto filename = this->protocol_handler->get_filename(path);
+	auto extension = QFileInfo(filename).suffix().toStdString();
+	auto t0 = clock();
+	ret.load(dev.get(), extension.c_str());
+	if (ret.isNull()){
+		//Workaround. QImage refuses to read certain files correctly.
+		auto n = dev->size();
+		std::unique_ptr<uchar[]> temp(new uchar[n]);
+		dev->seek(0);
+		dev->read((char *)temp.get(), n);
+		ret.loadFromData(temp.get(), n, extension.c_str());
+	}
+	auto t1 = clock();
+	qDebug() << "Load " << path << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC;
+	return ret;
+}
+
 QString generate_random_string(){
 	std::random_device rd;
 	std::mt19937 rng(rd());
@@ -450,6 +434,27 @@ QString generate_random_string(){
 		ret += (char)c;
 	}
 	return ret;
+}
+
+std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> ImageViewerApplication::load_animation(const QString &path){
+	auto dev = this->protocol_handler->open(path);
+	std::unique_ptr<QMovie> mov;
+	if (!dev)
+		mov = std::make_unique<QMovie>(path);
+	else
+		mov = std::make_unique<QMovie>(dev.get());
+	return std::make_pair(std::move(mov), std::move(dev));
+}
+
+bool ImageViewerApplication::is_animation(const QString &path){
+	auto testString = this->protocol_handler->get_filename(path);
+	if (testString.isNull())
+		testString = path;
+	return testString.endsWith(".gif", Qt::CaseInsensitive);
+}
+
+QString ImageViewerApplication::get_filename_from_url(const QString &url){
+	return this->protocol_handler->get_filename(url);
 }
 
 QString get_per_user_unique_id(){
@@ -472,4 +477,14 @@ QString get_per_user_unique_id(){
 	if (bytes.isNull())
 		return "";
 	return QString::fromUtf8(bytes);
+}
+
+void ImageViewerApplication::turn_transparent(MainWindow &window, bool yes){
+	auto state = window.save_state();
+	std::shared_ptr<MainWindow> new_window;
+	if (yes)
+		new_window = std::make_shared<TransparentMainWindow>(*this, state);
+	else
+		new_window = std::make_shared<MainWindow>(*this, state);
+	this->add_window(new_window);
 }

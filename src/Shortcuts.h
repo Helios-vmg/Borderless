@@ -8,13 +8,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef SHORTCUTS_H
 #define SHORTCUTS_H
 
+#include "ShortcutInfo.h"
+#include "Settings.h"
 #include <QString>
 #include <QKeySequence>
 #include <map>
 #include <vector>
 #include <memory>
-#include "serialization/settings.generated.h"
-#include "ShortcutInfo.h"
 
 #define DECLARE_COMMAND_INTERNAL_NAME(x) extern const char *x##_command
 
@@ -42,6 +42,7 @@ DECLARE_COMMAND_INTERNAL_NAME(rotate_left);
 DECLARE_COMMAND_INTERNAL_NAME(rotate_left_fine);
 DECLARE_COMMAND_INTERNAL_NAME(rotate_right);
 DECLARE_COMMAND_INTERNAL_NAME(rotate_right_fine);
+DECLARE_COMMAND_INTERNAL_NAME(show_transparent_background);
 DECLARE_COMMAND_INTERNAL_NAME(show_options);
 DECLARE_COMMAND_INTERNAL_NAME(toggle_fullscreen);
 DECLARE_COMMAND_INTERNAL_NAME(toggle_lock_zoom);

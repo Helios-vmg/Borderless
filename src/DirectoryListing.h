@@ -8,31 +8,76 @@ Distributed under a permissive license. See COPYING.txt for details.
 #ifndef DIRECTORYLISTING_H
 #define DIRECTORYLISTING_H
 
+#include "ProtocolModule.h"
 #include <QString>
 #include <QStringList>
 #include <QFuture>
 #include <vector>
+#include <QtCore/qatomic.h>
 #include <memory>
+#include <unordered_map>
 
-bool check_and_clean_path(QString &path);
 void initialize_supported_extensions();
-
 class DirectoryIterator;
 
+bool check_and_clean_path(QString &path);
+
 class DirectoryListing{
+protected:
 	bool ok;
 	QString base_path;
 	QFuture<QStringList> entries;
 public:
-	DirectoryListing(const QString &path);
+	virtual ~DirectoryListing(){}
 	DirectoryIterator begin();
-	size_t size();
-	QString operator[](size_t) const;
-	bool find(size_t &, const QString &) const;
+	virtual size_t size() = 0;
+	virtual QString operator[](size_t) = 0;
+	virtual bool find(size_t &, const QString &) = 0;
 	operator bool() const{
 		return this->ok;
 	}
-	bool operator==(const QString &path) const;
+	virtual bool operator==(const QString &path) = 0;
+	virtual bool is_local() const = 0;
+	virtual QString get_filename(size_t) = 0;
+};
+
+class LocalDirectoryListing : public DirectoryListing{
+	QFuture<QStringList> entries;
+public:
+	LocalDirectoryListing(const QString &path, CustomProtocolHandler &): LocalDirectoryListing(path){}
+	LocalDirectoryListing(const QString &path);
+	size_t size() override;
+	QString operator[](size_t) override;
+	bool find(size_t &, const QString &) override;
+	bool operator==(const QString &path) override;
+	bool is_local() const override{
+		return true;
+	}
+	QString get_filename(size_t) override;
+};
+
+class ProtocolDirectoryListing : public DirectoryListing{
+public:
+	typedef std::shared_ptr<std::vector<QString>> list_t;
+private:
+	list_t future_result;
+	std::unordered_map<size_t, QString> filenames;
+	QFuture<list_t> future;
+	CustomProtocolHandler *handler;
+	ProtocolFileEnumerator enumerator;
+
+	list_t::element_type &get_result();
+	static ProtocolDirectoryListing::list_t get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler);
+public:
+	ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &);
+	size_t size() override;
+	QString operator[](size_t) override;
+	bool find(size_t &, const QString &) override;
+	bool operator==(const QString &path) override;
+	bool is_local() const override{
+		return false;
+	}
+	QString get_filename(size_t) override;
 };
 
 class DirectoryIterator{
@@ -68,6 +113,13 @@ public:
 	void to_end(){
 		this->to_start();
 		--*this;
+	}
+	bool get_is_local() const{
+		return this->dl->is_local();
+	}
+	QString get_directory();
+	QString get_current_filename() const{
+		return this->dl->get_filename(this->position);
 	}
 };
 

@@ -36,3 +36,5 @@ Borderless/GeneratedFiles/
 LLVM/
 Installer/custom/lib/
 Installer/custom/redist/*
+/lib/clang/
+*.db

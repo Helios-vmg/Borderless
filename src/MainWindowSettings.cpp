@@ -12,22 +12,28 @@ Distributed under a permissive license. See COPYING.txt for details.
 void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
-	auto path = QString::fromStdWString(this->window_state->get_current_directory());
-	path += QDir::separator();
-	path += QString::fromStdWString(this->window_state->get_current_filename());
+	QString path;
+	if (!this->window_state->get_file_is_url()){
+		path = this->window_state->get_current_directory();
+		auto c = QDir::separator().toLatin1();
+		path += c;
+		path += this->window_state->get_current_filename();
+	}else
+		path = this->window_state->get_current_url();
+
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
 	bool success = this->open_path_and_display_image(path);
 	this->ui->label->load_state(*this->window_state);
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 
-	this->ui->label->move(this->window_state->get_label_pos().to_QPoint());
-	auto pos = this->window_state->get_pos().to_QPoint();
+	this->ui->label->move(this->window_state->get_label_pos());
+	auto pos = this->window_state->get_pos();
 	this->move(pos);
 	this->window_rect.moveTopLeft(pos);
 	if (!success)
 		return;
-	this->resize(this->window_state->get_size().to_QSize());
+	this->resize(this->window_state->get_size());
 	this->fix_positions_and_zoom(true);
 }
 

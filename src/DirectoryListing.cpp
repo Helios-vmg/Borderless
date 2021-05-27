@@ -7,6 +7,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "DirectoryListing.h"
 #include "Misc.h"
+#include "ImageViewerApplication.h"
+#include "ProtocolModule.h"
 #include <QDir>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QImageReader>
@@ -112,7 +114,7 @@ bool strcmpci(const QString &a, const QString &b){
 	return a.compare(a, b, CS) < 0;
 }
 
-QStringList get_entries(QString path){
+QStringList get_local_entries(QString path){
 	QDir directory(path);
 	directory.setFilter(QDir::Files | QDir::Hidden);
 	directory.setSorting(QDir::Name);
@@ -136,15 +138,15 @@ bool check_and_clean_path(QString &path){
 	return true;
 }
 
-DirectoryListing::DirectoryListing(const QString &path){
+LocalDirectoryListing::LocalDirectoryListing(const QString &path){
 	this->base_path = path;
 	this->ok = check_and_clean_path(this->base_path);
 	if (!this->ok)
 		return;
-	this->entries = QtConcurrent::run(get_entries, path);
+	this->entries = QtConcurrent::run(get_local_entries, path);
 }
 
-bool DirectoryListing::operator==(const QString &path) const{
+bool LocalDirectoryListing::operator==(const QString &path){
 	return !this->base_path.compare(this->base_path, path, platform_case);
 }
 
@@ -152,18 +154,18 @@ DirectoryIterator DirectoryListing::begin(){
 	return DirectoryIterator(*this);
 }
 
-size_t DirectoryListing::size(){
+size_t LocalDirectoryListing::size(){
 	return this->entries.result().size();
 }
 
-QString DirectoryListing::operator[](size_t i) const{
+QString LocalDirectoryListing::operator[](size_t i){
 	auto ret = this->base_path;
 	ret += QDir::separator();
 	ret += this->entries.result()[i];
 	return ret;
 }
 
-bool DirectoryListing::find(size_t &dst, const QString &s) const{
+bool LocalDirectoryListing::find(size_t &dst, const QString &s){
 	auto f = strcmpci<platform_case>;
 	auto entries = this->entries.result();
 	auto it = std::lower_bound(entries.begin(), entries.end(), s, f);
@@ -175,4 +177,68 @@ bool DirectoryListing::find(size_t &dst, const QString &s) const{
 		return false;
 	dst = it - entries.begin();
 	return true;
+}
+
+QString LocalDirectoryListing::get_filename(size_t i){
+	return this->entries.result()[i];
+}
+
+ProtocolDirectoryListing::list_t ProtocolDirectoryListing::get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler){
+	typedef list_t::element_type t;
+
+	list_t ret;
+	auto list = handler->enumerate_siblings(path);
+	if (!list)
+		return ret;
+
+	listing->enumerator = std::move(list);
+	ret.reset(new t);
+	while (true){
+		auto s = listing->enumerator.next();
+		if (s.isNull())
+			break;
+		ret->push_back(s);
+	}
+	return ret;
+}
+
+ProtocolDirectoryListing::list_t::element_type &ProtocolDirectoryListing::get_result(){
+	if (!this->future_result)
+		this->future_result = this->future.result();
+	return *this->future_result;
+}
+
+ProtocolDirectoryListing::ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &handler): handler(&handler){
+	this->ok = false;
+	this->base_path = handler.get_parent_directory(path);
+	this->future = QtConcurrent::run(get_protocol_entries, path, this, &handler);
+	this->ok = true;
+}
+
+size_t ProtocolDirectoryListing::size(){
+	return this->get_result().size();
+}
+
+QString ProtocolDirectoryListing::operator[](size_t i){
+	return this->get_result()[i];
+}
+
+bool ProtocolDirectoryListing::find(size_t &dst, const QString &s){
+	const auto &v = this->get_result();
+	if (!this->enumerator)
+		return false;
+	return this->enumerator.find(s, dst);
+}
+
+bool ProtocolDirectoryListing::operator==(const QString &path){
+	return this->get_result().size() && this->handler->paths_in_same_directory(this->get_result().front(), path);
+}
+
+QString ProtocolDirectoryListing::get_filename(size_t i){
+	auto it = this->filenames.find(i);
+	if (it != this->filenames.end())
+		return it->second;
+	auto ret = handler->get_filename(this->get_result()[i]);
+	this->filenames[i] = ret;
+	return ret;
 }

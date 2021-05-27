@@ -70,7 +70,7 @@ void ImageViewport::save_state(WindowState &state) const{
 }
 
 void ImageViewport::load_state(const WindowState &state){
-	this->transform = state.get_transform().to_QMatrix();
+	this->transform = state.get_transform();
 	this->transform_changed();
 }
 

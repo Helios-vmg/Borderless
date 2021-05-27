@@ -19,14 +19,29 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <vector>
 #include <memory>
 #include "Misc.h"
+#include "Settings.h"
 
 namespace Ui {
 class MainWindow;
 }
 
+class MouseEvent{
+public:
+	bool left;
+	bool right;
+	bool middle;
+	int button_sum;
+	QPoint absolute;
+	QPoint relative;
+	MouseEvent(const QMouseEvent &);
+	MouseEvent(const MouseEvent &) = default;
+	MouseEvent &operator=(const MouseEvent &) = default;
+};
+
 class MainWindow : public QMainWindow{
 	Q_OBJECT
 
+protected:
 	std::shared_ptr<Ui::MainWindow> ui;
 	ImageViewerApplication *app;
 	std::vector<QRect> desktop_sizes,
@@ -67,11 +82,11 @@ class MainWindow : public QMainWindow{
 
 	bool move_image(const QPoint &new_position);
 	QPoint compute_movement(const QPoint &new_position, const QPoint &mouse_position);
-	void compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
+	bool compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
 	void move_window(const QPoint &new_position, const QPoint &mouse_position);
 	void reset_settings();
 	void compute_average_color(QImage img);
-	void set_background(bool force = false);
+	virtual void set_background(bool force = false);
 	void show_nothing();
 	void set_solid(const QColor &col);
 	void set_background_sizes();
@@ -112,6 +127,8 @@ protected:
 	void mousePressEvent(QMouseEvent *ev) override;
 	void mouseReleaseEvent(QMouseEvent *ev) override;
 	void mouseMoveEvent(QMouseEvent *ev) override;
+	void reset_left_mouse(const MouseEvent &);
+	bool set_cursor_flags(const MouseEvent &);
 	//void keyPressEvent(QKeyEvent *ev) override;
 	//void keyReleaseEvent(QKeyEvent *ev) override;
 	void resizeEvent(QResizeEvent *ev) override;
@@ -123,7 +140,7 @@ protected:
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
-	~MainWindow();
+	virtual ~MainWindow();
 	bool open_path_and_display_image(QString path);
 	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
 	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
@@ -142,11 +159,10 @@ public:
 	void set_image_zoom(double);
 	double set_image_transform(const QMatrix &);
 	void setup_shortcuts();
-	void build_context_menu(QMenu &main_menu, QMenu &lua_submenu);
+	void build_context_menu(QMenu &main_menu);
 	bool current_zoom_mode_is_auto() const{
 		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
 	}
-	void process_user_script(const QString &path);
 	QImage get_image() const;
 	ImageViewerApplication &get_app(){
 		return *this->app;
@@ -154,6 +170,7 @@ public:
 
 public slots:
 	void label_transform_updated();
+	virtual void transparent_background();
 
 	void quit_slot();
 	void quit2_slot();
@@ -192,6 +209,14 @@ public slots:
 signals:
 	void closing(MainWindow *);
 
+};
+
+class TransparentMainWindow : public MainWindow{
+protected:
+	void set_background(bool force = false) override;
+public:
+	explicit TransparentMainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
+	void transparent_background() override;
 };
 
 #endif // MAINWINDOW_H

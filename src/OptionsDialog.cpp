@@ -217,6 +217,7 @@ void OptionsDialog::setup_general_options(){
 	this->ui->clamp_strength_spinbox->setValue(this->options->get_clamp_strength());
 	this->ui->zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_zoom_mode_for_new_windows());
 	this->ui->fullscreen_zoom_mode_for_new_windows_cb->set_selected_item(this->options->get_fullscreen_zoom_mode_for_new_windows());
+	this->ui->resize_windows_cb->setChecked(this->options->get_resize_windows_on_monitor_change());
 }
 
 void OptionsDialog::setup_signals(){
@@ -293,6 +294,7 @@ std::shared_ptr<MainSettings> OptionsDialog::build_options(){
 	ret->set_clamp_strength(this->ui->clamp_strength_spinbox->value());
 	ret->set_zoom_mode_for_new_windows(this->ui->zoom_mode_for_new_windows_cb->get_selected_item());
 	ret->set_fullscreen_zoom_mode_for_new_windows(this->ui->fullscreen_zoom_mode_for_new_windows_cb->get_selected_item());
+	ret->set_resize_windows_on_monitor_change(this->ui->resize_windows_cb->isChecked());
 	return ret;
 }
 

@@ -1,8 +1,0 @@
-[submodule "serialization"]
-	path = serialization
-	url = https://github.com/Helios-vmg/cppserialization.git
-	branch = master
-[submodule "luajit-2.0"]
-	path = luajit-2.0
-	url = http://luajit.org/git/luajit-2.0.git
-	branch = master

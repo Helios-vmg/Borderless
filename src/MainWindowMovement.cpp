@@ -8,31 +8,33 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
-void set_flags(bool &left, bool &right, bool &middle, QMouseEvent *ev){
-	left = check_flag(ev->buttons(), Qt::LeftButton);
-	right = check_flag(ev->buttons(), Qt::RightButton);
-	middle = check_flag(ev->buttons(), Qt::MiddleButton);
+void set_flags(bool &left, bool &right, bool &middle, const QMouseEvent &ev){
+	left = check_flag(ev.buttons(), Qt::LeftButton);
+	right = check_flag(ev.buttons(), Qt::RightButton);
+	middle = check_flag(ev.buttons(), Qt::MiddleButton);
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *ev){
-	bool left, right, middle;
-	set_flags(left, right, middle, ev);
-
+	MouseEvent mme(*ev);
 	this->not_moved = false;
 
-	if ((int)left + (int)right + (int)middle > 1)
+	if (mme.button_sum > 1)
 		return;
 
 	this->first_label_pos = this->ui->label->pos();
-	if (left){
-		this->first_mouse_pos = ev->globalPos();
-		this->first_window_pos = this->pos();
-		this->first_window_size = this->size();
-		this->set_resize_mode(ev->pos());
-	}else if (right){
-		this->first_mouse_pos = ev->globalPos();
+	if (mme.left){
+		this->reset_left_mouse(mme);
+	}else if (mme.right){
+		this->first_mouse_pos = mme.absolute;
 		this->not_moved = true;
 	}
+}
+
+void MainWindow::reset_left_mouse(const MouseEvent &ev){
+	this->first_mouse_pos = ev.absolute;
+	this->first_window_pos = this->pos();
+	this->first_window_size = this->size();
+	this->set_resize_mode(ev.relative);
 }
 
 void MainWindow::mouseReleaseEvent(QMouseEvent *ev){
@@ -43,19 +45,22 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *ev){
 	this->not_moved = false;
 }
 
-void MainWindow::mouseMoveEvent(QMouseEvent *ev){
-	bool left, right, middle;
-	set_flags(left, right, middle, ev);
-	int sum = (int)left + (int)right + (int)middle;
-	this->not_moved = false;
-	if (sum > 1)
-		return;
+MouseEvent::MouseEvent(const QMouseEvent &ev){
+	set_flags(this->left, this->right, this->middle, ev);
+	this->button_sum = (int)this->left + (int)this->right + (int)this->middle;
+	this->absolute = ev.globalPos();
+	this->relative = ev.pos();
+}
 
-	auto mouse_pos = ev->globalPos();
+bool MainWindow::set_cursor_flags(const MouseEvent &ev){
+	this->not_moved = false;
+
+	if (ev.button_sum > 1)
+		return false;
 
 	ResizeMode rm;
-	if (!sum)
-		rm = this->get_resize_mode(ev->pos());
+	if (!ev.button_sum)
+		rm = this->get_resize_mode(ev.relative);
 	else{
 		if (!left)
 			this->resize_mode = ResizeMode::None;
@@ -83,20 +88,9 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 			break;
 	}
 
-	if (sum < 1)
-		return;
+	return ev.button_sum >= 1;
+}
 
-	if (left){
-		if (this->window_state->get_fullscreen())
-			return;
-		if (this->resize_mode == ResizeMode::None)
-			this->move_window(this->first_window_pos + mouse_pos - this->first_mouse_pos, mouse_pos);
-		else{
-			QPoint pos;
-			QRect rect;
-			this->compute_resize(pos, rect, mouse_pos - this->first_mouse_pos, mouse_pos);
-			this->set_window_rect(rect);
-			this->ui->label->move(pos);
 #define FTEMP(a, A, b, B) \
 	if (this->first_label_pos.a() != this->ui->label->pos().a() || this->first_window_pos.a() != this->pos().a() || this->first_window_size.b() != this->size().b()){ \
 		this->first_label_pos.set##A(this->ui->label->pos().a()); \
@@ -104,12 +98,37 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 		this->first_window_pos.set##A(this->pos().a()); \
 		this->first_window_size.set##B(this->size().b()); \
 	}
-			FTEMP(x, X, width, Width);
-			FTEMP(y, Y, height, Height);
-		}
-#undef FTEMP
 
-	}else if (right){
+void MainWindow::mouseMoveEvent(QMouseEvent *ev){
+	MouseEvent mme(*ev);
+	if (!this->set_cursor_flags(mme))
+		return;
+
+	const auto &mouse_pos = mme.absolute;
+
+	if (mme.left){
+		if (this->window_state->get_fullscreen())
+			return;
+		if (this->resize_mode == ResizeMode::None)
+			this->move_window(this->first_window_pos + mouse_pos - this->first_mouse_pos, mouse_pos);
+		else{
+			QPoint pos;
+			QRect rect;
+			if (!this->compute_resize(pos, rect, mouse_pos - this->first_mouse_pos, mouse_pos)){
+				this->reset_zoom_slot();
+				
+				auto copy = mme;
+				copy.relative = mme.absolute - this->pos();
+				this->reset_left_mouse(copy);
+				this->set_cursor_flags(copy);
+			}else{
+				this->set_window_rect(rect);
+				this->ui->label->move(pos);
+				FTEMP(x, X, width, Width);
+				FTEMP(y, Y, height, Height);
+			}
+		}
+	}else if (mme.right){
 		auto new_position = this->first_label_pos + mouse_pos - this->first_mouse_pos;
 		if (this->move_image(new_position)){
 			this->first_mouse_pos = mouse_pos;
@@ -118,7 +137,9 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 	}
 }
 
-void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
+#undef FTEMP
+
+bool MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
 	auto ds = this->app->desktop()->availableGeometry(mouse_position);
 	int left = 0,
 		top = 0,
@@ -147,8 +168,8 @@ void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 	rect.setRight(rect.right() + right);
 	rect.setBottom(rect.bottom() + bottom);
 
+	int strength = this->app->get_clamp_strength();
 	if (this->perform_clamping()){
-		int strength = this->app->get_clamp_strength();
 		if (moving_left && intabs(rect.left() - ds.left()) < strength)
 			rect.setLeft(ds.left());
 
@@ -204,8 +225,12 @@ void MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 	if (pos.y() + label_rect.height() < rect.height())
 		pos.setY(rect.height() - label_rect.height());
 
+	if (rect.height() <= 0 || rect.width() <= 0)
+		return false;
+
 	out_label_pos = pos;
 	out_window_rect = rect;
+	return true;
 }
 
 void MainWindow::move_window(const QPoint &requested_position, const QPoint &mouse_position){

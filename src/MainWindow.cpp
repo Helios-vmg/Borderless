@@ -16,7 +16,6 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QDir>
 #include <exception>
 #include <cassert>
-#include "plugin-core/PluginCoreState.h"
 #include "GenericException.h"
 
 MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent):
@@ -27,6 +26,14 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 	if (arguments.size() >= 2)
 		this->open_path_and_display_image(arguments[1]);
 }
+
+TransparentMainWindow::TransparentMainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
+		MainWindow(app, state, parent){
+	this->setAttribute(Qt::WA_TranslucentBackground);
+	this->ui->checkerboard->hide();
+	this->ui->solid->hide();
+}
+
 
 MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
 		QMainWindow(parent),
@@ -169,21 +176,31 @@ void MainWindow::set_zoom(){
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){
 	auto label_pos = this->ui->label->pos();
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): label_pos = " << label_pos;
+#endif
 	auto center = to_QPoint(this->size()) / 2;
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): center = " << center;
+#endif
 	auto center_at = center - label_pos;
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): center_at = " << center_at;
+#endif
 
 	auto zoom = this->get_current_zoom();
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): zoom = " << zoom;
+#endif
 
 	this->display_image_in_label(this->displayed_image, first_display);
 
 	if (zoom != 1){
 		auto new_location = center - center_at * (zoom / old_zoom);
+#ifdef _DEBUG
 		qDebug() << "MainWindow::apply_zoom(): center - center_at * (zoom / old_zoom) = "
 			<< center << " - " << center_at << " * (" << zoom << " / " << old_zoom << ") = " << new_location;
+#endif
 
 		if (first_display && !this->app->get_center_when_displayed()){
 			if (new_location.x() < 0)
@@ -199,16 +216,7 @@ void MainWindow::apply_zoom(bool first_display, double old_zoom){
 void MainWindow::change_zoom(bool in){
 	auto zoom = this->get_current_zoom();
 	auto old_zoom = zoom;
-#if 0
-	if (in)
-		zoom += 0.25;
-	else if (zoom > quarter)
-		zoom -= 0.25;
-	else
-		return;
-#else
 	zoom *= in ? 1.25 : (1.0 / 1.25);
-#endif
 	this->set_current_zoom(zoom);
 	this->apply_zoom(false, old_zoom);
 	if (this->current_zoom_mode_is_auto())
@@ -275,24 +283,28 @@ void MainWindow::show_nothing(){
 }
 
 void MainWindow::resize_to_max(bool do_not_enlarge){
-	auto rect = this->geometry();
 	auto &label = this->ui->label;
-	label->resize(label->get_size());
-	auto screen_number = this->get_current_desktop_number();
-	auto ds = this->desktop_sizes[screen_number];
-	auto new_size = ds.size();
-	new_size = label->size().boundedTo(new_size);
-	if (do_not_enlarge)
-		new_size = new_size.boundedTo(this->size());
-	rect.setSize(new_size);
-	if (rect.left() < ds.left())
-		rect.moveLeft(ds.left());
-	else if (rect.right() > ds.right())
-		rect.moveRight(ds.right());
-	if (rect.top() < ds.top())
-		rect.moveTop(ds.top());
-	else if (rect.bottom() > ds.bottom())
-		rect.moveBottom(ds.bottom());
+	auto label_size = label->get_size();
+	label->resize(label_size);
+	auto rect = this->geometry();
+	if (this->app->get_option_values()->get_resize_windows_on_monitor_change()){
+		auto screen_number = this->get_current_desktop_number();
+		auto ds = this->desktop_sizes[screen_number];
+		auto new_size = ds.size();
+		new_size = label->size().boundedTo(new_size);
+		if (do_not_enlarge)
+			new_size = new_size.boundedTo(this->size());
+		rect.setSize(new_size);
+		if (rect.left() < ds.left())
+			rect.moveLeft(ds.left());
+		else if (rect.right() > ds.right())
+			rect.moveRight(ds.right());
+		if (rect.top() < ds.top())
+			rect.moveTop(ds.top());
+		else if (rect.bottom() > ds.bottom())
+			rect.moveBottom(ds.bottom());
+	}else
+		rect.setSize(label_size);
 	this->set_window_rect(rect);
 }
 
@@ -306,7 +318,7 @@ void MainWindow::advance(){
 }
 
 void MainWindow::set_iterator(){
-	this->directory_iterator->advance_to(QString::fromStdWString(this->window_state->get_current_filename()));
+	this->directory_iterator->advance_to(this->window_state->get_current_filename());
 }
 
 double MainWindow::get_current_zoom() const{
@@ -347,14 +359,29 @@ void MainWindow::move_in_direction(bool forward){
 	this->app->save_settings();
 }
 
+class ElapsedTimer{
+	QString task;
+	clock_t t0;
+public:
+	ElapsedTimer(const QString &task): task(task){
+		qDebug() << "Task " << this->task << " started.";
+		this->t0 = clock();
+	}
+	~ElapsedTimer(){
+		auto t1 = clock();
+		qDebug() << "Task " << this->task << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC << " seconds.";
+	}
+};
+
 bool MainWindow::open_path_and_display_image(QString path){
+	ElapsedTimer et((QString)"open_path_and_display_image(" + path + ")");
 	std::shared_ptr<LoadedGraphics> li;
 	size_t i = 0;
 	auto &label = this->ui->label;
 	if (!!this->directory_iterator)
 		i = this->directory_iterator->pos();
 	while (true){
-		li = LoadedGraphics::create(path);
+		li = LoadedGraphics::create(*this->app, path);
 		qDebug() << path;
 		if (!li->is_null())
 			break;
@@ -366,13 +393,37 @@ bool MainWindow::open_path_and_display_image(QString path){
 		}else
 			break;
 	}
-	QString current_directory,
-		current_filename;
-	split_path(current_directory, current_filename, path);
-	this->window_state->set_current_directory(current_directory.toStdWString());
-	this->window_state->set_current_filename(current_filename.toStdWString());
-	if (!this->directory_iterator)
-		this->directory_iterator = this->app->request_directory(current_directory);
+
+	QString current_filename;
+
+	bool unset = true;
+	if (!this->directory_iterator){
+		auto di = this->app->request_directory_iterator_by_url(path);
+		if (di){
+			this->directory_iterator = di;
+			current_filename = this->app->get_filename_from_url(path);
+			this->window_state->set_file_is_url(true);
+			this->window_state->set_current_url(path);
+			this->window_state->set_current_filename(current_filename);
+			unset = false;
+		}
+	}else if (!this->directory_iterator->get_is_local()){
+		current_filename = this->directory_iterator->get_current_filename();
+		this->window_state->set_file_is_url(true);
+		this->window_state->set_current_url(path);
+		this->window_state->set_current_filename(current_filename);
+		unset = false;
+	}
+	if (unset){
+		QString current_directory;
+		split_path(current_directory, current_filename, path);
+		this->window_state->set_current_directory(current_directory);
+		this->window_state->set_current_filename(current_filename);
+		this->window_state->set_file_is_url(false);
+		if (!this->directory_iterator)
+			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
+	}
+
 	if (li->is_null()){
 		this->show_nothing();
 		return false;
@@ -406,6 +457,11 @@ void MainWindow::display_image_in_label(const std::shared_ptr<LoadedGraphics> &g
 		mindim / 3 :
 		this->window_state->default_border_size
 	);
+	if (size.width() <= 0 || size.height() <= 0){
+		//Too far.
+		this->reset_zoom_slot();
+		return;
+	}
 	label->resize(size);
 
 	if (!this->color_calculated && this->displayed_image->has_alpha()){
@@ -433,9 +489,8 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 	this->app->postEvent(this, new QContextMenuEvent(QContextMenuEvent::Other, ev->screenPos().toPoint()));
 }
 
-void MainWindow::build_context_menu(QMenu &main_menu, QMenu &lua_submenu){
+void MainWindow::build_context_menu(QMenu &main_menu){
 	main_menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
-	main_menu.addMenu(&lua_submenu);
 	main_menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
@@ -539,6 +594,11 @@ void MainWindow::label_transform_updated(){
 	this->set_background_sizes();
 }
 
+void MainWindow::transparent_background(){
+	this->app->turn_transparent(*this, true);
+	this->close();
+}
+
 QMatrix MainWindow::get_image_transform() const{
 	return this->ui->label->get_transform();
 }
@@ -563,12 +623,14 @@ void MainWindow::set_image_zoom(double x){
 	this->set_current_zoom_mode(ZoomMode::Normal);
 }
 
-void MainWindow::process_user_script(const QString &path){
-	auto &plugin_core_state = this->app->get_plugin_core_state();
-	plugin_core_state.set_current_caller(this);
-	plugin_core_state.execute(path);
-}
-
 QImage MainWindow::get_image() const{
 	return this->displayed_image->get_QImage();
+}
+
+void TransparentMainWindow::set_background(bool force){
+}
+
+void TransparentMainWindow::transparent_background(){
+	this->app->turn_transparent(*this, false);
+	this->close();
 }

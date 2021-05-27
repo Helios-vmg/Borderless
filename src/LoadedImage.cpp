@@ -13,8 +13,8 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 extern const char *supported_extensions[];
 
-LoadedImage::LoadedImage(const QString &path){
-	QImage img(path);
+LoadedImage::LoadedImage(ImageViewerApplication &app, const QString &path){
+	auto img = app.load_image(path);
 	if ((this->null = img.isNull())){
 		//Weird QImage behavior. Passing "*" allows it to load images where the
 		//file extension doesn't match the file contents.
@@ -85,26 +85,32 @@ QImage LoadedImage::get_QImage() const{
 	return ((QPixmap)this->image).toImage();
 }
 
-LoadedAnimation::LoadedAnimation(const QString &path): animation(path){
-	this->null = !this->animation.isValid();
+LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, const QString &path){
+	auto pair = app.load_animation(path);
+	this->animation = std::move(pair.first);
+	this->device = std::move(pair.second);
+	this->null = !this->animation->isValid();
 	if (!this->null){
-		(void)this->animation.jumpToNextFrame();
-		this->size = this->animation.currentPixmap().size();
+		(void)this->animation->jumpToNextFrame();
+		this->size = this->animation->currentPixmap().size();
 		this->alpha = true;
 	}
 }
 
 void LoadedAnimation::assign_to_QLabel(QLabel &label){
-	label.setMovie(&this->animation);
-	this->animation.start();
+	label.setMovie(this->animation.get());
+	this->animation->start();
 }
 
 QImage LoadedAnimation::get_QImage() const{
-	return this->animation.currentImage();
+	return this->animation->currentImage();
 }
 
-std::shared_ptr<LoadedGraphics> LoadedGraphics::create(const QString &path){
-	if (path.endsWith(".gif", Qt::CaseInsensitive))
-		return std::shared_ptr<LoadedGraphics>(new LoadedAnimation(path));
-	return std::shared_ptr<LoadedGraphics>(new LoadedImage(path));
+std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &app, const QString &path){
+	std::shared_ptr<LoadedGraphics> ret;
+	if (app.is_animation(path))
+		ret.reset(new LoadedAnimation(app, path));
+	else
+		ret.reset(new LoadedImage(app, path));
+	return ret;
 }
