@@ -124,6 +124,15 @@ public:
 	QJsonValue serialize() const override;
 };
 
+class StateFile : public Serializable{
+public:
+	std::shared_ptr<ApplicationState> state;
+	StateFile() = default;
+	StateFile(const QJsonValueRef &json);
+	StateFile(QJsonObject &&);
+	QJsonValue serialize() const override;
+};
+
 class Shortcuts : public Serializable{
 public:
 	std::map<QString, std::vector<QString>> shortcuts;
@@ -137,7 +146,6 @@ public:
 class Settings : public Serializable{
 public:
 	std::shared_ptr<MainSettings> main;
-	std::shared_ptr<ApplicationState> state;
 	std::shared_ptr<Shortcuts> shortcuts;
 
 	Settings() = default;

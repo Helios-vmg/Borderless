@@ -36,23 +36,29 @@ class ImageViewerApplication : public SingleInstanceApplication{
 	ApplicationShortcuts shortcuts;
 	MainWindow *context_menu_last_requester;
 	QString config_location,
-		config_filename;
+		config_filename,
+		state_filename;
+	bool restoring_settings = false;
+	bool restoring_state = false;
 
 	std::shared_ptr<MainSettings> settings;
+	std::shared_ptr<ApplicationState> app_state;
 
-	QMenu lua_submenu;
 	QSystemTrayIcon tray_icon;
 	std::shared_ptr<QMenu> tray_context_menu,
 		last_tray_context_menu;
 	QByteArray last_saved_settings_digest;
+	QByteArray last_saved_state_digest;
 
-	void save_current_state(std::shared_ptr<ApplicationState> &);
+	void save_current_state(ApplicationState &);
 	void save_current_windows(std::vector<std::shared_ptr<WindowState>> &);
 	void restore_current_state(const ApplicationState &);
 	void restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &);
 	void propagate_shortcuts();
 	QString get_config_location();
-	QString get_config_filename();
+	QString get_config_subpath(QString &dst, const char *sub);
+	QString get_settings_filename();
+	QString get_state_filename();
 	void setup_slots();
 	void reset_tray_menu();
 	void conditional_tray_show();
@@ -61,6 +67,12 @@ class ImageViewerApplication : public SingleInstanceApplication{
 protected:
 	void new_instance(const QStringList &args) override;
 	void add_window(sharedp_t window);
+	static QJsonDocument load_json(const QString &, QByteArray &digest);
+	void restore_settings_only();
+	void restore_state_only();
+	void save_settings_only();
+	void save_state_only();
+	static void conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest);
 
 public:
 	ImageViewerApplication(int &argc, char **argv, const QString &unique_name);
@@ -78,7 +90,6 @@ public:
 		return this->settings->get_use_checkerboard_pattern();
 	}
 	void save_settings(bool with_state = true);
-	bool restore_settings();
 	void quit_and_discard_state();
 	bool toggle_center_when_displayed(){
 		this->settings->set_center_when_displayed(!this->settings->get_center_when_displayed());

@@ -22,14 +22,44 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <random>
 #include <QJsonDocument>
 
+template <typename T>
+class AutoSetter{
+	T *dst;
+	T old_value;
+public:
+	AutoSetter(): dst(nullptr){}
+	AutoSetter(T &dst, T new_value): dst(&dst), old_value(dst){
+		*this->dst = new_value;
+	}
+	AutoSetter(const AutoSetter &) = delete;
+	AutoSetter &operator=(const AutoSetter &) = delete;
+	AutoSetter(AutoSetter &&other){
+		*this = std::move(other);
+	}
+	AutoSetter &operator=(AutoSetter &&other){
+		this->dst = other.dst;
+		other.dst = nullptr;
+		this->old_value = std::move(other.old_value);
+		return *this;
+	}
+	~AutoSetter(){
+		if (this->dst)
+			*this->dst = this->old_value;
+	}
+};
+
+template <typename T>
+AutoSetter<T> autoset(T &dst, T value){
+	return AutoSetter<T>(dst, value);
+}
+
 ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QString &unique_name):
 		SingleInstanceApplication(argc, argv, unique_name),
 		do_not_save(false),
 		tray_icon(QIcon(":/icon16.png"), this){
 	QDir::setCurrent(this->applicationDirPath());
 	this->load_custom_file_protocols();
-	if (!this->restore_settings())
-		this->settings = std::make_shared<MainSettings>();
+	this->restore_settings_only();
 	this->reset_tray_menu();
 	this->conditional_tray_show();
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
@@ -46,7 +76,9 @@ ImageViewerApplication::~ImageViewerApplication(){
 }
 
 void ImageViewerApplication::new_instance(const QStringList &args){
-	sharedp_t p(new MainWindow(*this, args));
+	if (args.size() < 2 && !this->app_state)
+		this->restore_state_only();
+	auto p = std::make_shared<MainWindow>(*this, args);
 	if (!p->is_null())
 		this->add_window(p);
 	this->save_settings();
@@ -116,12 +148,13 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 		this->listings.erase(this->listings.begin() + i);
 }
 
-void ImageViewerApplication::save_current_state(std::shared_ptr<ApplicationState> &state){
-	state = std::make_shared<ApplicationState>();
-	this->save_current_windows(state->get_windows());
+void ImageViewerApplication::save_current_state(ApplicationState &state){
+	this->save_current_windows(state.get_windows());
 }
 
 void ImageViewerApplication::save_current_windows(std::vector<std::shared_ptr<WindowState>> &windows){
+	windows.clear();
+	windows.reserve(this->windows.size());
 	for (auto &w : this->windows)
 		windows.push_back(w.second->save_state());
 }
@@ -131,26 +164,15 @@ public:
 	SettingsException(const char *what) : GenericException(what){}
 };
 
-void ImageViewerApplication::save_settings(bool with_state){
-	if (this->do_not_save)
-		return;
-	QString path = this->get_config_filename();
-	if (path.isNull())
-		return;
-	Settings settings;
-	settings.main = this->settings;
-	if (with_state && this->settings->get_save_state_on_exit())
-		this->save_current_state(settings.state);
-	settings.shortcuts = this->shortcuts.save_settings();
-
-	QJsonDocument doc;
-	doc.setObject(settings.serialize().toObject());
-	auto contents = doc.toJson(QJsonDocument::Indented);
-	
+QByteArray hash_file(const QByteArray &contents){
 	QCryptographicHash hash(QCryptographicHash::Md5);
 	hash.addData(contents);
-	auto digest = hash.result();
-	if (!this->last_saved_settings_digest.isNull() && digest == this->last_saved_settings_digest)
+	return hash.result();
+}
+
+void ImageViewerApplication::conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest){
+	auto new_digest = hash_file(contents);
+	if (!last_digest.isNull() && new_digest == last_digest)
 		return;
 
 	QFile file(path);
@@ -159,7 +181,46 @@ void ImageViewerApplication::save_settings(bool with_state){
 		return;
 	file.write(contents);
 
-	this->last_saved_settings_digest = digest;
+	last_digest = new_digest;
+}
+
+void ImageViewerApplication::save_settings_only(){
+	if (this->restoring_settings)
+		return;
+	QString path = this->get_settings_filename();
+	if (path.isNull())
+		return;
+	Settings settings;
+	settings.main = this->settings;
+	settings.shortcuts = this->shortcuts.save_settings();
+
+	QJsonDocument doc;
+	doc.setObject(settings.serialize().toObject());
+	this->conditionally_save_file(doc.toJson(QJsonDocument::Indented), path, this->last_saved_settings_digest);
+}
+
+void ImageViewerApplication::save_state_only(){
+	if (this->restoring_state)
+		return;
+	if (!this->app_state)
+		return;
+	auto path = this->get_state_filename();
+	if (path.isNull())
+		return;
+	this->save_current_state(*this->app_state);
+	QJsonDocument doc;
+	StateFile sf;
+	sf.state = this->app_state;
+	doc.setObject(sf.serialize().toObject());
+	this->conditionally_save_file(doc.toJson(QJsonDocument::Indented), path, this->last_saved_state_digest);
+}
+
+void ImageViewerApplication::save_settings(bool with_state){
+	if (this->do_not_save)
+		return;
+	this->save_settings_only();
+	if (with_state && this->settings->get_save_state_on_exit())
+		this->save_state_only();
 }
 
 void ImageViewerApplication::restore_current_state(const ApplicationState &windows_state){
@@ -167,7 +228,6 @@ void ImageViewerApplication::restore_current_state(const ApplicationState &windo
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
-	this->windows.clear();
 	for (auto &state : window_states)
 		this->add_window(std::make_shared<MainWindow>(*this, state));
 }
@@ -206,29 +266,43 @@ void ImageViewerApplication::quit_and_discard_state(){
 	this->quit();
 }
 
-bool ImageViewerApplication::restore_settings(){
-	QString path = this->get_config_filename();
+QJsonDocument ImageViewerApplication::load_json(const QString &path, QByteArray &digest){
 	if (path.isNull())
-		return false;
+		return {};
 	QFile file(path);
 	file.open(QFile::ReadOnly);
 	if (!file.isOpen())
-		return false;
-	auto doc = QJsonDocument::fromJson(file.readAll());
+		return {};
+	auto contents = file.readAll();
+	digest = hash_file(contents);
+	return QJsonDocument::fromJson(contents);
+}
 
-	Settings settings;
-	if (!doc.isNull())
-		settings = Settings(doc.object());
-
+void ImageViewerApplication::restore_settings_only(){
+	auto as = autoset(this->restoring_settings, true);
+	auto json = this->load_json(this->get_settings_filename(), this->last_saved_settings_digest);
+	if (json.isNull()){
+		this->settings = std::make_shared<MainSettings>();
+		return;
+	}
+	
+	Settings settings(json.object());
 	this->settings = settings.main;
-
 	if (settings.shortcuts)
 		this->shortcuts.restore_settings(*settings.shortcuts);
+}
 
-	if (settings.state)
-		this->restore_current_state(*settings.state);
-
-	return true;
+void ImageViewerApplication::restore_state_only(){
+	auto as = autoset(this->restoring_state, true);
+	auto json = this->load_json(this->get_state_filename(), this->last_saved_state_digest);
+	if (json.isNull()){
+		this->app_state = std::make_shared<ApplicationState>();
+		return;
+	}
+	
+	StateFile state(json.object());
+	this->app_state = std::move(state.state);
+	this->restore_current_state(*this->app_state);
 }
 
 void ImageViewerApplication::resolution_change(int screen){
@@ -284,21 +358,28 @@ QString ImageViewerApplication::get_config_location(){
 	return this->config_location;
 }
 
-QString ImageViewerApplication::get_config_filename(){
-	auto &ret = this->config_filename;
+QString ImageViewerApplication::get_config_subpath(QString &dst, const char *sub){
+	auto &ret = dst;
 	if (ret.isNull()){
 		ret = this->get_config_location();
 		if (ret.isNull())
 			return ret;
-		ret += "settings.json";
+		ret += sub;
 	}
 	return ret;
+}
+
+QString ImageViewerApplication::get_settings_filename(){
+	return this->get_config_subpath(this->config_filename, "settings.json");
+}
+
+QString ImageViewerApplication::get_state_filename(){
+	return this->get_config_subpath(this->state_filename, "state.json");
 }
 
 void ImageViewerApplication::setup_slots(){
 	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
 	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
-	connect(&this->lua_submenu, SIGNAL(triggered(QAction *)), this, SLOT(lua_script_activated(QAction *)));
 }
 
 void ImageViewerApplication::reset_tray_menu(){

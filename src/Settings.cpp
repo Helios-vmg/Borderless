@@ -175,11 +175,23 @@ void set_value(QJsonValueRef &&dst, const QMatrix &src){
 	dst = temp;
 }
 
+StateFile::StateFile(const QJsonValueRef &json): StateFile(json.toObject()){}
+
+StateFile::StateFile(QJsonObject &&object){
+	READ_JSON(state, object);
+}
+
+QJsonValue StateFile::serialize() const{
+	QJsonObject ret;
+	if (this->state)
+		ret[json_string_state] = this->state->serialize();
+	return ret;
+}
+
 Settings::Settings(const QJsonValueRef &json): Settings(json.toObject()){}
 
 Settings::Settings(QJsonObject &&object){
 	READ_JSON(main, object);
-	READ_JSON(state, object);
 	READ_JSON(shortcuts, object);
 }
 
@@ -187,8 +199,6 @@ QJsonValue Settings::serialize() const{
 	QJsonObject ret;
 	if (this->main)
 		ret[json_string_main] = this->main->serialize();
-	if (this->state)
-		ret[json_string_state] = this->state->serialize();
 	if (this->shortcuts)
 		ret[json_string_shortcuts] = this->shortcuts->serialize();
 	return ret;
