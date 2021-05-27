@@ -25,6 +25,19 @@ namespace Ui {
 class MainWindow;
 }
 
+class MouseEvent{
+public:
+	bool left;
+	bool right;
+	bool middle;
+	int button_sum;
+	QPoint absolute;
+	QPoint relative;
+	MouseEvent(const QMouseEvent &);
+	MouseEvent(const MouseEvent &) = default;
+	MouseEvent &operator=(const MouseEvent &) = default;
+};
+
 class MainWindow : public QMainWindow{
 	Q_OBJECT
 
@@ -69,7 +82,7 @@ protected:
 
 	bool move_image(const QPoint &new_position);
 	QPoint compute_movement(const QPoint &new_position, const QPoint &mouse_position);
-	void compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
+	bool compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
 	void move_window(const QPoint &new_position, const QPoint &mouse_position);
 	void reset_settings();
 	void compute_average_color(QImage img);
@@ -114,6 +127,8 @@ protected:
 	void mousePressEvent(QMouseEvent *ev) override;
 	void mouseReleaseEvent(QMouseEvent *ev) override;
 	void mouseMoveEvent(QMouseEvent *ev) override;
+	void reset_left_mouse(const MouseEvent &);
+	bool set_cursor_flags(const MouseEvent &);
 	//void keyPressEvent(QKeyEvent *ev) override;
 	//void keyReleaseEvent(QKeyEvent *ev) override;
 	void resizeEvent(QResizeEvent *ev) override;

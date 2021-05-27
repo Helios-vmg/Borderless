@@ -32,6 +32,12 @@ RotateDialog::RotateDialog(MainWindow &parent) :
 	auto h = 22 * desktop->logicalDpiY() / 96;
 	this->ui->rotation_slider->setMinimumHeight(h);
 	this->ui->scale_slider->setMinimumHeight(h);
+
+	auto image_size = this->main_window.get_image().size();
+	auto min_zoom = 1.0 / image_size.width();
+	auto current_min = pow(1.25, this->ui->scale_slider->minimum() / 1000.0);
+	if (min_zoom > current_min)
+		this->ui->scale_slider->setMinimum((int)ceil(log(min_zoom) / log_125 * 1000.0));
 }
 
 void RotateDialog::resizeEvent(QResizeEvent *e){

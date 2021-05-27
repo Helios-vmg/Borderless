@@ -176,21 +176,31 @@ void MainWindow::set_zoom(){
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){
 	auto label_pos = this->ui->label->pos();
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): label_pos = " << label_pos;
+#endif
 	auto center = to_QPoint(this->size()) / 2;
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): center = " << center;
+#endif
 	auto center_at = center - label_pos;
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): center_at = " << center_at;
+#endif
 
 	auto zoom = this->get_current_zoom();
+#ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): zoom = " << zoom;
+#endif
 
 	this->display_image_in_label(this->displayed_image, first_display);
 
 	if (zoom != 1){
 		auto new_location = center - center_at * (zoom / old_zoom);
+#ifdef _DEBUG
 		qDebug() << "MainWindow::apply_zoom(): center - center_at * (zoom / old_zoom) = "
 			<< center << " - " << center_at << " * (" << zoom << " / " << old_zoom << ") = " << new_location;
+#endif
 
 		if (first_display && !this->app->get_center_when_displayed()){
 			if (new_location.x() < 0)
@@ -206,16 +216,7 @@ void MainWindow::apply_zoom(bool first_display, double old_zoom){
 void MainWindow::change_zoom(bool in){
 	auto zoom = this->get_current_zoom();
 	auto old_zoom = zoom;
-#if 0
-	if (in)
-		zoom += 0.25;
-	else if (zoom > quarter)
-		zoom -= 0.25;
-	else
-		return;
-#else
 	zoom *= in ? 1.25 : (1.0 / 1.25);
-#endif
 	this->set_current_zoom(zoom);
 	this->apply_zoom(false, old_zoom);
 	if (this->current_zoom_mode_is_auto())
@@ -456,6 +457,11 @@ void MainWindow::display_image_in_label(const std::shared_ptr<LoadedGraphics> &g
 		mindim / 3 :
 		this->window_state->default_border_size
 	);
+	if (size.width() <= 0 || size.height() <= 0){
+		//Too far.
+		this->reset_zoom_slot();
+		return;
+	}
 	label->resize(size);
 
 	if (!this->color_calculated && this->displayed_image->has_alpha()){
