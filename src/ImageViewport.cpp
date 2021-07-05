@@ -22,6 +22,11 @@ void ImageViewport::rotate(double delta_theta){
 	this->transform_changed();
 }
 
+void ImageViewport::override_rotation(double delta_theta){
+	this->transform = QMatrix().rotate(delta_theta);
+	this->transform_changed();
+}
+
 void ImageViewport::flip(bool hor){
 	auto x = hor ? -1.0 : 1.0;
 	auto y = -x;

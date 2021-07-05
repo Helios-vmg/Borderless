@@ -123,6 +123,13 @@ protected:
 	void rotate(bool right, bool fine = false);
 	void fix_positions_and_zoom(bool do_not_enlarge = false);
 
+	struct ZoomResult{
+		double zoom;
+		QSize label_size;
+	};
+	
+	ZoomResult compute_zoom(int override_rotation = -1);
+
 protected:
 	void mousePressEvent(QMouseEvent *ev) override;
 	void mouseReleaseEvent(QMouseEvent *ev) override;
@@ -161,7 +168,10 @@ public:
 	void setup_shortcuts();
 	void build_context_menu(QMenu &main_menu);
 	bool current_zoom_mode_is_auto() const{
-		return check_flag(this->get_current_zoom_mode(), ZoomMode::Automatic);
+		return check_flag(this->get_current_zoom_mode(), ZoomMode::AutomaticZoom);
+	}
+	bool current_zoom_mode_is_auto_rotation() const{
+		return check_flag(this->get_current_zoom_mode(), ZoomMode::AutomaticRotation);
 	}
 	QImage get_image() const;
 	ImageViewerApplication &get_app(){

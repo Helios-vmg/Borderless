@@ -16,6 +16,8 @@ static const ZoomPair display_pairs[] = {
 	{ "Fit nothing", ZoomMode::Normal },
 	{ "Fit to screen", ZoomMode::AutoFit },
 	{ "Fill screen", ZoomMode::AutoFill },
+	{ "Fit to screen, optimal rotation", ZoomMode::AutoRotFit },
+	{ "Fill screen, optimal rotation", ZoomMode::AutoRotFill },
 };
 
 ZoomModeDropDown::ZoomModeDropDown(QWidget *parent): QComboBox(parent){

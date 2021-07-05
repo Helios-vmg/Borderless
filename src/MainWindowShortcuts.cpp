@@ -165,9 +165,11 @@ void cycle_zoom_mode(ZoomMode &mode){
 			mode = ZoomMode::AutoFit;
 			break;
 		case ZoomMode::AutoFit:
+		case ZoomMode::AutoRotFit:
 			mode = ZoomMode::AutoFill;
 			break;
 		case ZoomMode::AutoFill:
+		case ZoomMode::AutoRotFill:
 			mode = ZoomMode::Normal;
 			break;
 	}
@@ -243,6 +245,8 @@ void MainWindow::toggle_fullscreen(){
 }
 
 void MainWindow::rotate(bool right, bool fine){
+	if (this->current_zoom_mode_is_auto_rotation())
+		this->set_current_zoom_mode(disable_flag(this->get_current_zoom_mode(), ZoomMode::AutomaticRotation));
 	this->ui->label->rotate((right ? 1 : -1) * (fine ? 1 : 90));
 	this->fix_positions_and_zoom();
 	//this->reposition_image();

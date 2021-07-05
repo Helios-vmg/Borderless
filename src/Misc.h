@@ -50,6 +50,11 @@ typename std::enable_if<std::is_enum<T1>::value || std::is_enum<T2>::value, bool
 	return ((unsigned)testee & (unsigned)tester) == (unsigned)tester;
 }
 
+template <typename T>
+typename std::enable_if<std::is_enum<T>::value || std::is_enum<T>::value, T>::type disable_flag(const T &value, const T &flag){
+	return (T)((unsigned)value & ~(unsigned)flag);
+}
+
 template <typename T, size_t N>
 size_t array_length(T (&array)[N]){
 	return N;

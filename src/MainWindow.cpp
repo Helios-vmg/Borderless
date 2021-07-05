@@ -142,36 +142,76 @@ void MainWindow::clear_image_pos(){
 	this->image_pos.clear();
 }
 
-void MainWindow::set_zoom(){
+double ratio(const QSize &size){
+	return (double)size.width() / (double)size.height();
+}
+
+int area(const QSize &size){
+	return size.width() * size.height();
+}
+
+#define IS_WIDER >
+
+MainWindow::ZoomResult MainWindow::compute_zoom(int override_rotation){
 	auto screen_number = this->get_current_desktop_number();
-	auto ds = this->desktop_sizes[screen_number].size();
+	auto desktop_size = this->desktop_sizes[screen_number].size();
 	if (this->window_state->get_fullscreen())
-		ds = this->screen_sizes[screen_number].size();
-	auto ps = this->displayed_image->get_size();
-	this->ui->label->compute_size_no_zoom(ps);
-	double dr = (double)ds.width() / (double)ds.height();
-	double pr = (double)ps.width() / (double)ps.height();
+		desktop_size = this->screen_sizes[screen_number].size();
+
+	auto image_size = this->displayed_image->get_size();
+	double desktop_ratio = ratio(desktop_size);
+
+	auto zoom_mode = this->get_current_zoom_mode();
+	auto old_transform = this->ui->label->get_transform();
+	if (override_rotation < 0){
+		if (this->current_zoom_mode_is_auto_rotation()){
+			auto res0 = this->compute_zoom(0);
+			auto res1 = this->compute_zoom(1);
+			switch (zoom_mode){
+				case ZoomMode::AutoRotFit:
+					this->ui->label->override_rotation(area(res1.label_size) > area(res0.label_size) ? -90 : 0);
+					break;
+				case ZoomMode::AutoRotFill:
+					this->ui->label->override_rotation(area(res1.label_size) < area(res0.label_size) ? -90 : 0);
+					break;
+			}
+		}
+	}else
+		this->ui->label->override_rotation(override_rotation ? -90 : 0);
+
+	auto label_size = this->ui->label->compute_size_no_zoom(image_size);
+	double label_ratio = ratio(label_size);
+
 	auto zoom = this->get_current_zoom();
-	switch (this->get_current_zoom_mode()){
+	switch (zoom_mode){
 		case ZoomMode::Normal:
 			zoom = 1;
 			break;
 		case ZoomMode::Locked:
 			break;
 		case ZoomMode::AutoFit:
-			if (dr < pr)
-				zoom = (double)ds.width() / (double)ps.width();
+		case ZoomMode::AutoRotFit:
+			if (label_ratio IS_WIDER desktop_ratio)
+				zoom = (double)desktop_size.width() / (double)label_size.width();
 			else
-				zoom = (double)ds.height() / (double)ps.height();
+				zoom = (double)desktop_size.height() / (double)label_size.height();
 			break;
 		case ZoomMode::AutoFill:
-			if (dr > pr)
-				zoom = (double)ds.width() / (double)ps.width();
+		case ZoomMode::AutoRotFill:
+			if (desktop_ratio IS_WIDER label_ratio)
+				zoom = (double)desktop_size.width() / (double)label_size.width();
 			else
-				zoom = (double)ds.height() / (double)ps.height();
+				zoom = (double)desktop_size.height() / (double)label_size.height();
 			break;
 	}
-	this->set_current_zoom(zoom);
+	label_size = this->ui->label->compute_size(image_size, zoom);
+	if (override_rotation >= 0)
+		this->ui->label->set_transform(old_transform);
+	return { zoom, label_size };
+}
+
+void MainWindow::set_zoom(){
+	this->set_current_zoom(this->compute_zoom().zoom);
 }
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){

@@ -28,8 +28,16 @@ class ImageViewport : public QLabel
 		ret.scale(this->zoom, this->zoom);
 		return ret;
 	}
+	QMatrix get_final_transform(double zoom) const{
+		auto ret = this->transform;
+		ret.scale(zoom, zoom);
+		return ret;
+	}
 	Quadrangular compute_quad(const QSize &size) const{
 		return Quadrangular(size) * this->get_final_transform();
+	}
+	Quadrangular compute_quad(const QSize &size, double zoom) const{
+		return Quadrangular(size) * this->get_final_transform(zoom);
 	}
 	Quadrangular compute_quad_no_zoom(const QSize &size) const{
 		return Quadrangular(size) * this->transform;
@@ -47,21 +55,23 @@ public:
 		this->zoom = x;
 	}
 	void rotate(double delta_theta);
+	void override_rotation(double delta_theta);
 	void update_size(){
 		this->resize(this->get_size());
 	}
-	void compute_size(QSize &size) const{
-		size = this->compute_quad(size).get_bounding_box().size().toSize();
+	QSize compute_size(const QSize &size) const{
+		return this->compute_quad(size).get_bounding_box().size().toSize();
 	}
-	void compute_size_no_zoom(QSize &size) const{
-		size = this->compute_quad_no_zoom(size).get_bounding_box().size().toSize();
+	QSize compute_size_no_zoom(const QSize &size) const{
+		return this->compute_quad_no_zoom(size).get_bounding_box().size().toSize();
+	}
+	QSize compute_size(const QSize &size, double zoom) const{
+		return this->compute_quad(size, zoom).get_bounding_box().size().toSize();
 	}
 	QSize get_size() const{
 		if (!this->pixmap() && !this->movie())
 			return QSize(800, 600);
-		auto ret = this->image_size;
-		this->compute_size(ret);
-		return ret;
+		return this->compute_size(this->image_size);
 	}
 	QRect get_geometry() const{
 		auto ret = this->geometry();
