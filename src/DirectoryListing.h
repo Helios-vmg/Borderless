@@ -66,7 +66,7 @@ private:
 	CustomProtocolHandler *handler;
 	ProtocolFileEnumerator enumerator;
 
-	list_t::element_type &get_result();
+	list_t get_result();
 	static ProtocolDirectoryListing::list_t get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler);
 public:
 	ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &);

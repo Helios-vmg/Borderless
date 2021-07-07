@@ -202,10 +202,10 @@ ProtocolDirectoryListing::list_t ProtocolDirectoryListing::get_protocol_entries(
 	return ret;
 }
 
-ProtocolDirectoryListing::list_t::element_type &ProtocolDirectoryListing::get_result(){
+ProtocolDirectoryListing::list_t ProtocolDirectoryListing::get_result(){
 	if (!this->future_result)
 		this->future_result = this->future.result();
-	return *this->future_result;
+	return this->future_result;
 }
 
 ProtocolDirectoryListing::ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &handler): handler(&handler){
@@ -216,11 +216,15 @@ ProtocolDirectoryListing::ProtocolDirectoryListing(const QString &path, CustomPr
 }
 
 size_t ProtocolDirectoryListing::size(){
-	return this->get_result().size();
+	auto result = this->get_result();
+	return !result ? 0 : result->size();
 }
 
 QString ProtocolDirectoryListing::operator[](size_t i){
-	return this->get_result()[i];
+	auto result = this->get_result();
+	if (!result)
+		return {};
+	return (*result)[i];
 }
 
 bool ProtocolDirectoryListing::find(size_t &dst, const QString &s){
@@ -231,14 +235,18 @@ bool ProtocolDirectoryListing::find(size_t &dst, const QString &s){
 }
 
 bool ProtocolDirectoryListing::operator==(const QString &path){
-	return this->get_result().size() && this->handler->paths_in_same_directory(this->get_result().front(), path);
+	auto result = this->get_result();
+	return result && result->size() && this->handler->paths_in_same_directory(result->front(), path);
 }
 
 QString ProtocolDirectoryListing::get_filename(size_t i){
 	auto it = this->filenames.find(i);
 	if (it != this->filenames.end())
 		return it->second;
-	auto ret = handler->get_filename(this->get_result()[i]);
+	auto result = this->get_result();
+	if (!result || i >= result->size())
+		return {};
+	auto ret = handler->get_filename((*result)[i]);
 	this->filenames[i] = ret;
 	return ret;
 }

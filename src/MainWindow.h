@@ -177,6 +177,9 @@ public:
 	ImageViewerApplication &get_app(){
 		return *this->app;
 	}
+	bool is_loaded() const{
+		return !!this->displayed_image;
+	}
 
 public slots:
 	void label_transform_updated();

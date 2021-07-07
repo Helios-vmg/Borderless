@@ -85,6 +85,10 @@ void ImageViewerApplication::new_instance(const QStringList &args){
 }
 
 void ImageViewerApplication::add_window(sharedp_t p){
+	if (!p->is_loaded()){
+		p->close();
+		return;
+	}
 	connect(p.get(), SIGNAL(closing(MainWindow *)), this, SLOT(window_closing(MainWindow *)));
 	p->show();
 	p->raise();
