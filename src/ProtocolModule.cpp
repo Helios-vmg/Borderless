@@ -167,6 +167,9 @@ CustomProtocolHandler::CustomProtocolHandler(const QString &config_location){
 
 	auto lines = read_all_lines_from_file(list_file);
 
+	auto old = QDir::current();
+	QDir::setCurrent(protocols_location);
+
 	for (auto &line : lines){
 		auto mod = std::make_unique<ProtocolModule>(protocols_location + line, config_location, protocols_location);
 		if (!*mod)
@@ -175,6 +178,8 @@ CustomProtocolHandler::CustomProtocolHandler(const QString &config_location){
 		to_lower(proto);
 		this->modules[proto] = std::move(mod);
 	}
+
+	QDir::setCurrent(old.absolutePath());
 }
 
 // Equivalent to regex ^([A-Za-z][A-Za-z0-9+.\-]*)\://.*
