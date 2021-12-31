@@ -62,7 +62,7 @@ bool MainWindow::set_cursor_flags(const MouseEvent &ev){
 	if (!ev.button_sum)
 		rm = this->get_resize_mode(ev.relative);
 	else{
-		if (!left)
+		if (!ev.left)
 			this->resize_mode = ResizeMode::None;
 		rm = this->resize_mode;
 	}
