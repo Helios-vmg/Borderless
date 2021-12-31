@@ -21,6 +21,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QCryptographicHash>
 #include <random>
 #include <QJsonDocument>
+#include <memory>
 
 template <typename T>
 class AutoSetter{

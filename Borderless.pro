@@ -26,7 +26,7 @@ QT += core gui network widgets
 
 TARGET = Borderless
 TEMPLATE = app
-QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -std=c++14
 INCLUDEPATH += $$PWD/src
 
 SOURCES +=  src/DirectoryListing.cpp          \
@@ -45,7 +45,8 @@ SOURCES +=  src/DirectoryListing.cpp          \
             src/Shortcuts.cpp                 \
             src/Streams.cpp                   \
             src/SingleInstanceApplication.cpp \
-            src/ZoomModeDropDown.cpp
+            src/ZoomModeDropDown.cpp          \
+            src/ProtocolModule.cpp
 
 HEADERS += src/DirectoryListing.h          \
            src/Enums.h                     \
@@ -66,7 +67,8 @@ HEADERS += src/DirectoryListing.h          \
            src/stdafx.h                    \
            src/StreamRedirector.h          \
            src/Streams.h                   \
-           src/ZoomModeDropDown.h
+           src/ZoomModeDropDown.h          \
+           src/ProtocolModule.h
 
 FORMS += src/InfoDialog.ui        \
          src/MainWindow.ui        \
