@@ -79,6 +79,11 @@ ImageViewerApplication::~ImageViewerApplication(){
 void ImageViewerApplication::new_instance(const QStringList &args){
 	if (args.size() < 2 && !this->app_state)
 		this->restore_state_only();
+	else if (this->get_state_is_empty()){
+		this->app_state = std::make_shared<ApplicationState>();
+		this->state_is_empty = false;
+	}
+	
 	auto p = std::make_shared<MainWindow>(*this, args);
 	if (!p->is_null())
 		this->add_window(p);
@@ -492,4 +497,22 @@ void ImageViewerApplication::turn_transparent(MainWindow &window, bool yes){
 	else
 		new_window = std::make_shared<MainWindow>(*this, state);
 	this->add_window(new_window);
+}
+
+bool ImageViewerApplication::get_state_is_empty(){
+	if (this->state_is_empty)
+		return *this->state_is_empty;
+	auto as = autoset(this->restoring_state, true);
+	auto json = this->load_json(this->get_state_filename(), this->last_saved_state_digest);
+	if (json.isNull()){
+		this->state_is_empty = true;
+		return true;
+	}
+	StateFile state(json.object());
+	if (!state.state->get_windows().size()){
+		this->state_is_empty = true;
+		return true;
+	}
+	this->state_is_empty = false;
+	return false;
 }

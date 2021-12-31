@@ -18,6 +18,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <exception>
 #include <QSystemTrayIcon>
 #include <QWindow>
+#include <optional>
 
 class QAction;
 class CustomProtocolHandler;
@@ -40,6 +41,7 @@ class ImageViewerApplication : public SingleInstanceApplication{
 		state_filename;
 	bool restoring_settings = false;
 	bool restoring_state = false;
+	std::optional<bool> state_is_empty;
 
 	std::shared_ptr<MainSettings> settings;
 	std::shared_ptr<ApplicationState> app_state;
@@ -63,6 +65,7 @@ class ImageViewerApplication : public SingleInstanceApplication{
 	void reset_tray_menu();
 	void conditional_tray_show();
 	std::unique_ptr<CustomProtocolHandler> protocol_handler;
+	bool get_state_is_empty();
 
 protected:
 	void new_instance(const QStringList &args) override;

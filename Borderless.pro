@@ -26,7 +26,7 @@ QT += core gui network widgets
 
 TARGET = Borderless
 TEMPLATE = app
-QMAKE_CXXFLAGS += -std=c++14
+QMAKE_CXXFLAGS += -std=c++17
 INCLUDEPATH += $$PWD/src
 
 SOURCES +=  src/DirectoryListing.cpp          \
