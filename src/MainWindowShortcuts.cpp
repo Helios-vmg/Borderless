@@ -72,6 +72,7 @@ void MainWindow::setup_shortcut(const QKeySequence &sequence, const char *slot){
 }
 
 void MainWindow::quit_slot(){
+	this->app->about_to_quit();
 	this->app->quit();
 }
 

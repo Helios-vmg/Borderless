@@ -12,23 +12,23 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "Settings.h"
 #include <QLabel>
 #include <QImage>
-#include <QMatrix>
+#include <QTransform>
 
 class LoadedGraphics;
 
 class ImageViewport : public QLabel
 {
 	Q_OBJECT
-	QMatrix transform;
+	QTransform transform;
 	double zoom;
 	QSize image_size;
 
-	QMatrix get_final_transform() const{
+	QTransform get_final_transform() const{
 		auto ret = this->transform;
 		ret.scale(this->zoom, this->zoom);
 		return ret;
 	}
-	QMatrix get_final_transform(double zoom) const{
+	QTransform get_final_transform(double zoom) const{
 		auto ret = this->transform;
 		ret.scale(zoom, zoom);
 		return ret;
@@ -78,10 +78,10 @@ public:
 		ret.setSize(this->get_size());
 		return ret;
 	}
-	QMatrix get_transform(){
+	QTransform get_transform(){
 		return this->transform;
 	}
-	void set_transform(const QMatrix &);
+	void set_transform(const QTransform &);
 	void flip(bool hor);
 
 	void save_state(WindowState &) const;

@@ -11,7 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QSize>
 #include <QRect>
 #include <QPoint>
-#include <QMatrix>
+#include <QTransform>
 #include "Misc.h"
 
 class Quadrangular{
@@ -35,7 +35,7 @@ public:
 		this->set_size(rect.size());
 		this->move(rect.topLeft());
 	}
-	const Quadrangular &operator*=(const QMatrix &transform){
+	const Quadrangular &operator*=(const QTransform &transform){
 		for (auto &p : this->corners)
 			p = transform.map(p);
 		return *this;

@@ -71,10 +71,7 @@ ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QSt
 	this->setup_slots();
 }
 
-ImageViewerApplication::~ImageViewerApplication(){
-	this->save_settings();
-	this->windows.clear();
-}
+ImageViewerApplication::~ImageViewerApplication(){}
 
 void ImageViewerApplication::new_instance(const QStringList &args){
 	if (args.size() < 2 && !this->app_state)
@@ -273,6 +270,7 @@ void ImageViewerApplication::show_options(){
 void ImageViewerApplication::quit_and_discard_state(){
 	this->save_settings(false);
 	this->do_not_save = true;
+	this->about_to_quit();
 	this->quit();
 }
 
@@ -315,14 +313,14 @@ void ImageViewerApplication::restore_state_only(){
 	this->restore_current_state(*this->app_state);
 }
 
-void ImageViewerApplication::resolution_change(int screen){
+void ImageViewerApplication::resolution_change(QScreen &screen, const QRect &resolution){
 	for (auto &i : this->windows)
-		i.second->resolution_change(screen);
+		i.second->resolution_change(screen, resolution);
 }
 
-void ImageViewerApplication::work_area_change(int screen){
+void ImageViewerApplication::work_area_change(QScreen &screen, const QRect &resolution){
 	for (auto &i : this->windows)
-		i.second->work_area_change(screen);
+		i.second->work_area_change(screen, resolution);
 }
 
 void ImageViewerApplication::minimize_all(){
@@ -344,7 +342,7 @@ QString get_config_location(bool strip_last_item = true){
 	QString ret;
 	auto list = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
 	if (!list.size())
-		return QString::null;
+		return {};
 	ret = list[0];
 	if (strip_last_item){
 		int index = ret.lastIndexOf('/');
@@ -358,7 +356,7 @@ QString get_config_location(bool strip_last_item = true){
 	ret += c;
 	QDir dir(ret);
 	if (!dir.mkpath(ret))
-		return QString::null;
+		return {};
 	return ret;
 }
 
@@ -388,8 +386,8 @@ QString ImageViewerApplication::get_state_filename(){
 }
 
 void ImageViewerApplication::setup_slots(){
-	connect(this->desktop(), SIGNAL(resized(int)), this, SLOT(resolution_change(int)));
-	connect(this->desktop(), SIGNAL(workAreaResized(int)), this, SLOT(work_area_change(int)));
+	connect(this, SIGNAL(screenAdded(QScreen *)), this, SLOT(screen_added(QScreen *)));
+	connect(this, SIGNAL(screenRemoved(QScreen *)), this, SLOT(screen_removed(QScreen *)));
 }
 
 void ImageViewerApplication::reset_tray_menu(){
@@ -469,7 +467,7 @@ QString ImageViewerApplication::get_filename_from_url(const QString &url){
 
 QString get_per_user_unique_id(){
 	auto location = get_config_location(false);
-	if (location == QString::null)
+	if (location.isNull())
 		return "";
 	location += "user_id.txt";
 	QFile file(location);
@@ -515,4 +513,38 @@ bool ImageViewerApplication::get_state_is_empty(){
 	}
 	this->state_is_empty = false;
 	return false;
+}
+
+void ImageViewerApplication::screen_added(QScreen *screen){
+	auto s = screen->serialNumber();
+	auto cb = std::make_unique<ResolutionChangeCallback>(*this, *screen);
+	connect(screen, SIGNAL(geometryChanged(const QRect &)), cb.get(), SLOT(resolution_change(const QRect &)));
+	connect(screen, SIGNAL(availableGeometryChanged(const QRect &)), cb.get(), SLOT(work_area_change(const QRect &)));
+	this->rccbs[s] = std::move(cb);
+}
+
+void ImageViewerApplication::screen_removed(QScreen *screen){
+	this->rccbs.erase(screen->serialNumber());
+}
+
+ResolutionChangeCallback::ResolutionChangeCallback(ImageViewerApplication &app, QScreen &screen)
+	: app(&app)
+	, screen(&screen){}
+
+void ResolutionChangeCallback::resolution_change(const QRect &geometry){
+	this->app->resolution_change(*this->screen, geometry);
+}
+
+void ResolutionChangeCallback::work_area_change(const QRect &geometry){
+	this->app->work_area_change(*this->screen, geometry);
+}
+
+std::string unique_identifier(QScreen &screen){
+	auto s = screen.manufacturer() + "/" + screen.model() + "/" + screen.name() + "/" + screen.serialNumber();
+	return s.toStdString();
+}
+
+void ImageViewerApplication::about_to_quit(){
+	this->save_settings();
+	this->windows.clear();
 }

@@ -126,7 +126,7 @@ QString ProtocolModule::get_parent(const QString &path){
 	auto wc = this->get_parent_directory(this->client, temp.c_str());
 	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
 	if (!wc)
-		return QString::null;
+		return {};
 	return QString::fromWCharArray(wc);
 }
 
@@ -141,14 +141,14 @@ QString ProtocolModule::get_filename(const QString &path){
 	auto wc = this->get_filename_from_url(this->client, temp.c_str());
 	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
 	if (!wc)
-		return QString::null;
+		return {};
 	return QString::fromWCharArray(wc);
 }
 
 std::vector<QString> read_all_lines_from_file(QFile &file){
 	std::vector<QString> lines;
 	QTextStream stream(&file);
-	stream.setCodec("UTF-8");
+	stream.setEncoding(QStringConverter::Utf8);
 	while (!stream.atEnd()){
 		auto line = stream.readLine();
 		lines.push_back(line);

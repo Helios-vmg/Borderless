@@ -78,11 +78,11 @@ void LoadedImage::compute_average_color(QImage img){
 }
 
 void LoadedImage::assign_to_QLabel(QLabel &label){
-	label.setPixmap(this->image);
+	label.setPixmap(this->image.result());
 }
 
 QImage LoadedImage::get_QImage() const{
-	return ((QPixmap)this->image).toImage();
+	return this->image.result().toImage();
 }
 
 LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, const QString &path){

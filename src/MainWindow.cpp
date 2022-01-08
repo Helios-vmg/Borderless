@@ -65,17 +65,12 @@ void MainWindow::init(bool restoring){
 	this->set_desktop_size();
 	assert(this->desktop_sizes.size());
 	if (restoring){
-		auto index = this->app->desktop()->screenNumber(this->pos());
-		if (index < 0 || index >= this->desktop_sizes.size())
-			index = 0;
-		this->current_desktop = index;
-		this->move(this->desktop_sizes[index].topLeft());
+		this->current_desktop = unique_identifier(*this->screen());
+		this->move(this->desktop_sizes[this->current_desktop].topLeft());
 	}else{
-		auto index = this->app->desktop()->screenNumber(QCursor::pos());
-		if (index < 0 || index >= this->desktop_sizes.size())
-			index = 0;
-		this->current_desktop = index;
-		auto pos = this->desktop_sizes[index].topLeft();
+		auto screen = this->app->screenAt(QCursor::pos());
+		this->current_desktop = unique_identifier(*this->screen());
+		auto pos = this->desktop_sizes[this->current_desktop].topLeft();
 		this->move(pos);
 		this->window_rect.moveTopLeft(pos);
 	}
@@ -87,35 +82,21 @@ void MainWindow::init(bool restoring){
 	connect(this->ui->label, SIGNAL(transform_updated()), this, SLOT(label_transform_updated()));
 }
 
-int MainWindow::get_current_desktop_number(){
-	auto ret = this->app->desktop()->screenNumber(this->pos());
-	if (ret < 0)
-		ret = 0;
-	return ret;
-}
-
-void MainWindow::set_current_desktop_and_fix_positions_by_window_position(int old_desktop){
-	this->current_desktop = this->get_current_desktop_number();
+void MainWindow::set_current_desktop_and_fix_positions_by_window_position(std::string old_desktop){
+	this->current_desktop = unique_identifier(*this->screen());
 	if (this->current_desktop != old_desktop)
 		this->fix_positions_and_zoom();
 }
 
 void MainWindow::set_desktop_size(){
-	auto n = this->app->desktop()->screenCount();
-	for (decltype(n) i = 0; i < n; i++)
-		this->set_desktop_size(i);
+	for (auto s : this->app->screens())
+		this->set_desktop_size(*s);
 }
 
-void MainWindow::set_desktop_size(int screen){
-	assert(screen >= 0);
-	assert(this->desktop_sizes.size() == this->screen_sizes.size());
-	if (this->desktop_sizes.size() <= screen){
-		this->desktop_sizes.resize(screen + 1);
-		this->screen_sizes.resize(screen + 1);
-	}
-	this->desktop_sizes[screen] = this->app->desktop()->availableGeometry(screen);
-	this->desktop_sizes[screen].setHeight(this->desktop_sizes[screen].height()); //???
-	this->screen_sizes[screen] = this->app->desktop()->screenGeometry(screen);
+void MainWindow::set_desktop_size(QScreen &screen){
+	auto s = unique_identifier(screen);
+	this->desktop_sizes[s] = screen.availableGeometry();
+	this->screen_sizes[s] = screen.geometry();
 }
 
 void MainWindow::save_image_pos(bool force){
@@ -153,10 +134,10 @@ int area(const QSize &size){
 #define IS_WIDER >
 
 MainWindow::ZoomResult MainWindow::compute_zoom(int override_rotation){
-	auto screen_number = this->get_current_desktop_number();
-	auto desktop_size = this->desktop_sizes[screen_number].size();
+	auto &screen = this->current_desktop;
+	auto desktop_size = this->desktop_sizes[screen].size();
 	if (this->window_state->get_fullscreen())
-		desktop_size = this->screen_sizes[screen_number].size();
+		desktop_size = this->screen_sizes[screen].size();
 
 	auto image_size = this->displayed_image->get_size();
 	double desktop_ratio = ratio(desktop_size);
@@ -328,8 +309,7 @@ void MainWindow::resize_to_max(bool do_not_enlarge){
 	label->resize(label_size);
 	auto rect = this->geometry();
 	if (this->app->get_option_values()->get_resize_windows_on_monitor_change()){
-		auto screen_number = this->get_current_desktop_number();
-		auto ds = this->desktop_sizes[screen_number];
+		auto ds = this->desktop_sizes[this->current_desktop];
 		auto new_size = ds.size();
 		new_size = label->size().boundedTo(new_size);
 		if (do_not_enlarge)
@@ -576,17 +556,15 @@ void MainWindow::cleanup(){
 	this->directory_iterator.reset();
 }
 
-void MainWindow::resolution_change(int screen){
-	auto desktop = this->app->desktop();
-	int this_screen = desktop->screenNumber(this);
-	if (screen != this_screen)
+void MainWindow::resolution_change(QScreen &screen, const QRect &resolution){
+	this->set_desktop_size(screen);
+	if (&screen != this->screen())
 		return;
-	this->set_desktop_size(this_screen);
 	this->fix_positions_and_zoom();
 }
 
 void MainWindow::resolution_to_window_size(){
-	this->setGeometry(this->screen_sizes[this->get_current_desktop_number()]);
+	this->setGeometry(this->screen_sizes[this->current_desktop]);
 }
 
 void MainWindow::fix_positions_and_zoom(bool do_not_enlarge){
@@ -600,12 +578,10 @@ void MainWindow::fix_positions_and_zoom(bool do_not_enlarge){
 	this->ui->label->repaint();
 }
 
-void MainWindow::work_area_change(int screen){
-	auto desktop = this->app->desktop();
-	int this_screen = desktop->screenNumber(this);
-	if (screen != this_screen)
+void MainWindow::work_area_change(QScreen &screen, const QRect &resolution){
+	this->set_desktop_size(screen);
+	if (&screen != this->screen())
 		return;
-	this->set_desktop_size(this_screen);
 	this->fix_positions_and_zoom();
 }
 
@@ -639,11 +615,11 @@ void MainWindow::transparent_background(){
 	this->close();
 }
 
-QMatrix MainWindow::get_image_transform() const{
+QTransform MainWindow::get_image_transform() const{
 	return this->ui->label->get_transform();
 }
 
-double MainWindow::set_image_transform(const QMatrix &m){
+double MainWindow::set_image_transform(const QTransform &m){
 	this->ui->label->set_transform(m);
 	this->fix_positions_and_zoom();
 	return this->window_state->get_zoom();

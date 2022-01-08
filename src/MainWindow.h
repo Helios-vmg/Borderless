@@ -10,7 +10,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include <QMainWindow>
 #include <QMouseEvent>
-#include <QDesktopWidget>
+#include <QScreen>
 #include "LoadedImage.h"
 #include "DirectoryListing.h"
 #include "ImageViewerApplication.h"
@@ -44,9 +44,9 @@ class MainWindow : public QMainWindow{
 protected:
 	std::shared_ptr<Ui::MainWindow> ui;
 	ImageViewerApplication *app;
-	std::vector<QRect> desktop_sizes,
+	std::map<std::string, QRect> desktop_sizes,
 		screen_sizes;
-	int current_desktop = -1;
+	std::string current_desktop;
 	QRect window_rect;
 	QPoint first_mouse_pos,
 		first_window_pos,
@@ -105,10 +105,9 @@ protected:
 	void change_zoom(bool in);
 	void apply_zoom(bool, double);
 	void offset_image(const QPoint &);
-	int get_current_desktop_number();
-	void set_current_desktop_and_fix_positions_by_window_position(int old_desktop);
+	void set_current_desktop_and_fix_positions_by_window_position(std::string old_desktop);
 	void set_desktop_size();
-	void set_desktop_size(int screen);
+	void set_desktop_size(QScreen &);
 	void set_iterator();
 	double get_current_zoom() const;
 	void set_current_zoom(double);
@@ -156,15 +155,15 @@ public:
 	bool is_null() const{
 		return !this->displayed_image || this->displayed_image->is_null();
 	}
-	void resolution_change(int screen);
-	void work_area_change(int screen);
+	void resolution_change(QScreen &screen, const QRect &resolution);
+	void work_area_change(QScreen &screen, const QRect &resolution);
 	void resize_window_rect(const QSize &);
 	void move_window_rect(const QPoint &);
 	void set_window_rect(const QRect &);
-	QMatrix get_image_transform() const;
+	QTransform get_image_transform() const;
 	double get_image_zoom() const;
 	void set_image_zoom(double);
-	double set_image_transform(const QMatrix &);
+	double set_image_transform(const QTransform &);
 	void setup_shortcuts();
 	void build_context_menu(QMenu &main_menu);
 	bool current_zoom_mode_is_auto() const{

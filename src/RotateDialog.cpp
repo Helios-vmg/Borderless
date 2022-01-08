@@ -28,8 +28,7 @@ RotateDialog::RotateDialog(MainWindow &parent) :
 	this->rotation_slider_changed(0);
 	this->set_scale();
 	this->geometry_set = false;
-	auto desktop = this->main_window.get_app().desktop();
-	auto h = 22 * desktop->logicalDpiY() / 96;
+	auto h = 22 * this->screen()->logicalDotsPerInchY() / 96;
 	this->ui->rotation_slider->setMinimumHeight(h);
 	this->ui->scale_slider->setMinimumHeight(h);
 
@@ -55,7 +54,7 @@ void RotateDialog::resizeEvent(QResizeEvent *e){
 }
 
 void RotateDialog::do_transform(bool set_zoom){
-	auto scale = this->main_window.set_image_transform(this->transform * QMatrix().rotate(this->rotation));
+	auto scale = this->main_window.set_image_transform(this->transform * QTransform().rotate(this->rotation));
 	if (!this->main_window.current_zoom_mode_is_auto() || set_zoom && !this->in_do_transform)
 		this->main_window.set_image_zoom(this->scale);
 	else{

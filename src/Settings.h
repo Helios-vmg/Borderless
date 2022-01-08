@@ -14,7 +14,7 @@
 #include <QString>
 #include <QPoint>
 #include <QSize>
-#include <QMatrix>
+#include <QTransform>
 
 class QJsonObject;
 class QJsonValue;
@@ -50,7 +50,7 @@ class WindowState : public Serializable{
 	int fullscreen_zoom_mode;
 	int border_size;
 	int movement_size;
-	QMatrix transform;
+	QTransform transform;
 	bool using_checkerboard_pattern_updated = false; //Not saved.
 public:
 	WindowState();

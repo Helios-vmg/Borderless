@@ -23,8 +23,21 @@ Distributed under a permissive license. See COPYING.txt for details.
 class QAction;
 class CustomProtocolHandler;
 struct lua_State;
+class ImageViewerApplication;
 
 class NoWindowsException : public std::exception{};
+
+class ResolutionChangeCallback : public QObject{
+	Q_OBJECT
+
+	ImageViewerApplication *app;
+	QScreen *screen;
+public:
+	ResolutionChangeCallback(ImageViewerApplication &, QScreen &);
+public slots:
+	void resolution_change(const QRect &geometry);
+	void work_area_change(const QRect &geometry);
+};
 
 class ImageViewerApplication : public SingleInstanceApplication{
 	Q_OBJECT
@@ -51,6 +64,7 @@ class ImageViewerApplication : public SingleInstanceApplication{
 		last_tray_context_menu;
 	QByteArray last_saved_settings_digest;
 	QByteArray last_saved_state_digest;
+	std::map<QString, std::unique_ptr<ResolutionChangeCallback>> rccbs;
 
 	void save_current_state(ApplicationState &);
 	void save_current_windows(std::vector<std::shared_ptr<WindowState>> &);
@@ -123,17 +137,22 @@ public:
 	bool is_animation(const QString &);
 	QString get_filename_from_url(const QString &);
 	void turn_transparent(MainWindow &window, bool yes);
+	void about_to_quit();
 
 public slots:
 	void window_closing(MainWindow *);
 	void show_options();
-	void resolution_change(int screen);
-	void work_area_change(int screen);
+	void screen_added(QScreen *);
+	void screen_removed(QScreen *);
+	void resolution_change(QScreen &, const QRect &);
+	void work_area_change(QScreen &, const QRect &);
 	void quit_slot(){
+		this->about_to_quit();
 		this->quit();
 	}
 };
 
 QString get_per_user_unique_id();
+std::string unique_identifier(QScreen &);
 
 #endif // IMAGEVIEWERAPPLICATION_H

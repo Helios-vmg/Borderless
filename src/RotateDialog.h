@@ -17,7 +17,7 @@ class RotateDialog : public QDialog{
 	Q_OBJECT
 	std::shared_ptr<Ui_RotateDialog> ui;
 	MainWindow &main_window;
-	QMatrix transform;
+	QTransform transform;
 	bool result;
 	double rotation,
 		original_scale,

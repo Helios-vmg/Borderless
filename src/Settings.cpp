@@ -128,9 +128,9 @@ void parse_json(QSize &dst, QJsonObject &json, const char *name, const QSize &de
 	dst.setHeight(obj[json_string_h].toInt());
 }
 
-void parse_json(QMatrix &dst, QJsonObject &json, const char *name, const QMatrix &default_value = {}){
+void parse_json(QTransform &dst, QJsonObject &json, const char *name, const QTransform &default_value = {}){
 	auto it = json.find(name);
-	dst = QMatrix();
+	dst = QTransform();
 	if (it == json.end()){
 		dst = default_value;
 		return;
@@ -144,7 +144,7 @@ void parse_json(QMatrix &dst, QJsonObject &json, const char *name, const QMatrix
 	double m[4];
 	for (int i = 0; i < 4; i++)
 		m[i] = array[i].toDouble();
-	dst = QMatrix(m[0], m[2], m[1], m[3], 0, 0);
+	dst = QTransform(m[0], m[2], m[1], m[3], 0, 0);
 }
 
 template <typename T>
@@ -166,7 +166,7 @@ void set_value(QJsonValueRef &&dst, const QSize &src){
 	dst = temp;
 }
 
-void set_value(QJsonValueRef &&dst, const QMatrix &src){
+void set_value(QJsonValueRef &&dst, const QTransform &src){
 	QJsonArray temp;
 	temp.push_back(src.m11());
 	temp.push_back(src.m21());

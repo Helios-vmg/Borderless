@@ -140,7 +140,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 #undef FTEMP
 
 bool MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
-	auto ds = this->app->desktop()->availableGeometry(mouse_position);
+	auto ds = this->app->screenAt(mouse_position)->availableGeometry();
 	int left = 0,
 		top = 0,
 		right = 0,
@@ -286,7 +286,7 @@ bool MainWindow::force_keep_window_in_desktop(){
 QPoint MainWindow::compute_movement(const QPoint &_new_position, const QPoint &mouse_position){
 	auto new_position = _new_position;
 	if (this->perform_clamping()){
-		auto ds = this->app->desktop()->availableGeometry(mouse_position);
+		auto ds = this->app->screenAt(mouse_position)->availableGeometry();
 		int x[] = {
 			ds.x(),
 			ds.x() + ds.width() - this->size().width(),

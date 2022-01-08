@@ -16,6 +16,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <sstream>
 #include <string>
 #include <iomanip>
+#include <QIODevice>
 
 template <typename T1, typename T2>
 std::basic_string<T1> itoa(const T2 &x, unsigned w = 0){

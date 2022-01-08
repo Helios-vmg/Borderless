@@ -11,7 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QString>
 #include <QLibrary>
 #include <QIODevice>
-#include <QRegExp>
+#include <QtCore5Compat/QRegExp>
 #include <string>
 #include <unordered_map>
 #include <memory>
