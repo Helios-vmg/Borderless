@@ -38,3 +38,4 @@ Installer/custom/lib/
 Installer/custom/redist/*
 /lib/clang/
 *.db
+/.vs/

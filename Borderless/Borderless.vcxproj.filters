@@ -142,12 +142,6 @@
     <ClCompile Include="GeneratedFiles\Release\moc_ImageViewerApplication.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\DebugRelease\moc_ClangErrorMessage.cpp">
-      <Filter>Generated Files\DebugRelease</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_ClangErrorMessage.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -193,7 +187,7 @@
       <Filter>Form Files</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\ProtocolModule.h">
-      <Filter>Header Files</Filter> 
+      <Filter>Header Files</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
