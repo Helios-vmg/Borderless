@@ -69,7 +69,7 @@ void MainWindow::init(bool restoring){
 		this->move(this->desktop_sizes[this->current_desktop].topLeft());
 	}else{
 		auto screen = this->app->screenAt(QCursor::pos());
-		this->current_desktop = unique_identifier(*this->screen());
+		this->current_desktop = unique_identifier(*screen);
 		auto pos = this->desktop_sizes[this->current_desktop].topLeft();
 		this->move(pos);
 		this->window_rect.moveTopLeft(pos);

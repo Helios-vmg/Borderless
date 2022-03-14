@@ -30,6 +30,7 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->ui->label->move(this->window_state->get_label_pos());
 	auto pos = this->window_state->get_pos();
 	this->move(pos);
+	this->current_desktop = unique_identifier(*this->screen());
 	this->window_rect.moveTopLeft(pos);
 	if (!success)
 		return;
