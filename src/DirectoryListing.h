@@ -39,6 +39,10 @@ public:
 	virtual bool operator==(const QString &path) = 0;
 	virtual bool is_local() const = 0;
 	virtual QString get_filename(size_t) = 0;
+	virtual QString get_unique_filename(size_t i){
+		return this->get_filename(i);
+	}
+	virtual void sync(){}
 };
 
 class LocalDirectoryListing : public DirectoryListing{
@@ -61,10 +65,11 @@ public:
 	typedef std::shared_ptr<std::vector<QString>> list_t;
 private:
 	list_t future_result;
+	std::unordered_map<size_t, QString> unique_filenames;
 	std::unordered_map<size_t, QString> filenames;
+	ProtocolFileEnumerator enumerator;
 	QFuture<list_t> future;
 	CustomProtocolHandler *handler;
-	ProtocolFileEnumerator enumerator;
 
 	list_t get_result();
 	static ProtocolDirectoryListing::list_t get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler);
@@ -78,6 +83,8 @@ public:
 		return false;
 	}
 	QString get_filename(size_t) override;
+	QString get_unique_filename(size_t i) override;
+	void sync() override;
 };
 
 class DirectoryIterator{
@@ -119,7 +126,7 @@ public:
 	}
 	QString get_directory();
 	QString get_current_filename() const{
-		return this->dl->get_filename(this->position);
+		return this->dl->get_unique_filename(this->position);
 	}
 };
 

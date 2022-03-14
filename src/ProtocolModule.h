@@ -31,6 +31,7 @@ class ProtocolModule{
 	typedef const char *(*get_protocol_f)();
 	typedef protocol_client_t *(*initialize_client_f)(const wchar_t *, const wchar_t *);
 	typedef void (*terminate_client_f)(protocol_client_t *);
+	typedef unknown_stream_t *(*open_file_utf8_f)(protocol_client_t *, const char *);
 	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
 	typedef void (*close_file_f)(unknown_stream_t *);
 	typedef std::uint64_t(*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
@@ -46,10 +47,12 @@ class ProtocolModule{
 	typedef const wchar_t *(*get_parent_directory_f)(protocol_client_t *, const wchar_t *);
 	typedef int (*paths_in_same_directory_f)(protocol_client_t *, const wchar_t *, const wchar_t *);
 	typedef const wchar_t *(*get_filename_from_url_f)(protocol_client_t *, const wchar_t *);
+	typedef get_filename_from_url_f get_unique_filename_from_url_f;
 #define DECLARE_FUNCTION_POINTER(x) x##_f x
 	DECLARE_FUNCTION_POINTER(get_protocol);
 	DECLARE_FUNCTION_POINTER(initialize_client);
 	DECLARE_FUNCTION_POINTER(terminate_client);
+	DECLARE_FUNCTION_POINTER(open_file_utf8);
 	DECLARE_FUNCTION_POINTER(open_file_utf16);
 	DECLARE_FUNCTION_POINTER(close_file);
 	DECLARE_FUNCTION_POINTER(read_file);
@@ -63,6 +66,7 @@ class ProtocolModule{
 	DECLARE_FUNCTION_POINTER(get_parent_directory);
 	DECLARE_FUNCTION_POINTER(paths_in_same_directory);
 	DECLARE_FUNCTION_POINTER(get_filename_from_url);
+	DECLARE_FUNCTION_POINTER(get_unique_filename_from_url);
 	protocol_client_t *client;
 
 	class Stream : public QIODevice{
@@ -93,6 +97,8 @@ class ProtocolModule{
 			return this->position >= this->length;
 		}
 	};
+
+	QString get_filename(get_filename_from_url_f, const QString &);
 public:
 	ProtocolModule(const QString &filename, const QString &config_location, const QString &plugins_location);
 	~ProtocolModule();
@@ -107,6 +113,7 @@ public:
 	QString get_parent(const QString &);
 	bool are_paths_in_same_directory(const QString &, const QString &);
 	QString get_filename(const QString &);
+	QString get_unique_filename(const QString &);
 };
 
 class CustomProtocolHandler{
@@ -120,6 +127,7 @@ public:
 	ProtocolFileEnumerator enumerate_siblings(const QString &);
 	QString get_parent_directory(const QString &);
 	QString get_filename(const QString &);
+	QString get_unique_filename(const QString &);
 	bool paths_in_same_directory(const QString &, const QString &);
 };
 

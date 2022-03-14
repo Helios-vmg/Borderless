@@ -151,8 +151,11 @@ void ImageViewerApplication::release_directory(std::shared_ptr<DirectoryIterator
 	if (!found)
 		return;
 	auto *pair = &this->listings[i];
-	if (!--pair->second)
-		this->listings.erase(this->listings.begin() + i);
+	if (!--pair->second){
+		auto j = this->listings.begin() + i;
+		j->first->sync();
+		this->listings.erase(j);
+	}
 }
 
 void ImageViewerApplication::save_current_state(ApplicationState &state){
@@ -463,6 +466,10 @@ bool ImageViewerApplication::is_animation(const QString &path){
 
 QString ImageViewerApplication::get_filename_from_url(const QString &url){
 	return this->protocol_handler->get_filename(url);
+}
+
+QString ImageViewerApplication::get_unique_filename_from_url(const QString &url){
+	return this->protocol_handler->get_unique_filename(url);
 }
 
 QString get_per_user_unique_id(){

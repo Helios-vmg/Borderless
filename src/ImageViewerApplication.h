@@ -136,6 +136,7 @@ public:
 	std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> load_animation(const QString &);
 	bool is_animation(const QString &);
 	QString get_filename_from_url(const QString &);
+	QString get_unique_filename_from_url(const QString &);
 	void turn_transparent(MainWindow &window, bool yes);
 	void about_to_quit();
 

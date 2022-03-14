@@ -34,7 +34,6 @@ TransparentMainWindow::TransparentMainWindow(ImageViewerApplication &app, const 
 	this->ui->solid->hide();
 }
 
-
 MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
@@ -415,13 +414,15 @@ bool MainWindow::open_path_and_display_image(QString path){
 	}
 
 	QString current_filename;
+	QString window_title;
 
 	bool unset = true;
 	if (!this->directory_iterator){
 		auto di = this->app->request_directory_iterator_by_url(path);
 		if (di){
 			this->directory_iterator = di;
-			current_filename = this->app->get_filename_from_url(path);
+			current_filename = this->app->get_unique_filename_from_url(path);
+			window_title = this->app->get_filename_from_url(path);
 			this->window_state->set_file_is_url(true);
 			this->window_state->set_current_url(path);
 			this->window_state->set_current_filename(current_filename);
@@ -429,6 +430,7 @@ bool MainWindow::open_path_and_display_image(QString path){
 		}
 	}else if (!this->directory_iterator->get_is_local()){
 		current_filename = this->directory_iterator->get_current_filename();
+		window_title = this->app->get_filename_from_url(path);
 		this->window_state->set_file_is_url(true);
 		this->window_state->set_current_url(path);
 		this->window_state->set_current_filename(current_filename);
@@ -439,6 +441,7 @@ bool MainWindow::open_path_and_display_image(QString path){
 		split_path(current_directory, current_filename, path);
 		this->window_state->set_current_directory(current_directory);
 		this->window_state->set_current_filename(current_filename);
+		window_title = current_filename;
 		this->window_state->set_file_is_url(false);
 		if (!this->directory_iterator)
 			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
@@ -450,7 +453,7 @@ bool MainWindow::open_path_and_display_image(QString path){
 	}
 	this->color_calculated = false;
 	label->move(0, 0);
-	this->setWindowTitle(current_filename);
+	this->setWindowTitle(window_title);
 	this->displayed_image = li;
 
 	label->reset_transform();

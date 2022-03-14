@@ -20,6 +20,9 @@ Distributed under a permissive license. See COPYING.txt for details.
 	if (!this->x)                           \
 		return;                             \
 }
+#define RESOLVE_FUNCTION_OPT(x) {           \
+	this->x = (x##_f)this->lib.resolve(#x); \
+}
 
 ProtocolModule::ProtocolModule(const QString &filename, const QString &config_location, const QString &plugins_location){
 	this->ok = false;
@@ -32,6 +35,7 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(get_protocol);
 	INIT_FUNCTION(initialize_client);
 	INIT_FUNCTION(terminate_client);
+	INIT_FUNCTION(open_file_utf8);
 	INIT_FUNCTION(open_file_utf16);
 	INIT_FUNCTION(close_file);
 	INIT_FUNCTION(read_file);
@@ -43,13 +47,15 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(get_parent_directory);
 	INIT_FUNCTION(paths_in_same_directory);
 	INIT_FUNCTION(get_filename_from_url);
+	INIT_FUNCTION(get_unique_filename_from_url);
 	INIT_FUNCTION(seek_file);
 	INIT_FUNCTION(file_length);
 
 	RESOLVE_FUNCTION(get_protocol);
 	RESOLVE_FUNCTION(initialize_client);
 	RESOLVE_FUNCTION(terminate_client);
-	RESOLVE_FUNCTION(open_file_utf16);
+	RESOLVE_FUNCTION_OPT(open_file_utf8);
+	RESOLVE_FUNCTION_OPT(open_file_utf16);
 	RESOLVE_FUNCTION(close_file);
 	RESOLVE_FUNCTION(read_file);
 	RESOLVE_FUNCTION(create_sibling_enumerator);
@@ -60,8 +66,11 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION(get_parent_directory);
 	RESOLVE_FUNCTION(paths_in_same_directory);
 	RESOLVE_FUNCTION(get_filename_from_url);
+	RESOLVE_FUNCTION_OPT(get_unique_filename_from_url);
 	RESOLVE_FUNCTION(seek_file);
 	RESOLVE_FUNCTION(file_length);
+	if (!this->open_file_utf8 && !this->open_file_utf16)
+		return;
 
 	auto cl = config_location.toStdWString();
 	auto pl = plugins_location.toStdWString();
@@ -106,8 +115,14 @@ bool ProtocolModule::Stream::seek(qint64 position){
 }
 
 std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
-	auto temp = path.toStdWString();
-	auto stream = this->open_file_utf16(this->client, temp.c_str());
+	unknown_stream_t *stream;
+	if (this->open_file_utf16){
+		auto temp = path.toStdWString();
+		stream = this->open_file_utf16(this->client, temp.c_str());
+	}else{
+		auto temp = path.toStdString();
+		stream = this->open_file_utf8(this->client, temp.c_str());
+	}
 	if (!stream)
 		return nullptr;
 	return std::make_unique<Stream>(this, stream);
@@ -136,13 +151,23 @@ bool ProtocolModule::are_paths_in_same_directory(const QString &a, const QString
 	return this->paths_in_same_directory(this->client, A.c_str(), B.c_str());
 }
 
-QString ProtocolModule::get_filename(const QString &path){
+QString ProtocolModule::get_filename(get_filename_from_url_f f, const QString &path){
 	auto temp = path.toStdWString();
-	auto wc = this->get_filename_from_url(this->client, temp.c_str());
+	auto wc = f(this->client, temp.c_str());
 	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string);
 	if (!wc)
 		return {};
 	return QString::fromWCharArray(wc);
+}
+
+QString ProtocolModule::get_filename(const QString &path){
+	return this->get_filename(this->get_filename_from_url, path);
+}
+
+QString ProtocolModule::get_unique_filename(const QString &path){
+	if (!this->get_unique_filename_from_url)
+		return this->get_unique_filename(path);
+	return this->get_filename(this->get_unique_filename_from_url, path);
 }
 
 std::vector<QString> read_all_lines_from_file(QFile &file){
@@ -264,6 +289,13 @@ QString CustomProtocolHandler::get_filename(const QString &path){
 	if (!mod)
 		return QString();
 	return mod->get_filename(path);
+}
+
+QString CustomProtocolHandler::get_unique_filename(const QString &path){
+	auto mod = this->find_module_by_url(path);
+	if (!mod)
+		return QString();
+	return mod->get_unique_filename(path);
 }
 
 bool CustomProtocolHandler::paths_in_same_directory(const QString &a, const QString &b){

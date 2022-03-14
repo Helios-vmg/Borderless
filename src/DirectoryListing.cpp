@@ -250,3 +250,19 @@ QString ProtocolDirectoryListing::get_filename(size_t i){
 	this->filenames[i] = ret;
 	return ret;
 }
+
+QString ProtocolDirectoryListing::get_unique_filename(size_t i){
+	auto it = this->unique_filenames.find(i);
+	if (it != this->unique_filenames.end())
+		return it->second;
+	auto result = this->get_result();
+	if (!result || i >= result->size())
+		return {};
+	auto ret = handler->get_unique_filename((*result)[i]);
+	this->unique_filenames[i] = ret;
+	return ret;
+}
+
+void ProtocolDirectoryListing::sync(){
+	this->future.waitForFinished();
+}
