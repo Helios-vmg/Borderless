@@ -39,7 +39,6 @@ Source: "{#SourceBasePath}\bin64\{#MyAppExeName}"; DestDir: "{app}\bin"; Flags: 
 Source: "{#SourceBasePath}\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "custom\qt.conf"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "custom\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs
-Source: "{#SourceBasePath}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: ignoreversion deleteafterinstall
 
 [Registry]
 ; Set up Applications subkey
@@ -57,4 +56,3 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\bin\{#MyAppExeName}"; Tas
 
 [Run]
 Filename: "{app}\bin\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-Filename: "{tmp}\vc_redist.x64.exe"; WorkingDir: "{tmp}"; StatusMsg: "Installing vcredist..."; Parameters: "/install /quiet /norestart"; Flags: runascurrentuser waituntilterminated runhidden
