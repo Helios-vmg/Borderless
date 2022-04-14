@@ -47,8 +47,10 @@ class ProtocolModule{
 	typedef const wchar_t *(*get_parent_directory_f)(protocol_client_t *, const wchar_t *);
 	typedef int (*paths_in_same_directory_f)(protocol_client_t *, const wchar_t *, const wchar_t *);
 	typedef const wchar_t *(*get_filename_from_url_f)(protocol_client_t *, const wchar_t *);
+	typedef const wchar_t *(*begin_restore_f)(protocol_client_t *);
+	typedef const wchar_t *(*end_restore_f)(protocol_client_t *);
 	typedef get_filename_from_url_f get_unique_filename_from_url_f;
-#define DECLARE_FUNCTION_POINTER(x) x##_f x
+#define DECLARE_FUNCTION_POINTER(x) x##_f x##_p
 	DECLARE_FUNCTION_POINTER(get_protocol);
 	DECLARE_FUNCTION_POINTER(initialize_client);
 	DECLARE_FUNCTION_POINTER(terminate_client);
@@ -67,6 +69,8 @@ class ProtocolModule{
 	DECLARE_FUNCTION_POINTER(paths_in_same_directory);
 	DECLARE_FUNCTION_POINTER(get_filename_from_url);
 	DECLARE_FUNCTION_POINTER(get_unique_filename_from_url);
+	DECLARE_FUNCTION_POINTER(begin_restore);
+	DECLARE_FUNCTION_POINTER(end_restore);
 	protocol_client_t *client;
 
 	class Stream : public QIODevice{
@@ -114,6 +118,8 @@ public:
 	bool are_paths_in_same_directory(const QString &, const QString &);
 	QString get_filename(const QString &);
 	QString get_unique_filename(const QString &);
+	void begin_restore();
+	void end_restore();
 };
 
 class CustomProtocolHandler{
@@ -129,6 +135,8 @@ public:
 	QString get_filename(const QString &);
 	QString get_unique_filename(const QString &);
 	bool paths_in_same_directory(const QString &, const QString &);
+	void begin_restore();
+	void end_restore();
 };
 
 class ProtocolFileEnumerator{

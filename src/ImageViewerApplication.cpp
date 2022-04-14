@@ -234,7 +234,9 @@ void ImageViewerApplication::save_settings(bool with_state){
 }
 
 void ImageViewerApplication::restore_current_state(const ApplicationState &windows_state){
+	this->protocol_handler->begin_restore();
 	this->restore_current_windows(windows_state.get_windows());
+	this->protocol_handler->end_restore();
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
