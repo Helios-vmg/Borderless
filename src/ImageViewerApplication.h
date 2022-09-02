@@ -89,7 +89,7 @@ protected:
 	void restore_state_only();
 	void save_settings_only();
 	void save_state_only();
-	static void conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest);
+	static bool conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest);
 
 public:
 	ImageViewerApplication(int &argc, char **argv, const QString &unique_name);
@@ -139,14 +139,14 @@ public:
 	QString get_unique_filename_from_url(const QString &);
 	void turn_transparent(MainWindow &window, bool yes);
 	void about_to_quit();
+	void resolution_change(QScreen &);
+	void work_area_change(QScreen &);
 
 public slots:
 	void window_closing(MainWindow *);
 	void show_options();
 	void screen_added(QScreen *);
 	void screen_removed(QScreen *);
-	void resolution_change(QScreen &, const QRect &);
-	void work_area_change(QScreen &, const QRect &);
 	void quit_slot(){
 		this->about_to_quit();
 		this->quit();

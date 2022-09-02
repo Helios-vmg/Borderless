@@ -64,6 +64,7 @@ protected:
 	bool not_moved;
 	bool color_calculated;
 	std::vector<QMetaObject::Connection> connections;
+	bool last_set_by_user = true;
 
 	enum class ResizeMode{
 		None        = 0,
@@ -155,8 +156,8 @@ public:
 	bool is_null() const{
 		return !this->displayed_image || this->displayed_image->is_null();
 	}
-	void resolution_change(QScreen &screen, const QRect &resolution);
-	void work_area_change(QScreen &screen, const QRect &resolution);
+	void resolution_change(QScreen &screen);
+	void work_area_change(QScreen &screen);
 	void resize_window_rect(const QSize &);
 	void move_window_rect(const QPoint &);
 	void set_window_rect(const QRect &);

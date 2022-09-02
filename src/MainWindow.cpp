@@ -375,6 +375,7 @@ void MainWindow::move_in_direction(bool forward){
 		return;
 	this->clear_image_pos();
 	this->open_path_and_display_image(**this->directory_iterator);
+	this->last_set_by_user = true;
 	this->app->save_settings();
 }
 
@@ -559,7 +560,7 @@ void MainWindow::cleanup(){
 	this->directory_iterator.reset();
 }
 
-void MainWindow::resolution_change(QScreen &screen, const QRect &resolution){
+void MainWindow::resolution_change(QScreen &screen){
 	this->set_desktop_size(screen);
 	if (&screen != this->screen())
 		return;
@@ -581,11 +582,21 @@ void MainWindow::fix_positions_and_zoom(bool do_not_enlarge){
 	this->ui->label->repaint();
 }
 
-void MainWindow::work_area_change(QScreen &screen, const QRect &resolution){
+void MainWindow::work_area_change(QScreen &screen){
 	this->set_desktop_size(screen);
-	if (&screen != this->screen())
-		return;
-	this->fix_positions_and_zoom();
+	//if (screen.serialNumber() != this->screen()->serialNumber())
+	//	return;
+	auto pos = this->window_state->get_pos_u();
+	if ((this->last_set_by_user = !!this->screen()->virtualSiblingAt(pos))){
+		this->window_state->override_computed();
+		this->ui->label->move(this->window_state->get_label_pos());
+		this->move(pos);
+		this->current_desktop = unique_identifier(*this->screen());
+		this->window_rect.moveTopLeft(pos);
+		this->resize(this->window_state->get_size());
+		this->fix_positions_and_zoom(true);
+	}else
+		this->fix_positions_and_zoom();
 }
 
 void MainWindow::resize_window_rect(const QSize &s){

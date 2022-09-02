@@ -34,10 +34,25 @@ public:
 #define DEFINE_INLINE_SETTER_GETTER(x) DEFINE_INLINE_GETTER(x) DEFINE_INLINE_SETTER(x)
 #define DEFINE_ENUM_INLINE_SETTER_GETTER(t, x) DEFINE_ENUM_INLINE_GETTER(t, x) DEFINE_ENUM_INLINE_SETTER(t, x)
 
-class WindowState : public Serializable{
+class WindowPosition : public Serializable{
 	QPoint pos;
 	QSize size;
 	QPoint label_pos;
+	QTransform transform;
+public:
+	WindowPosition() = default;
+	WindowPosition(const QJsonValueRef &);
+	WindowPosition(const QJsonObject &);
+	WindowPosition(const WindowPosition &) = default;
+	WindowPosition &operator=(const WindowPosition &) = default;
+	QJsonValue serialize() const override;
+	DEFINE_INLINE_SETTER_GETTER(pos)
+	DEFINE_INLINE_SETTER_GETTER(size)
+	DEFINE_INLINE_SETTER_GETTER(label_pos)
+	DEFINE_INLINE_SETTER_GETTER(transform)
+};
+
+class WindowState : public Serializable{
 	bool using_checkerboard_pattern;
 	bool file_is_url = false;
 	QString current_directory;
@@ -50,14 +65,14 @@ class WindowState : public Serializable{
 	int fullscreen_zoom_mode;
 	int border_size;
 	int movement_size;
-	QTransform transform;
+	WindowPosition computed_position;
+	WindowPosition user_set_position;
+	bool last_set_by_user = true;
 	bool using_checkerboard_pattern_updated = false; //Not saved.
 public:
 	WindowState();
 	WindowState(const QJsonValueRef &);
-	DEFINE_INLINE_SETTER_GETTER(pos)
-	DEFINE_INLINE_SETTER_GETTER(size)
-	DEFINE_INLINE_SETTER_GETTER(label_pos)
+	void override_computed();
 	DEFINE_INLINE_GETTER(using_checkerboard_pattern)
 	DEFINE_INLINE_SETTER_GETTER(file_is_url)
 	void set_using_checkerboard_pattern(bool);
@@ -74,12 +89,24 @@ public:
 	DEFINE_ENUM_INLINE_SETTER_GETTER(ZoomMode, zoom_mode)
 	DEFINE_ENUM_INLINE_SETTER_GETTER(ZoomMode, fullscreen_zoom_mode)
 	DEFINE_INLINE_SETTER_GETTER(movement_size)
-	DEFINE_INLINE_SETTER_GETTER(transform)
 	DEFINE_INLINE_SETTER_GETTER(border_size)
 	static const decltype(border_size) default_border_size = 50;
 	void reset_border_size(){
 		this->border_size = default_border_size;
 	}
+	DEFINE_INLINE_SETTER_GETTER(last_set_by_user);
+	void set_pos(const QPoint &pos);
+	void set_size(const QSize &size);
+	void set_label_pos(const QPoint &label_pos);
+	void set_transform(const QTransform &transform);
+	QPoint get_pos() const;
+	QSize get_size() const;
+	QPoint get_label_pos() const;
+	QTransform get_transform() const;
+	QPoint get_pos_u() const;
+	QSize get_size_u() const;
+	QPoint get_label_pos_u() const;
+	QTransform get_transform_u() const;
 
 	QJsonValue serialize() const override;
 };

@@ -12,6 +12,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
+	this->last_set_by_user = state->get_last_set_by_user();
 	QString path;
 	if (!this->window_state->get_file_is_url()){
 		path = this->window_state->get_current_directory();
@@ -27,8 +28,12 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 	this->ui->label->load_state(*this->window_state);
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 
+	auto pos = this->window_state->get_pos_u();
+	if (!(this->last_set_by_user = !!this->screen()->virtualSiblingAt(pos)))
+		pos = this->window_state->get_pos();
+	else
+		this->window_state->override_computed();
 	this->ui->label->move(this->window_state->get_label_pos());
-	auto pos = this->window_state->get_pos();
 	this->move(pos);
 	this->current_desktop = unique_identifier(*this->screen());
 	this->window_rect.moveTopLeft(pos);
@@ -39,6 +44,7 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
 }
 
 std::shared_ptr<WindowState> MainWindow::save_state() const{
+	this->window_state->set_last_set_by_user(this->last_set_by_user);
 	this->window_state->set_pos(this->pos());
 	this->window_state->set_size(this->size());
 	this->window_state->set_label_pos(this->ui->label->pos());

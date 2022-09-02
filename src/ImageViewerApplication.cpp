@@ -180,18 +180,19 @@ QByteArray hash_file(const QByteArray &contents){
 	return hash.result();
 }
 
-void ImageViewerApplication::conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest){
+bool ImageViewerApplication::conditionally_save_file(const QByteArray &contents, const QString &path, QByteArray &last_digest){
 	auto new_digest = hash_file(contents);
 	if (!last_digest.isNull() && new_digest == last_digest)
-		return;
+		return false;
 
 	QFile file(path);
 	file.open(QFile::WriteOnly | QFile::Truncate);
 	if (!file.isOpen())
-		return;
+		return false;
 	file.write(contents);
 
 	last_digest = new_digest;
+	return true;
 }
 
 void ImageViewerApplication::save_settings_only(){
@@ -218,6 +219,16 @@ void ImageViewerApplication::save_state_only(){
 	if (path.isNull())
 		return;
 	this->save_current_state(*this->app_state);
+	std::optional<int> state;
+	for (auto &w : this->app_state->get_windows()){
+		auto x = (int)w->get_last_set_by_user();
+		if (!state)
+			state = x;
+		else if (x != *state){
+			state = -1;
+			break;
+		}
+	}
 	QJsonDocument doc;
 	StateFile sf;
 	sf.state = this->app_state;
@@ -318,14 +329,14 @@ void ImageViewerApplication::restore_state_only(){
 	this->restore_current_state(*this->app_state);
 }
 
-void ImageViewerApplication::resolution_change(QScreen &screen, const QRect &resolution){
+void ImageViewerApplication::resolution_change(QScreen &screen){
 	for (auto &i : this->windows)
-		i.second->resolution_change(screen, resolution);
+		i.second->resolution_change(screen);
 }
 
-void ImageViewerApplication::work_area_change(QScreen &screen, const QRect &resolution){
+void ImageViewerApplication::work_area_change(QScreen &screen){
 	for (auto &i : this->windows)
-		i.second->work_area_change(screen, resolution);
+		i.second->work_area_change(screen);
 }
 
 void ImageViewerApplication::minimize_all(){
@@ -530,10 +541,12 @@ void ImageViewerApplication::screen_added(QScreen *screen){
 	connect(screen, SIGNAL(geometryChanged(const QRect &)), cb.get(), SLOT(resolution_change(const QRect &)));
 	connect(screen, SIGNAL(availableGeometryChanged(const QRect &)), cb.get(), SLOT(work_area_change(const QRect &)));
 	this->rccbs[s] = std::move(cb);
+	this->work_area_change(*screen);
 }
 
 void ImageViewerApplication::screen_removed(QScreen *screen){
 	this->rccbs.erase(screen->serialNumber());
+	this->work_area_change(*screen);
 }
 
 ResolutionChangeCallback::ResolutionChangeCallback(ImageViewerApplication &app, QScreen &screen)
@@ -541,11 +554,11 @@ ResolutionChangeCallback::ResolutionChangeCallback(ImageViewerApplication &app, 
 	, screen(&screen){}
 
 void ResolutionChangeCallback::resolution_change(const QRect &geometry){
-	this->app->resolution_change(*this->screen, geometry);
+	this->app->resolution_change(*this->screen);
 }
 
 void ResolutionChangeCallback::work_area_change(const QRect &geometry){
-	this->app->work_area_change(*this->screen, geometry);
+	this->app->work_area_change(*this->screen);
 }
 
 std::string unique_identifier(QScreen &screen){

@@ -41,6 +41,9 @@ DEFINE_JSON_STRING(y);
 DEFINE_JSON_STRING(w);
 DEFINE_JSON_STRING(h);
 DEFINE_JSON_STRING(resize_windows_on_monitor_change);
+DEFINE_JSON_STRING(computed_position);
+DEFINE_JSON_STRING(user_set_position);
+DEFINE_JSON_STRING(last_set_by_user);
 
 template <typename T>
 struct json_cast{
@@ -78,7 +81,7 @@ struct json_cast<QString>{
 };
 
 template <typename DstT>
-void parse_json(DstT &dst, QJsonObject &json, const char *name, const DstT &default_value = {}){
+void parse_json(DstT &dst, const QJsonObject &json, const char *name, const DstT &default_value = {}){
 	auto it = json.find(name);
 	if (it != json.end())
 		dst = json_cast<DstT>::f(it.value());
@@ -87,14 +90,14 @@ void parse_json(DstT &dst, QJsonObject &json, const char *name, const DstT &defa
 }
 
 template <typename DstT>
-void parse_json(std::shared_ptr<DstT> &dst, QJsonObject &json, const char *name){
+void parse_json(std::shared_ptr<DstT> &dst, const QJsonObject &json, const char *name){
 	auto it = json.find(name);
 	if (it == json.end())
 		return;
 	dst.reset(new DstT(it.value()));
 }
 
-void parse_json(QPoint &dst, QJsonObject &json, const char *name, const QPoint &default_value = {}){
+void parse_json(QPoint &dst, const QJsonObject &json, const char *name, const QPoint &default_value = {}){
 	auto it = json.find(name);
 	dst = QPoint();
 	if (it == json.end()){
@@ -111,7 +114,7 @@ void parse_json(QPoint &dst, QJsonObject &json, const char *name, const QPoint &
 	dst.setY(obj[json_string_y].toInt());
 }
 
-void parse_json(QSize &dst, QJsonObject &json, const char *name, const QSize &default_value = {}){
+void parse_json(QSize &dst, const QJsonObject &json, const char *name, const QSize &default_value = {}){
 	auto it = json.find(name);
 	dst = QSize();
 	if (it == json.end()){
@@ -128,7 +131,7 @@ void parse_json(QSize &dst, QJsonObject &json, const char *name, const QSize &de
 	dst.setHeight(obj[json_string_h].toInt());
 }
 
-void parse_json(QTransform &dst, QJsonObject &json, const char *name, const QTransform &default_value = {}){
+void parse_json(QTransform &dst, const QJsonObject &json, const char *name, const QTransform &default_value = {}){
 	auto it = json.find(name);
 	dst = QTransform();
 	if (it == json.end()){
@@ -270,9 +273,14 @@ QJsonValue MainSettings::serialize() const{
 
 WindowState::WindowState(const QJsonValueRef &json){
 	auto object = json.toObject();
-	READ_JSON(pos, object);
-	READ_JSON(size, object);
-	READ_JSON(label_pos, object);
+	if (object.find(json_string_pos) != object.end()){
+		this->user_set_position = this->computed_position = object;
+		this->last_set_by_user = true;
+	}else{
+		READ_JSON(computed_position, object);
+		READ_JSON(user_set_position, object);
+		READ_JSON(last_set_by_user, object);
+	}
 	READ_JSON(using_checkerboard_pattern, object);
 	READ_JSON(file_is_url, object);
 	READ_JSON(current_directory, object);
@@ -285,14 +293,66 @@ WindowState::WindowState(const QJsonValueRef &json){
 	READ_JSON(fullscreen_zoom_mode, object);
 	READ_JSON(border_size, object);
 	READ_JSON(movement_size, object);
-	READ_JSON(transform, object);
+}
+
+#define CONDITIONAL_SET(x) \
+	this->computed_position.set_##x(x); \
+	if (this->last_set_by_user) \
+		this->user_set_position.set_##x(x)
+
+void WindowState::set_pos(const QPoint &pos){
+	CONDITIONAL_SET(pos);
+}
+
+void WindowState::set_size(const QSize &size){
+	CONDITIONAL_SET(size);
+}
+
+void WindowState::set_label_pos(const QPoint &label_pos){
+	CONDITIONAL_SET(label_pos);
+}
+
+void WindowState::set_transform(const QTransform &transform){
+	CONDITIONAL_SET(transform);
+}
+
+QPoint WindowState::get_pos() const{
+	return this->computed_position.get_pos();
+}
+
+QSize WindowState::get_size() const{
+	return this->computed_position.get_size();
+}
+
+QPoint WindowState::get_label_pos() const{
+	return this->computed_position.get_label_pos();
+}
+
+QTransform WindowState::get_transform() const{
+	return this->computed_position.get_transform();
+}
+
+QPoint WindowState::get_pos_u() const{
+	return this->user_set_position.get_pos();
+}
+
+QSize WindowState::get_size_u() const{
+	return this->user_set_position.get_size();
+}
+
+QPoint WindowState::get_label_pos_u() const{
+	return this->user_set_position.get_label_pos();
+}
+
+QTransform WindowState::get_transform_u() const{
+	return this->user_set_position.get_transform();
 }
 
 QJsonValue WindowState::serialize() const{
 	QJsonObject object;
-	WRITE_JSON(pos, object);
-	WRITE_JSON(size, object);
-	WRITE_JSON(label_pos, object);
+	object[json_string_computed_position] = this->computed_position.serialize();
+	object[json_string_user_set_position] = this->user_set_position.serialize();
+	WRITE_JSON(last_set_by_user, object);
 	WRITE_JSON(using_checkerboard_pattern, object);
 	WRITE_JSON(file_is_url, object);
 	WRITE_JSON(current_directory, object);
@@ -305,7 +365,6 @@ QJsonValue WindowState::serialize() const{
 	WRITE_JSON(fullscreen_zoom_mode, object);
 	WRITE_JSON(border_size, object);
 	WRITE_JSON(movement_size, object);
-	WRITE_JSON(transform, object);
 	return object;
 }
 
@@ -347,4 +406,26 @@ bool MainSettings::operator==(const MainSettings &other) const{
 	CHECK_EQUALITY(save_state_on_exit);
 	CHECK_EQUALITY(resize_windows_on_monitor_change);
 	return true;
+}
+
+WindowPosition::WindowPosition(const QJsonValueRef &object): WindowPosition(object.toObject()){}
+
+WindowPosition::WindowPosition(const QJsonObject &object){
+	READ_JSON(pos, object);
+	READ_JSON(size, object);
+	READ_JSON(label_pos, object);
+	READ_JSON(transform, object);
+}
+
+QJsonValue WindowPosition::serialize() const{
+	QJsonObject object;
+	WRITE_JSON(pos, object);
+	WRITE_JSON(size, object);
+	WRITE_JSON(label_pos, object);
+	WRITE_JSON(transform, object);
+	return object;
+}
+
+void WindowState::override_computed(){
+	this->computed_position = this->user_set_position;
 }
