@@ -95,29 +95,29 @@ ProtocolModule::~ProtocolModule(){
 }
 
 ProtocolModule::Stream::Stream(ProtocolModule *module, unknown_stream_t *stream){
-	this->module = module;
-	this->stream = stream;
 	this->position = 0;
-	this->length = this->module->file_length_p(this->stream);
+	this->length = module->file_length_p(stream);
+	this->data.reset(new char[this->length]);
+	module->read_file_p(stream, this->data.get(), this->length);
+	module->close_file_p(stream);
 }
 
-ProtocolModule::Stream::~Stream(){
-	this->module->close_file_p(this->stream);
-}
+ProtocolModule::Stream::~Stream(){}
 
 qint64 ProtocolModule::Stream::readData(char *data, qint64 maxSize){
-	auto ret = this->module->read_file_p(this->stream, data, maxSize);
-	this->position += ret;
-	return ret;
+	if (this->position >= this->length)
+		maxSize = 0;
+	else
+		maxSize = std::min(this->length - this->position, maxSize);
+	memcpy(data, this->data.get() + this->position, maxSize);
+	return maxSize;
 }
 
 bool ProtocolModule::Stream::seek(qint64 position){
 	if (!QIODevice::seek(position))
 		return false;
-	auto ret = this->module->seek_file_p(this->stream, position);
-	if (ret)
-		this->position = position;
-	return ret;
+	this->position = position;
+	return true;
 }
 
 std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
@@ -131,7 +131,9 @@ std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
 	}
 	if (!stream)
 		return nullptr;
-	return std::make_unique<Stream>(this, stream);
+	auto ret = std::make_unique<Stream>(this, stream);
+	ret->open(QIODeviceBase::ReadOnly);
+	return ret;
 }
 
 ProtocolFileEnumerator ProtocolModule::enumerate_siblings(const QString &path){

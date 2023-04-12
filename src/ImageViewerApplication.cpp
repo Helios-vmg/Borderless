@@ -469,7 +469,7 @@ std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> ImageViewerApplic
 		mov = std::make_unique<QMovie>(path);
 	else
 		mov = std::make_unique<QMovie>(dev.get());
-	if (mov->frameCount() < 2)
+	if (mov->frameCount() == 1)
 		mov.reset();
 	return {std::move(dev), std::move(mov)};
 }

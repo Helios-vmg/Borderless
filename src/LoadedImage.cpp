@@ -114,9 +114,7 @@ std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &a
 			return animation;
 		dev = animation->get_device();
 	}
-	if (dev){
-		dev->seek(0);
+	if (dev)
 		dev->reset();
-	}
 	return std::make_unique<LoadedImage>(app, std::move(dev), path);
 }

@@ -74,9 +74,8 @@ class ProtocolModule{
 	protocol_client_t *client;
 
 	class Stream : public QIODevice{
-		ProtocolModule *module;
-		unknown_stream_t *stream;
 		qint64 position, length;
+		std::unique_ptr<char[]> data;
 	public:
 		Stream(ProtocolModule *module, unknown_stream_t *stream);
 		~Stream();
