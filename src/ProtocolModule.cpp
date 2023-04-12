@@ -95,7 +95,6 @@ ProtocolModule::~ProtocolModule(){
 }
 
 ProtocolModule::Stream::Stream(ProtocolModule *module, unknown_stream_t *stream){
-	this->position = 0;
 	this->length = module->file_length_p(stream);
 	this->data.reset(new char[this->length]);
 	module->read_file_p(stream, this->data.get(), this->length);
@@ -105,19 +104,13 @@ ProtocolModule::Stream::Stream(ProtocolModule *module, unknown_stream_t *stream)
 ProtocolModule::Stream::~Stream(){}
 
 qint64 ProtocolModule::Stream::readData(char *data, qint64 maxSize){
-	if (this->position >= this->length)
+	auto pos = this->pos();
+	if (pos >= this->length)
 		maxSize = 0;
 	else
-		maxSize = std::min(this->length - this->position, maxSize);
-	memcpy(data, this->data.get() + this->position, maxSize);
+		maxSize = std::min(this->length - pos, maxSize);
+	memcpy(data, this->data.get() + pos, maxSize);
 	return maxSize;
-}
-
-bool ProtocolModule::Stream::seek(qint64 position){
-	if (!QIODevice::seek(position))
-		return false;
-	this->position = position;
-	return true;
 }
 
 std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){

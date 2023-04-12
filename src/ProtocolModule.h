@@ -74,30 +74,23 @@ class ProtocolModule{
 	protocol_client_t *client;
 
 	class Stream : public QIODevice{
-		qint64 position, length;
+		qint64 length;
 		std::unique_ptr<char[]> data;
 	public:
 		Stream(ProtocolModule *module, unknown_stream_t *stream);
 		~Stream();
 		qint64 readData(char *data, qint64 maxSize) override;
-		bool seek(qint64 position) override;
 		bool isSequential() const override{
 			return false;
 		}
 		qint64 writeData(const char *data, qint64 maxSize) override{
 			return 0;
 		}
-		qint64 pos() const override{
-			return this->position;
-		}
-		bool reset() override{
-			return this->seek(0);
-		}
 		qint64 size() const override{
 			return this->length;
 		}
 		bool atEnd() const override{
-			return this->position >= this->length;
+			return this->pos() >= this->length;
 		}
 	};
 
