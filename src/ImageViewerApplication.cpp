@@ -423,8 +423,7 @@ void ImageViewerApplication::load_custom_file_protocols(){
 	this->protocol_handler.reset(new CustomProtocolHandler(this->get_config_location()));
 }
 
-QImage ImageViewerApplication::load_image(const QString &path){
-	auto dev = this->protocol_handler->open(path);
+QImage ImageViewerApplication::load_image(std::unique_ptr<QIODevice> &&dev, const QString &path){
 	if (!dev)
 		return QImage(path);
 	QImage ret;
@@ -460,21 +459,27 @@ QString generate_random_string(){
 	return ret;
 }
 
-std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> ImageViewerApplication::load_animation(const QString &path){
-	auto dev = this->protocol_handler->open(path);
+std::unique_ptr<QIODevice> ImageViewerApplication::open_file(const QString &path){
+	return this->protocol_handler->open(path);
+}
+
+std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> ImageViewerApplication::load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path){
 	std::unique_ptr<QMovie> mov;
 	if (!dev)
 		mov = std::make_unique<QMovie>(path);
 	else
 		mov = std::make_unique<QMovie>(dev.get());
-	return std::make_pair(std::move(mov), std::move(dev));
+	if (mov->frameCount() < 2)
+		mov.reset();
+	return {std::move(dev), std::move(mov)};
 }
 
 bool ImageViewerApplication::is_animation(const QString &path){
 	auto testString = this->protocol_handler->get_filename(path);
 	if (testString.isNull())
 		testString = path;
-	return testString.endsWith(".gif", Qt::CaseInsensitive);
+	return testString.endsWith(".gif", Qt::CaseInsensitive) ||
+		testString.endsWith(".webp", Qt::CaseInsensitive);
 }
 
 QString ImageViewerApplication::get_filename_from_url(const QString &url){

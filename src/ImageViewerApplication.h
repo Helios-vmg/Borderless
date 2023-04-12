@@ -132,8 +132,8 @@ public:
 	}
 	void set_option_values(MainSettings &settings);
 	void load_custom_file_protocols();
-	QImage load_image(const QString &);
-	std::pair<std::unique_ptr<QMovie>, std::unique_ptr<QIODevice>> load_animation(const QString &);
+	QImage load_image(std::unique_ptr<QIODevice> &&dev, const QString &);
+	std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path);
 	bool is_animation(const QString &);
 	QString get_filename_from_url(const QString &);
 	QString get_unique_filename_from_url(const QString &);
@@ -141,6 +141,7 @@ public:
 	void about_to_quit();
 	void resolution_change(QScreen &);
 	void work_area_change(QScreen &);
+	std::unique_ptr<QIODevice> open_file(const QString &);
 
 public slots:
 	void window_closing(MainWindow *);

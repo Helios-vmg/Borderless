@@ -10,11 +10,12 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QImage>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QLabel>
+#include <tuple>
 
 extern const char *supported_extensions[];
 
-LoadedImage::LoadedImage(ImageViewerApplication &app, const QString &path){
-	auto img = app.load_image(path);
+LoadedImage::LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
+	auto img = app.load_image(std::move(dev), path);
 	if ((this->null = img.isNull())){
 		//Weird QImage behavior. Passing "*" allows it to load images where the
 		//file extension doesn't match the file contents.
@@ -85,11 +86,9 @@ QImage LoadedImage::get_QImage() const{
 	return this->image.result().toImage();
 }
 
-LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, const QString &path){
-	auto pair = app.load_animation(path);
-	this->animation = std::move(pair.first);
-	this->device = std::move(pair.second);
-	this->null = !this->animation->isValid();
+LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
+	std::tie(this->device, this->animation) = app.load_animation(std::move(dev), path);
+	this->null = !this->animation || !this->animation->isValid();
 	if (!this->null){
 		(void)this->animation->jumpToNextFrame();
 		this->size = this->animation->currentPixmap().size();
@@ -107,10 +106,17 @@ QImage LoadedAnimation::get_QImage() const{
 }
 
 std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &app, const QString &path){
-	std::shared_ptr<LoadedGraphics> ret;
-	if (app.is_animation(path))
-		ret.reset(new LoadedAnimation(app, path));
-	else
-		ret.reset(new LoadedImage(app, path));
-	return ret;
+	auto dev = app.open_file(path);
+	auto is_animation = app.is_animation(path);
+	if (is_animation){
+		auto animation = std::make_unique<LoadedAnimation>(app, std::move(dev), path);
+		if (!animation->is_null())
+			return animation;
+		dev = animation->get_device();
+	}
+	if (dev){
+		dev->seek(0);
+		dev->reset();
+	}
+	return std::make_unique<LoadedImage>(app, std::move(dev), path);
 }

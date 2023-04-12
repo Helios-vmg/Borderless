@@ -46,7 +46,7 @@ class LoadedImage : public LoadedGraphics{
 
 	void compute_average_color(QImage);
 public:
-	LoadedImage(ImageViewerApplication &app, const QString &path);
+	LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path);
 	LoadedImage(const QImage &image);
 	virtual ~LoadedImage();
 	QColor get_background_color() override{
@@ -64,7 +64,7 @@ class LoadedAnimation : public LoadedGraphics{
 	std::unique_ptr<QMovie> animation;
 
 public:
-	LoadedAnimation(ImageViewerApplication &app, const QString &path);
+	LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path);
 	QColor get_background_color() override{
 		return QColor(0, 0, 0, 0);
 	}
@@ -73,6 +73,9 @@ public:
 	}
 	void assign_to_QLabel(QLabel &) override;
 	QImage get_QImage() const override;
+	std::unique_ptr<QIODevice> get_device(){
+		return std::move(this->device);
+	}
 };
 
 #endif // LOADEDIMAGE_H
