@@ -1,6 +1,6 @@
 Requirements:
 * A C++ compiler with C++17 support.
-* Qt 5.4.1 or newer
+* Qt 6.2.2 or newer
 * Boost.Iostreams
 * Rust compiler (optional [SVG])
 * resvg (optional [SVG])
@@ -51,7 +51,10 @@ Windows:
     renaming the file to resvg.lib (resvgd.lib is building for debug). If
     needed, move the DLL to somewhere in the PATH where it can be found.
 UNIX:
-    (TODO)
+    Copy resvg/target/release/libresvg.a into Borderless/lib. In
+    Borderless/Borderless.pro, uncomment these lines:
+     #INCLUDEPATH += $$PWD/include
+     #LIBS += -L $$PWD/lib -lresvg -ldl
 
 If you've opted to download a newer version of resvg, copy the header in
 c-api/resvg.h into Borderless/include, replacing the existing file.

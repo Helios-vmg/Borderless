@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "BorderlessImageViewer"
-#define MyAppVersion "20220414"
+#define MyAppVersion "20230417"
 #define MyAppURL "https://github.com/Helios-vmg/Borderless"
 #define MyAppExeName "Borderless.exe"
 #define SourceBasePath ".."

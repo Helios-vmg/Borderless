@@ -28,6 +28,8 @@ TARGET = Borderless
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=c++17
 INCLUDEPATH += $$PWD/src
+#INCLUDEPATH += $$PWD/include
+#LIBS += -L $$PWD/lib -lresvg -ldl
 
 SOURCES +=  src/DirectoryListing.cpp          \
             src/ImageViewerApplication.cpp    \
@@ -46,7 +48,8 @@ SOURCES +=  src/DirectoryListing.cpp          \
             src/Streams.cpp                   \
             src/SingleInstanceApplication.cpp \
             src/ZoomModeDropDown.cpp          \
-            src/ProtocolModule.cpp
+            src/ProtocolModule.cpp            \
+            src/resvg.cpp
 
 HEADERS += src/DirectoryListing.h          \
            src/Enums.h                     \
@@ -68,7 +71,9 @@ HEADERS += src/DirectoryListing.h          \
            src/StreamRedirector.h          \
            src/Streams.h                   \
            src/ZoomModeDropDown.h          \
-           src/ProtocolModule.h
+           src/ProtocolModule.h            \
+           src/resvg.hpp
+
 
 FORMS += src/InfoDialog.ui        \
          src/MainWindow.ui        \

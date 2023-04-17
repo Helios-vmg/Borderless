@@ -1,6 +1,14 @@
+/*
+Copyright (c), Helios
+All rights reserved.
+
+Distributed under a permissive license. See COPYING.txt for details.
+*/
+
 #include "resvg.hpp"
 #ifdef ENABLE_SVG
 #include <resvg.h>
+#include <cmath>
 
 #if defined _MSC_VER && (defined WIN32 || defined WIN64)
 #ifdef _DEBUG
