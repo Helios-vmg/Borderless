@@ -1,28 +1,62 @@
 Requirements:
-* A C++ compiler with good C++11 support. The following compilers have been
-  tested: MSVC 2013 and 2015, Clang 3.4.1, GCC 5.3.1.
+* A C++ compiler with C++17 support.
 * Qt 5.4.1 or newer
 * Boost.Iostreams
-
+* Rust compiler (optional [SVG])
+* resvg (optional [SVG])
 
 Building on Windows
 
-A solution file for Visual Studio 2015 is provided. It can also be used with
+A solution file for Visual Studio 2015+ is provided. It can also be used with
 2013, but the toolchain version of each project must be changed to use v12,
 instead of the 2015 default v14.
 Before building, Visual Studio must be configured to use the correct Qt version,
 as well as Boost.Iostreams and whatever other Boost libraries it depends on.
-Building the entire solution builds everything required by the application,
-including the serializer generator which is ran during the build process.
 
 
 Building on Linux/BSD
-
-Before building the application proper, be sure to run build_serialization.sh to
-build the serializer generator and generate the serialization code. This script
-assumes that c++ refers to the default C++ compiler for the system.
 
 A .pro file for use with Qt Creator is provided. Before building, it should be
 configured to use the correct Qt version, and the Boost libraries should be
 visible to the compiler.
 Building the project should generate the final executable.
+
+
+Building with SVG support
+
+You will need to build resvg (https://github.com/RazrFalcon/resvg). Version
+0.31.0 of the library is provided under opt/resvg for convenience, but newer
+versions should work, as well. To build, move into the c-api subdirectory and
+run
+
+cargo build --release
+
+This will build the C FFI which Borderless depends on. The output goes into the
+target/release subdirectory of resvg.
+
+Windows:
+    The build process generates these files:
+     * resvg.dll
+     * resvg.lib
+     * resvg.dll.lib
+    resvg.dll.lib is a static interface library. If Borderless links against
+    this, resvg.dll will be needed to run. resvg.lib is a static library, which
+    includes all the code for resvg. If Borderless links against this, resvg.dll
+    will *NOT* be needed to run. If using Visual Studio to build and debug, I
+    recommend using resvg.dll.lib for debug builds. I've encountered an issue
+    where VS 2019 takes an abnormal amount of time (in the order of at least
+    several minutes) to start debugging when linking against the static library.
+    In all other cases, prefer resvg.lib.
+    Pick whichever one you like and move it into Borderless' lib64 subdirectory,
+    renaming the file to resvg.lib (resvgd.lib is building for debug). If
+    needed, move the DLL to somewhere in the PATH where it can be found.
+UNIX:
+    (TODO)
+
+If you've opted to download a newer version of resvg, copy the header in
+c-api/resvg.h into Borderless/include, replacing the existing file.
+Go into Borderless/src/config.hpp and uncomment the line
+
+//#define ENABLE_SVG
+
+to enable the SVG loading code. Now you can build the project normally.
