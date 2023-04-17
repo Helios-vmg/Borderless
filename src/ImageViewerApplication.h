@@ -135,6 +135,7 @@ public:
 	QImage load_image(std::unique_ptr<QIODevice> &&dev, const QString &);
 	std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path);
 	bool is_animation(const QString &);
+	bool is_svg(const QString &);
 	QString get_filename_from_url(const QString &);
 	QString get_unique_filename_from_url(const QString &);
 	void turn_transparent(MainWindow &window, bool yes);

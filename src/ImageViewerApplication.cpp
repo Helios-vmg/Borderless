@@ -482,6 +482,14 @@ bool ImageViewerApplication::is_animation(const QString &path){
 		testString.endsWith(".webp", Qt::CaseInsensitive);
 }
 
+bool ImageViewerApplication::is_svg(const QString &path){
+	auto testString = this->protocol_handler->get_filename(path);
+	if (testString.isNull())
+		testString = path;
+	return testString.endsWith(".svg", Qt::CaseInsensitive) ||
+		testString.endsWith(".svgz", Qt::CaseInsensitive);
+}
+
 QString ImageViewerApplication::get_filename_from_url(const QString &url){
 	return this->protocol_handler->get_filename(url);
 }

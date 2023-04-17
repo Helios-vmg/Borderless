@@ -11,6 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QtConcurrent/QtConcurrentRun>
 #include <QLabel>
 #include <tuple>
+#include <QFile>
 
 extern const char *supported_extensions[];
 
@@ -107,6 +108,12 @@ QImage LoadedAnimation::get_QImage() const{
 
 std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &app, const QString &path){
 	auto dev = app.open_file(path);
+	if (app.is_svg(path))
+#ifdef ENABLE_SVG
+		return std::make_unique<SvgImage>(app, std::move(dev), path);
+#else
+		return {};
+#endif
 	auto is_animation = app.is_animation(path);
 	if (is_animation){
 		auto animation = std::make_unique<LoadedAnimation>(app, std::move(dev), path);
@@ -118,3 +125,58 @@ std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &a
 		dev->reset();
 	return std::make_unique<LoadedImage>(app, std::move(dev), path);
 }
+
+#ifdef ENABLE_SVG
+
+QByteArray read_file(const std::unique_ptr<QIODevice> &dev, const QString &path){
+	if (dev)
+		return dev->readAll();
+	QFile file(path);
+	file.open(QIODeviceBase::ExistingOnly | QIODeviceBase::ReadOnly);
+	return file.readAll();
+}
+
+SvgImage::SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
+	this->null = true;
+	this->alpha = true;
+	auto data = read_file(dev, path);
+	auto [error, tree] = ReSvgRenderTree::create_from_data(data.data(), data.size(), {});
+	if (error != ReSvgRenderTree::Error::NoError)
+		return;
+	this->tree = std::move(tree);
+	this->null = this->tree.is_empty();
+	if (this->null)
+		return;
+	auto [w, h] = this->tree.get_size_int();
+	this->size = { w, h };
+	this->image = QtConcurrent::run([this](){
+		QImage dst(this->size, QImage::Format_RGBA8888_Premultiplied);
+		this->tree.render(dst.bits());
+		return dst;
+	});
+	this->pixmap = QtConcurrent::run([this](){
+		return QPixmap::fromImage(this->image.result());
+	});
+	this->background_color = QtConcurrent::run([this](){
+		return background_color_parallel_function(this->image.result());
+	});
+}
+
+SvgImage::~SvgImage(){
+	if (this->image.isStarted())
+		this->image.waitForFinished();
+	if (this->pixmap.isStarted())
+		this->pixmap.waitForFinished();
+	if (this->background_color.isStarted())
+		this->background_color.waitForFinished();
+}
+
+void SvgImage::assign_to_QLabel(QLabel &label){
+	label.setPixmap(this->pixmap.result());
+}
+
+QImage SvgImage::get_QImage() const{
+	return this->image.result();
+}
+
+#endif
