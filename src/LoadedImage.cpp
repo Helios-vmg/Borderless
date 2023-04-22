@@ -151,6 +151,7 @@ SvgImage::SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev
 	this->size = { w, h };
 	this->image = QtConcurrent::run([this](){
 		QImage dst(this->size, QImage::Format_RGBA8888_Premultiplied);
+		memset(dst.bits(), 0, this->size.width() * this->size.height() * 4);
 		this->tree.render(dst.bits());
 		return dst;
 	});
