@@ -43,9 +43,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GeneratedFiles\qrc_resources.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)\src\DirectoryListing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -87,9 +84,6 @@
     </ClCompile>
     <ClCompile Include="$(SolutionDir)\src\SingleInstanceApplication.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\DebugRelease\moc_SingleInstanceApplication.cpp">
-      <Filter>Generated Files\DebugRelease</Filter>
     </ClCompile>
     <ClCompile Include="GeneratedFiles\Debug\moc_SingleInstanceApplication.cpp">
       <Filter>Generated Files\Debug</Filter>
@@ -159,36 +153,36 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.h">
+    <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\RotateDialog.h">
+    </QtMoc>
+    <QtMoc Include="$(SolutionDir)\src\RotateDialog.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\SingleInstanceApplication.h">
+    </QtMoc>
+    <QtMoc Include="$(SolutionDir)\src\SingleInstanceApplication.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\MainWindow.h">
+    </QtMoc>
+    <QtMoc Include="$(SolutionDir)\src\MainWindow.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\ImageViewport.h">
+    </QtMoc>
+    <QtMoc Include="$(SolutionDir)\src\ImageViewport.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\ImageViewerApplication.h">
+    </QtMoc>
+    <QtMoc Include="$(SolutionDir)\src\ImageViewerApplication.h">
       <Filter>Header Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\resources.qrc">
+    </QtMoc>
+    <QtRcc Include="$(SolutionDir)\src\resources.qrc">
       <Filter>Resource Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\MainWindow.ui">
+    </QtRcc>
+    <QtUic Include="$(SolutionDir)\src\MainWindow.ui">
       <Filter>Form Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\RotateDialog.ui">
+    </QtUic>
+    <QtUic Include="$(SolutionDir)\src\RotateDialog.ui">
       <Filter>Form Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="$(SolutionDir)\src\OptionsDialog.ui">
+    </QtUic>
+    <QtUic Include="$(SolutionDir)\src\OptionsDialog.ui">
       <Filter>Form Files</Filter>
-    </CustomBuild>
+    </QtUic>
     <CustomBuild Include="..\src\ProtocolModule.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
