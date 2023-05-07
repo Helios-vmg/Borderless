@@ -17,13 +17,8 @@ extern const char *supported_extensions[];
 
 LoadedImage::LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
 	auto img = app.load_image(std::move(dev), path);
-	if ((this->null = img.isNull())){
-		//Weird QImage behavior. Passing "*" allows it to load images where the
-		//file extension doesn't match the file contents.
-		img = QImage(path, "*");
-		if ((this->null = img.isNull()))
-			return;
-	}
+	if ((this->null = img.isNull()))
+		return;
 	this->compute_average_color(img);
 	this->image = QtConcurrent::run([](QImage img){ return QPixmap::fromImage(img); }, img);
 	this->size = img.size();
