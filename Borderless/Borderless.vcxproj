@@ -162,10 +162,13 @@
     <ClCompile Include="$(SolutionDir)\src\Shortcuts.cpp" />
     <ClCompile Include="$(SolutionDir)\src\SingleInstanceApplication.cpp" />
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp" />
+    <ClCompile Include="..\src\InfoDialog.cpp" />
     <ClCompile Include="..\src\ProtocolModule.cpp" />
     <ClCompile Include="..\src\resvg.cpp" />
     <ClCompile Include="..\src\Settings.cpp" />
     <ClCompile Include="..\src\ShortcutsSettings.cpp" />
+    <ClCompile Include="..\src\TinyEXIF\TinyEXIF.cpp" />
+    <ClCompile Include="..\src\tinyxml2\tinyxml2.cpp" />
     <ClCompile Include="GeneratedFiles\DebugRelease\moc_ImageViewerApplication.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -233,6 +236,7 @@
     <ClInclude Include="$(SolutionDir)\src\Streams.h" />
     <CustomBuild Include="..\src\ProtocolModule.h" />
     <ClInclude Include="..\src\config.hpp" />
+    <QtMoc Include="..\src\InfoDialog.h" />
     <ClInclude Include="..\src\resvg.hpp" />
     <ClInclude Include="..\src\Settings.h" />
     <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -245,6 +249,8 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DynamicSource>
     </QtMoc>
     <ClInclude Include="$(SolutionDir)\src\Shortcuts.h" />
+    <ClInclude Include="..\src\TinyEXIF\TinyEXIF.h" />
+    <ClInclude Include="..\src\tinyxml2\tinyxml2.h" />
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h" />
     <ClInclude Include="GeneratedFiles\ui_OptionsDialog.h" />
     <ClInclude Include="GeneratedFiles\ui_RotateDialog.h" />
@@ -278,6 +284,7 @@
   <ItemGroup>
     <QtUic Include="$(SolutionDir)\src\MainWindow.ui">
     </QtUic>
+    <QtUic Include="..\src\InfoDialog.ui" />
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="$(SolutionDir)\src\RotateDialog.ui">

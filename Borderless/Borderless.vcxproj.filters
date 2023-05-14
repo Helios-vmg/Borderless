@@ -41,6 +41,9 @@
     <Filter Include="Source Files\Serialization">
       <UniqueIdentifier>{fff07627-1e93-4938-8955-0c7dff0697fd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TinyEXIF">
+      <UniqueIdentifier>{a3394ab4-4ecf-4c05-abdc-1f899c6f5c10}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SolutionDir)\src\DirectoryListing.cpp">
@@ -151,6 +154,15 @@
     <ClCompile Include="..\src\resvg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\InfoDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\TinyEXIF\TinyEXIF.cpp">
+      <Filter>TinyEXIF</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\tinyxml2\tinyxml2.cpp">
+      <Filter>TinyEXIF</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -186,6 +198,9 @@
     <CustomBuild Include="..\src\ProtocolModule.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
+    <QtMoc Include="..\src\InfoDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h">
@@ -233,6 +248,12 @@
     <ClInclude Include="..\src\config.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\TinyEXIF\TinyEXIF.h">
+      <Filter>TinyEXIF</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tinyxml2\tinyxml2.h">
+      <Filter>TinyEXIF</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="$(SolutionDir)\src\resources\alpha.png">
@@ -243,5 +264,10 @@
     <ResourceCompile Include="$(SolutionDir)\src\resources.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="..\src\InfoDialog.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
 </Project>
