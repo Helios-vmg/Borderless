@@ -22,6 +22,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <random>
 #include <QJsonDocument>
 #include <memory>
+#include <QtConcurrent/QtConcurrentRun>
 
 template <typename T>
 class AutoSetter{
@@ -251,8 +252,19 @@ void ImageViewerApplication::restore_current_state(const ApplicationState &windo
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
-	for (auto &state : window_states)
-		this->add_window(std::make_shared<MainWindow>(*this, state));
+	std::vector<QFuture<std::shared_ptr<LoadedGraphics>>> futures;
+	futures.reserve(window_states.size());
+	for (auto &state : window_states){
+		futures.emplace_back(QtConcurrent::run([this, state]() -> std::shared_ptr<LoadedGraphics>{
+			return LoadedGraphics::create(*this, state->get_path());
+		}));
+	}
+
+	size_t n = futures.size();
+	assert(n == window_states.size());
+
+	for (size_t i = 0; i < n; i++)
+		this->add_window(std::make_shared<MainWindow>(*this, window_states[i], futures[i]));
 }
 
 std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *caller){
@@ -427,7 +439,8 @@ QImage ImageViewerApplication::load_image(std::unique_ptr<QIODevice> &&dev, cons
 	if (!dev)
 		return QImage(path);
 	QImage ret;
-	auto filename = this->protocol_handler->get_filename(path);
+	auto client = this->protocol_handler->get_client(path);
+	auto filename = client->get_filename(path);
 	auto extension = QFileInfo(filename).suffix().toStdString();
 	auto t0 = clock();
 	ret.load(dev.get(), extension.c_str());
@@ -457,7 +470,7 @@ QString generate_random_string(){
 }
 
 std::unique_ptr<QIODevice> ImageViewerApplication::open_file(const QString &path){
-	return this->protocol_handler->open(path);
+	return this->protocol_handler->get_client(path)->open(path);
 }
 
 std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> ImageViewerApplication::load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path){
@@ -472,7 +485,7 @@ std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> ImageViewerApplic
 }
 
 bool ImageViewerApplication::is_animation(const QString &path){
-	auto testString = this->protocol_handler->get_filename(path);
+	auto testString = this->protocol_handler->get_client(path)->get_filename(path);
 	if (testString.isNull())
 		testString = path;
 	return testString.endsWith(".gif", Qt::CaseInsensitive) ||
@@ -480,7 +493,7 @@ bool ImageViewerApplication::is_animation(const QString &path){
 }
 
 bool ImageViewerApplication::is_svg(const QString &path){
-	auto testString = this->protocol_handler->get_filename(path);
+	auto testString = this->protocol_handler->get_client(path)->get_filename(path);
 	if (testString.isNull())
 		testString = path;
 	return testString.endsWith(".svg", Qt::CaseInsensitive) ||
@@ -488,11 +501,11 @@ bool ImageViewerApplication::is_svg(const QString &path){
 }
 
 QString ImageViewerApplication::get_filename_from_url(const QString &url){
-	return this->protocol_handler->get_filename(url);
+	return this->protocol_handler->get_client(url)->get_filename(url);
 }
 
 QString ImageViewerApplication::get_unique_filename_from_url(const QString &url){
-	return this->protocol_handler->get_unique_filename(url);
+	return this->protocol_handler->get_client(url)->get_unique_filename(url);
 }
 
 QString get_per_user_unique_id(){

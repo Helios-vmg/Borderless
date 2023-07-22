@@ -43,6 +43,15 @@ MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<Window
 	this->set_background();
 }
 
+MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<std::shared_ptr<LoadedGraphics>> &future, QWidget *parent):
+		QMainWindow(parent),
+		ui(new Ui::MainWindow),
+		app(&app){
+	this->init(true);
+	this->restore_state(state, &future);
+	this->set_background();
+}
+
 MainWindow::~MainWindow(){
 	this->cleanup();
 }
@@ -393,7 +402,7 @@ public:
 	}
 };
 
-bool MainWindow::open_path_and_display_image(QString path){
+bool MainWindow::open_path_and_display_image(QString path, QFuture<std::shared_ptr<LoadedGraphics>> *future){
 	ElapsedTimer et((QString)"open_path_and_display_image(" + path + ")");
 	std::shared_ptr<LoadedGraphics> li;
 	size_t i = 0;
@@ -401,7 +410,11 @@ bool MainWindow::open_path_and_display_image(QString path){
 	if (!!this->directory_iterator)
 		i = this->directory_iterator->pos();
 	while (true){
-		li = LoadedGraphics::create(*this->app, path);
+		if (future){
+			li = future->result();
+			future = nullptr;
+		}else
+			li = LoadedGraphics::create(*this->app, path);
 		qDebug() << path;
 		if (li && !li->is_null())
 			break;

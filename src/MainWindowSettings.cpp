@@ -9,22 +9,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ui_MainWindow.h"
 #include <QDir>
 
-void MainWindow::restore_state(const std::shared_ptr<WindowState> &state){
+void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, QFuture<std::shared_ptr<LoadedGraphics>> *future){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
 	this->last_set_by_user = state->get_last_set_by_user();
-	QString path;
-	if (!this->window_state->get_file_is_url()){
-		path = this->window_state->get_current_directory();
-		auto c = QDir::separator().toLatin1();
-		path += c;
-		path += this->window_state->get_current_filename();
-	}else
-		path = this->window_state->get_current_url();
-
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
-	bool success = this->open_path_and_display_image(path);
+	bool success = this->open_path_and_display_image(this->window_state->get_path(), future);
 	this->ui->label->load_state(*this->window_state);
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 

@@ -183,35 +183,33 @@ QString LocalDirectoryListing::get_filename(size_t i){
 	return this->entries.result()[i];
 }
 
-ProtocolDirectoryListing::list_t ProtocolDirectoryListing::get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler){
-	typedef list_t::element_type t;
-
-	list_t ret;
-	auto list = handler->enumerate_siblings(path);
-	if (!list)
-		return ret;
-
-	listing->enumerator = std::move(list);
-	ret.reset(new t);
-	while (true){
-		auto s = listing->enumerator.next();
-		if (s.isNull())
-			break;
-		ret->push_back(s);
-	}
-	return ret;
-}
-
 ProtocolDirectoryListing::list_t ProtocolDirectoryListing::get_result(){
 	if (!this->future_result)
 		this->future_result = this->future.result();
 	return this->future_result;
 }
 
-ProtocolDirectoryListing::ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &handler): handler(&handler){
+ProtocolDirectoryListing::ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &handler){
 	this->ok = false;
-	this->base_path = handler.get_parent_directory(path);
-	this->future = QtConcurrent::run(get_protocol_entries, path, this, &handler);
+	this->client = handler.get_client(path, false);
+	this->base_path = this->client->get_parent(path);
+	this->future = QtConcurrent::run([this, path]() -> list_t{
+		typedef list_t::element_type t;
+		list_t ret;
+		auto list = this->client->enumerate_siblings(path);
+		if (!list)
+			return ret;
+
+		this->enumerator = std::move(list);
+		ret.reset(new t);
+		while (true){
+			auto s = this->enumerator.next();
+			if (s.isNull())
+				break;
+			ret->push_back(s);
+		}
+		return ret;
+	});
 	this->ok = true;
 }
 
@@ -236,7 +234,7 @@ bool ProtocolDirectoryListing::find(size_t &dst, const QString &s){
 
 bool ProtocolDirectoryListing::operator==(const QString &path){
 	auto result = this->get_result();
-	return result && result->size() && this->handler->paths_in_same_directory(result->front(), path);
+	return result && !result->empty() && this->client->are_paths_in_same_directory(result->front(), path);
 }
 
 QString ProtocolDirectoryListing::get_filename(size_t i){
@@ -246,7 +244,7 @@ QString ProtocolDirectoryListing::get_filename(size_t i){
 	auto result = this->get_result();
 	if (!result || i >= result->size())
 		return {};
-	auto ret = handler->get_filename((*result)[i]);
+	auto ret = this->client->get_filename((*result)[i]);
 	this->filenames[i] = ret;
 	return ret;
 }
@@ -258,7 +256,7 @@ QString ProtocolDirectoryListing::get_unique_filename(size_t i){
 	auto result = this->get_result();
 	if (!result || i >= result->size())
 		return {};
-	auto ret = handler->get_unique_filename((*result)[i]);
+	auto ret = this->client->get_unique_filename((*result)[i]);
 	this->unique_filenames[i] = ret;
 	return ret;
 }

@@ -26,13 +26,14 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 ProtocolModule::ProtocolModule(const QString &filename, const QString &config_location, const QString &plugins_location){
 	this->ok = false;
-	this->client = nullptr;
 	this->lib.setFileName(filename);
 	this->lib.load();
 	if (!this->lib.isLoaded())
 		return;
 
 	INIT_FUNCTION(get_protocol);
+	INIT_FUNCTION(initialize_module);
+	INIT_FUNCTION(terminate_module);
 	INIT_FUNCTION(initialize_client);
 	INIT_FUNCTION(terminate_client);
 	INIT_FUNCTION(open_file_utf8);
@@ -54,6 +55,8 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	INIT_FUNCTION(end_restore);
 
 	RESOLVE_FUNCTION(get_protocol);
+	RESOLVE_FUNCTION(initialize_module);
+	RESOLVE_FUNCTION(terminate_module);
 	RESOLVE_FUNCTION(initialize_client);
 	RESOLVE_FUNCTION(terminate_client);
 	RESOLVE_FUNCTION_OPT(open_file_utf8);
@@ -78,11 +81,12 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	if (!!this->begin_restore_p != !!this->end_restore_p)
 		return;
 
-	auto cl = config_location.toStdWString();
+	auto cl  = config_location.toStdWString();
 	auto pl = plugins_location.toStdWString();
-	this->client = this->initialize_client_p(cl.c_str(), pl.c_str());
-	if (!this->client)
+	this->module = this->initialize_module_p(cl.c_str(), pl.c_str());
+	if (!this->module)
 		return;
+	
 	this->protocol = this->get_protocol_p();
 	this->ok = true;
 }
@@ -90,15 +94,28 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 ProtocolModule::~ProtocolModule(){
 	if (!this->lib.isLoaded())
 		return;
-	if (this->client && this->terminate_client_p)
-		this->terminate_client_p(this->client);
+	if (this->module && this->terminate_module_p)
+		this->terminate_module_p(this->module);
 }
 
-ProtocolModule::Stream::Stream(ProtocolModule *module, unknown_stream_t *stream){
-	this->length = module->file_length_p(stream);
+std::unique_ptr<ProtocolModule::Client> ProtocolModule::create_client(){
+	return std::make_unique<Client>(this->shared_from_this());
+}
+
+ProtocolModule::Client::Client(std::shared_ptr<ProtocolModule> &&mod): mod(std::move(mod)){
+	this->client = this->mod->initialize_client_p(this->mod->module);
+}
+
+ProtocolModule::Client::~Client(){
+	if (this->client && this->mod->terminate_client_p)
+		this->mod->terminate_client_p(this->client);
+}
+
+ProtocolModule::Stream::Stream(ProtocolModule &module, unknown_stream_t *stream){
+	this->length = module.file_length_p(stream);
 	this->data.reset(new char[this->length]);
-	module->read_file_p(stream, this->data.get(), this->length);
-	module->close_file_p(stream);
+	module.read_file_p(stream, this->data.get(), this->length);
+	module.close_file_p(stream);
 }
 
 ProtocolModule::Stream::~Stream(){}
@@ -113,62 +130,66 @@ qint64 ProtocolModule::Stream::readData(char *data, qint64 maxSize){
 	return maxSize;
 }
 
-std::unique_ptr<QIODevice> ProtocolModule::open(const QString &path){
+std::unique_ptr<QIODevice> ProtocolModule::Client::open(const QString &path){
 	unknown_stream_t *stream;
-	if (this->open_file_utf16_p){
+	if (this->mod->open_file_utf16_p){
 		auto temp = path.toStdWString();
-		stream = this->open_file_utf16_p(this->client, temp.c_str());
+		stream = this->mod->open_file_utf16_p(this->client, temp.c_str());
 	}else{
 		auto temp = path.toStdString();
-		stream = this->open_file_utf8_p(this->client, temp.c_str());
+		stream = this->mod->open_file_utf8_p(this->client, temp.c_str());
 	}
 	if (!stream)
 		return nullptr;
-	auto ret = std::make_unique<Stream>(this, stream);
+	auto ret = std::make_unique<Stream>(*this->mod, stream);
 	ret->open(QIODeviceBase::ReadOnly);
 	return ret;
 }
 
-ProtocolFileEnumerator ProtocolModule::enumerate_siblings(const QString &path){
+ProtocolFileEnumerator ProtocolModule::Client::enumerate_siblings(const QString &path){
 	auto temp = path.toStdWString();
-	auto enumerator = this->create_sibling_enumerator_p(this->client, temp.c_str());
+	auto enumerator = this->mod->create_sibling_enumerator_p(this->client, temp.c_str());
 	if (!enumerator)
 		return {};
-	return ProtocolFileEnumerator(*this, *enumerator);
+	return ProtocolFileEnumerator(this->mod, *enumerator);
 }
 
-QString ProtocolModule::get_parent(const QString &path){
+QString ProtocolModule::Client::get_parent(const QString &path){
 	auto temp = path.toStdWString();
-	auto wc = this->get_parent_directory_p(this->client, temp.c_str());
-	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string_p);
+	auto wc = this->mod->get_parent_directory_p(this->client, temp.c_str());
+	std::shared_ptr<const wchar_t> shared_p(wc, this->mod->release_returned_string_p);
 	if (!wc)
 		return {};
 	return QString::fromWCharArray(wc);
 }
 
-bool ProtocolModule::are_paths_in_same_directory(const QString &a, const QString &b){
+bool ProtocolModule::Client::are_paths_in_same_directory(const QString &a, const QString &b){
 	auto A = a.toStdWString();
 	auto B = b.toStdWString();
-	return this->paths_in_same_directory_p(this->client, A.c_str(), B.c_str());
+	return this->mod->paths_in_same_directory_p(this->client, A.c_str(), B.c_str());
 }
 
-QString ProtocolModule::get_filename(get_filename_from_url_f f, const QString &path){
+QString ProtocolModule::Client::get_filename(get_filename_from_url_f f, const QString &path){
 	auto temp = path.toStdWString();
 	auto wc = f(this->client, temp.c_str());
-	std::shared_ptr<const wchar_t> shared_p(wc, this->release_returned_string_p);
+	std::shared_ptr<const wchar_t> shared_p(wc, this->mod->release_returned_string_p);
 	if (!wc)
 		return {};
 	return QString::fromWCharArray(wc);
 }
 
-QString ProtocolModule::get_filename(const QString &path){
-	return this->get_filename(this->get_filename_from_url_p, path);
+QString ProtocolModule::Client::get_filename(const QString &path){
+	return this->get_filename(this->mod->get_filename_from_url_p, path);
 }
 
-QString ProtocolModule::get_unique_filename(const QString &path){
-	if (!this->get_unique_filename_from_url_p)
+QString ProtocolModule::Client::get_unique_filename(const QString &path){
+	if (!this->mod->get_unique_filename_from_url_p)
 		return this->get_unique_filename(path);
-	return this->get_filename(this->get_unique_filename_from_url_p, path);
+	return this->get_filename(this->mod->get_unique_filename_from_url_p, path);
+}
+
+ProtocolFileEnumerator ProtocolModule::DummyClient::enumerate_siblings(const QString &){
+	return {};
 }
 
 std::vector<QString> read_all_lines_from_file(QFile &file){
@@ -183,6 +204,7 @@ std::vector<QString> read_all_lines_from_file(QFile &file){
 }
 
 CustomProtocolHandler::CustomProtocolHandler(const QString &config_location){
+	this->dummy = std::make_shared<ProtocolModule::DummyClient>();
 	auto c = QDir::separator();
 	auto protocols_location = config_location + "protocols" + c;
 	auto protocols_list_location = protocols_location + "protocols.txt";
@@ -197,7 +219,7 @@ CustomProtocolHandler::CustomProtocolHandler(const QString &config_location){
 	QDir::setCurrent(protocols_location);
 
 	for (auto &line : lines){
-		auto mod = std::make_unique<ProtocolModule>(protocols_location + line, config_location, protocols_location);
+		auto mod = std::make_shared<ProtocolModule>(protocols_location + line, config_location, protocols_location);
 		if (!*mod)
 			continue;
 		auto proto = mod->get_protocol_string();
@@ -250,67 +272,35 @@ bool CustomProtocolHandler::is_url(const QString &path){
 	return ::is_url(unused, path);
 }
 
-ProtocolModule *CustomProtocolHandler::find_module_by_url(const QString &path){
-	if (!this->modules.size())
-		return nullptr;
-
+std::shared_ptr<ProtocolModule::Client> CustomProtocolHandler::get_client(const QString &path, bool reuse){
+	std::shared_ptr<ProtocolModule> mod;
 	std::string scheme;
-	if (!::is_url(scheme, path))
-		return nullptr;
+	std::shared_ptr<ProtocolModule::Client> ret = this->dummy;
+	{
+		std::lock_guard<std::mutex> lg(this->modules_mutex);
+		if (this->modules.empty())
+			return ret;
+		
+		if (!::is_url(scheme, path))
+			return ret;
 
-	auto it = this->modules.find(scheme);
-	if (it == this->modules.end())
-		return nullptr;
-	return it->second.get();
-}
-
-std::unique_ptr<QIODevice>CustomProtocolHandler::open(const QString &path){
-	auto mod = this->find_module_by_url(path);
-	if (!mod)
-		return nullptr;
-	return mod->open(path);
-}
-
-ProtocolFileEnumerator CustomProtocolHandler::enumerate_siblings(const QString &path){
-	auto mod = this->find_module_by_url(path);
-	if (!mod)
-		return ProtocolFileEnumerator();
-	return mod->enumerate_siblings(path);
-}
-
-QString CustomProtocolHandler::get_parent_directory(const QString &path){
-	auto mod = this->find_module_by_url(path);
-	if (!mod)
-		return QString();
-	return mod->get_parent(path);
-}
-
-QString CustomProtocolHandler::get_filename(const QString &path){
-	auto mod = this->find_module_by_url(path);
-	if (!mod)
-		return QString();
-	return mod->get_filename(path);
-}
-
-QString CustomProtocolHandler::get_unique_filename(const QString &path){
-	auto mod = this->find_module_by_url(path);
-	if (!mod)
-		return QString();
-	return mod->get_unique_filename(path);
-}
-
-bool CustomProtocolHandler::paths_in_same_directory(const QString &a, const QString &b){
-	if (!this->modules.size())
-		return false;
-
-	std::string scheme_a, scheme_b;
-	if (!::is_url(scheme_a, a) || !::is_url(scheme_b, b) || scheme_a != scheme_b)
-		return false;
-
-	auto it = this->modules.find(scheme_a);
-	if (it == this->modules.end())
-		return false;
-	return it->second->are_paths_in_same_directory(a, b);
+		auto it = this->modules.find(scheme);
+		if (it == this->modules.end())
+			return ret;
+		mod = it->second;
+	}
+	auto id = std::this_thread::get_id();
+	if (reuse){
+		std::lock_guard<std::mutex> lg(this->clients_mutex);
+		auto key = std::make_pair(mod->get_id(), id);
+		auto it = this->clients.find(key);
+		if (it == this->clients.end())
+			this->clients[key] = ret = mod->create_client();
+		else
+			ret = it->second;
+	}else
+		ret = mod->create_client();
+	return ret;
 }
 
 ProtocolFileEnumerator::ProtocolFileEnumerator(ProtocolFileEnumerator &&other){
@@ -318,9 +308,8 @@ ProtocolFileEnumerator::ProtocolFileEnumerator(ProtocolFileEnumerator &&other){
 }
 
 const ProtocolFileEnumerator &ProtocolFileEnumerator::operator=(ProtocolFileEnumerator &&other){
-	this->mod = other.mod;
+	this->mod = std::move(other.mod);
 	this->handle = other.handle;
-	other.mod = nullptr;
 	other.handle = nullptr;
 	return *this;
 }
@@ -346,11 +335,11 @@ bool ProtocolFileEnumerator::find(const QString &path, size_t &dst){
 }
 
 void ProtocolModule::begin_restore(){
-	this->begin_restore_p(this->client);
+	this->begin_restore_p(this->module);
 }
 
 void ProtocolModule::end_restore(){
-	this->end_restore_p(this->client);
+	this->end_restore_p(this->module);
 }
 
 void CustomProtocolHandler::begin_restore(){

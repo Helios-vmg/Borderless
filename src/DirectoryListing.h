@@ -69,10 +69,9 @@ private:
 	std::unordered_map<size_t, QString> filenames;
 	ProtocolFileEnumerator enumerator;
 	QFuture<list_t> future;
-	CustomProtocolHandler *handler;
+	std::shared_ptr<ProtocolModule::Client> client;
 
 	list_t get_result();
-	static ProtocolDirectoryListing::list_t get_protocol_entries(QString path, ProtocolDirectoryListing *listing, CustomProtocolHandler *handler);
 public:
 	ProtocolDirectoryListing(const QString &path, CustomProtocolHandler &);
 	size_t size() override;

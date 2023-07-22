@@ -109,6 +109,7 @@ public:
 	QTransform get_transform_u() const;
 
 	QJsonValue serialize() const override;
+	QString get_path() const;
 };
 
 class MainSettings : public Serializable{

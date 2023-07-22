@@ -3,6 +3,7 @@
 #include <QJsonArray>
 #include <QJsonValueRef>
 #include <QJsonValue>
+#include <QDir>
 
 #define DEFINE_JSON_STRING(name) const char * const json_string_##name = #name
 #define READ_JSON(dst, src) parse_json(this->dst, src, json_string_##dst)
@@ -428,4 +429,16 @@ QJsonValue WindowPosition::serialize() const{
 
 void WindowState::override_computed(){
 	this->computed_position = this->user_set_position;
+}
+
+QString WindowState::get_path() const{
+	QString ret;
+	if (!this->get_file_is_url()){
+		ret = this->get_current_directory();
+		auto c = QDir::separator().toLatin1();
+		ret += c;
+		ret += this->get_current_filename();
+	}else
+		ret = this->get_current_url();
+	return ret;
 }
