@@ -28,7 +28,6 @@ static const char *hardcoded_supported_extensions[] = {
 	"*.tga",
 	"*.tif",
 	"*.tiff",
-	"*.svg",
 	"*.svgz",
 	//"*.jp2", //TODO: add support
 };

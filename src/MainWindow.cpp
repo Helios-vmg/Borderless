@@ -461,7 +461,7 @@ bool MainWindow::open_path_and_display_image(QString path, QFuture<std::shared_p
 			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
 	}
 
-	if (li->is_null()){
+	if (!li || li->is_null()){
 		this->show_nothing();
 		return false;
 	}
