@@ -9,13 +9,13 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ui_MainWindow.h"
 #include <QDir>
 
-void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, QFuture<std::shared_ptr<LoadedGraphics>> *future){
+void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> *future){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
 	this->last_set_by_user = state->get_last_set_by_user();
 	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
-	bool success = this->open_path_and_display_image(this->window_state->get_path(), future);
+	auto result = this->open_path_and_display_image(this->window_state->get_path(), future);
 	this->ui->label->load_state(*this->window_state);
 	this->window_state->set_zoom_mode(temp_zoom_mode);
 
@@ -28,10 +28,16 @@ void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, QFutur
 	this->move(pos);
 	this->current_desktop = unique_identifier(*this->screen());
 	this->window_rect.moveTopLeft(pos);
-	if (!success)
-		return;
-	this->resize(this->window_state->get_size());
-	this->fix_positions_and_zoom(true);
+	switch (result){
+		case OpenResult::Success:
+			this->resize(this->window_state->get_size());
+			this->fix_positions_and_zoom(true);
+			break;
+		case OpenResult::TemporaryFail:
+			this->app->report_temporary_failure(state);
+		case OpenResult::PermanentFail:
+			break;
+	}
 }
 
 std::shared_ptr<WindowState> MainWindow::save_state() const{

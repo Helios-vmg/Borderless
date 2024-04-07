@@ -33,13 +33,18 @@ class ProtocolModule : public std::enable_shared_from_this<ProtocolModule>{
 	class file_enumerator_t;
 	friend class ProtocolFileEnumerator;
 
+	struct open_file_result{
+		unknown_stream_t *stream;
+		int permanent_error;
+	};
+
 	typedef const char *(*get_protocol_f)();
 	typedef protocol_module_t *(*initialize_module_f)(const wchar_t *, const wchar_t *);
 	typedef void (*terminate_module_f)(protocol_module_t *);
 	typedef protocol_client_t *(*initialize_client_f)(protocol_module_t *);
 	typedef void (*terminate_client_f)(protocol_client_t *);
-	typedef unknown_stream_t *(*open_file_utf8_f)(protocol_client_t *, const char *);
-	typedef unknown_stream_t *(*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
+	typedef open_file_result (*open_file_utf8_f)(protocol_client_t *, const char *);
+	typedef open_file_result (*open_file_utf16_f)(protocol_client_t *, const wchar_t *);
 	typedef void (*close_file_f)(unknown_stream_t *);
 	typedef std::uint64_t(*read_file_f)(unknown_stream_t *, void *, std::uint64_t);
 	typedef int (*seek_file_f)(unknown_stream_t *, std::uint64_t);
@@ -133,7 +138,7 @@ public:
 		Client &operator=(const Client &) = delete;
 		Client(Client &&) = delete;
 		Client &operator=(Client &&) = delete;
-		virtual std::unique_ptr<QIODevice> open(const QString &);
+		virtual std::pair<std::unique_ptr<QIODevice>, bool> open(const QString &);
 		virtual ProtocolFileEnumerator enumerate_siblings(const QString &);
 		virtual QString get_parent(const QString &);
 		virtual bool are_paths_in_same_directory(const QString &, const QString &);
@@ -142,7 +147,7 @@ public:
 	};
 	class DummyClient : public Client{
 	public:
-		std::unique_ptr<QIODevice> open(const QString &) override{
+		std::pair<std::unique_ptr<QIODevice>, bool> open(const QString &) override{
 			return {};
 		}
 		ProtocolFileEnumerator enumerate_siblings(const QString &) override;

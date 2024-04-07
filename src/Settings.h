@@ -144,11 +144,15 @@ public:
 
 class ApplicationState : public Serializable{
 	std::vector<std::shared_ptr<WindowState>> windows;
+	std::vector<std::shared_ptr<WindowState>> temporary_failures;
 public:
 	ApplicationState() = default;
 	ApplicationState(const QJsonValueRef &);
+	void reset_failures();
 	DEFINE_INLINE_GETTER(windows)
 	DEFINE_INLINE_NONCONST_GETTER(windows)
+	DEFINE_INLINE_GETTER(temporary_failures)
+	DEFINE_INLINE_NONCONST_GETTER(temporary_failures)
 	QJsonValue serialize() const override;
 };
 

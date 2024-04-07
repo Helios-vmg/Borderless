@@ -252,10 +252,10 @@ void ImageViewerApplication::restore_current_state(const ApplicationState &windo
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
-	std::vector<QFuture<std::shared_ptr<LoadedGraphics>>> futures;
+	std::vector<QFuture<LoadedGraphics::create_result>> futures;
 	futures.reserve(window_states.size());
 	for (auto &state : window_states){
-		futures.emplace_back(QtConcurrent::run([this, state]() -> std::shared_ptr<LoadedGraphics>{
+		futures.emplace_back(QtConcurrent::run([this, state]() -> LoadedGraphics::create_result{
 			return LoadedGraphics::create(*this, state->get_path());
 		}));
 	}
@@ -338,6 +338,7 @@ void ImageViewerApplication::restore_state_only(){
 	
 	StateFile state(json.object());
 	this->app_state = std::move(state.state);
+	this->app_state->reset_failures();
 	this->restore_current_state(*this->app_state);
 }
 
@@ -469,7 +470,7 @@ QString generate_random_string(){
 	return ret;
 }
 
-std::unique_ptr<QIODevice> ImageViewerApplication::open_file(const QString &path){
+std::pair<std::unique_ptr<QIODevice>, bool> ImageViewerApplication::open_file(const QString &path){
 	return this->protocol_handler->get_client(path)->open(path);
 }
 
@@ -592,4 +593,8 @@ std::string unique_identifier(QScreen &screen){
 void ImageViewerApplication::about_to_quit(){
 	this->save_settings();
 	this->windows.clear();
+}
+
+void ImageViewerApplication::report_temporary_failure(const std::shared_ptr<WindowState> &state){
+	this->app_state->get_temporary_failures().push_back(state);
 }

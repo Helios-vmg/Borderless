@@ -101,8 +101,8 @@ QImage LoadedAnimation::get_QImage() const{
 	return this->animation->currentImage();
 }
 
-std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &app, const QString &path){
-	auto dev = app.open_file(path);
+LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app, const QString &path){
+	auto [dev, permanent_error] = app.open_file(path);
 	if (app.is_svg(path))
 #ifdef ENABLE_SVG
 		return std::make_unique<SvgImage>(app, std::move(dev), path);
@@ -113,12 +113,15 @@ std::shared_ptr<LoadedGraphics> LoadedGraphics::create(ImageViewerApplication &a
 	if (is_animation){
 		auto animation = std::make_unique<LoadedAnimation>(app, std::move(dev), path);
 		if (!animation->is_null())
-			return animation;
+			return { std::move(animation), permanent_error };
 		dev = animation->get_device();
 	}
 	if (dev)
 		dev->reset();
-	return std::make_unique<LoadedImage>(app, std::move(dev), path);
+	return {
+		std::make_unique<LoadedImage>(app, std::move(dev), path),
+		permanent_error
+	};
 }
 
 #ifdef ENABLE_SVG

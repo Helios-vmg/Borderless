@@ -130,20 +130,20 @@ qint64 ProtocolModule::Stream::readData(char *data, qint64 maxSize){
 	return maxSize;
 }
 
-std::unique_ptr<QIODevice> ProtocolModule::Client::open(const QString &path){
-	unknown_stream_t *stream;
+std::pair<std::unique_ptr<QIODevice>, bool> ProtocolModule::Client::open(const QString &path){
+	open_file_result result;
 	if (this->mod->open_file_utf16_p){
 		auto temp = path.toStdWString();
-		stream = this->mod->open_file_utf16_p(this->client, temp.c_str());
+		result = this->mod->open_file_utf16_p(this->client, temp.c_str());
 	}else{
 		auto temp = path.toStdString();
-		stream = this->mod->open_file_utf8_p(this->client, temp.c_str());
+		result = this->mod->open_file_utf8_p(this->client, temp.c_str());
 	}
-	if (!stream)
-		return nullptr;
-	auto ret = std::make_unique<Stream>(*this->mod, stream);
+	if (!result.stream)
+		return { std::unique_ptr<QIODevice>(), result.permanent_error };
+	auto ret = std::make_unique<Stream>(*this->mod, result.stream);
 	ret->open(QIODeviceBase::ReadOnly);
-	return ret;
+	return { std::move(ret), false };
 }
 
 ProtocolFileEnumerator ProtocolModule::Client::enumerate_siblings(const QString &path){

@@ -40,7 +40,8 @@ public:
 	}
 	virtual void assign_to_QLabel(QLabel &) = 0;
 	virtual QImage get_QImage() const = 0;
-	static std::shared_ptr<LoadedGraphics> create(ImageViewerApplication &app, const QString &path);
+	typedef std::pair<std::shared_ptr<LoadedGraphics>, bool> create_result;
+	static create_result create(ImageViewerApplication &app, const QString &path);
 };
 
 class RasterGraphics : public LoadedGraphics{

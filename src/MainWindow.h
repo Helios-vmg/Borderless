@@ -143,13 +143,18 @@ protected:
 	void closeEvent(QCloseEvent *event) override;
 	void contextMenuEvent(QContextMenuEvent *) override;
 	//bool event(QEvent *) override;
-	void restore_state(const std::shared_ptr<WindowState> &, QFuture<std::shared_ptr<LoadedGraphics>> *future = nullptr);
-	bool open_path_and_display_image(QString path, QFuture<std::shared_ptr<LoadedGraphics>> *future = nullptr);
+	void restore_state(const std::shared_ptr<WindowState> &, QFuture<LoadedGraphics::create_result> *future = nullptr);
+	enum class OpenResult{
+		Success,
+		TemporaryFail,
+		PermanentFail,
+	};
+	OpenResult open_path_and_display_image(QString path, QFuture<LoadedGraphics::create_result> *future = nullptr);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
-	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<std::shared_ptr<LoadedGraphics>> &future, QWidget *parent = 0);
+	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> &future, QWidget *parent = 0);
 	virtual ~MainWindow();
 	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
 	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);

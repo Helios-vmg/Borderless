@@ -43,7 +43,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<Window
 	this->set_background();
 }
 
-MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<std::shared_ptr<LoadedGraphics>> &future, QWidget *parent):
+MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> &future, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
@@ -402,21 +402,21 @@ public:
 	}
 };
 
-bool MainWindow::open_path_and_display_image(QString path, QFuture<std::shared_ptr<LoadedGraphics>> *future){
+MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFuture<LoadedGraphics::create_result> *future){
 	ElapsedTimer et((QString)"open_path_and_display_image(" + path + ")");
-	std::shared_ptr<LoadedGraphics> li;
+	LoadedGraphics::create_result result;
 	size_t i = 0;
 	auto &label = this->ui->label;
 	if (!!this->directory_iterator)
 		i = this->directory_iterator->pos();
 	while (true){
 		if (future){
-			li = future->result();
+			result = future->result();
 			future = nullptr;
 		}else
-			li = LoadedGraphics::create(*this->app, path);
+			result = LoadedGraphics::create(*this->app, path);
 		qDebug() << path;
-		if (li && !li->is_null())
+		if (result.first && !result.first->is_null())
 			break;
 		if (!!this->directory_iterator){
 			this->advance();
@@ -461,20 +461,20 @@ bool MainWindow::open_path_and_display_image(QString path, QFuture<std::shared_p
 			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
 	}
 
-	if (!li || li->is_null()){
+	if (!result.first || result.first->is_null()){
 		this->show_nothing();
-		return false;
+		return result.second ? OpenResult::PermanentFail : OpenResult::TemporaryFail;
 	}
 	this->color_calculated = false;
 	label->move(0, 0);
 	this->setWindowTitle(window_title);
-	this->displayed_image = li;
+	this->displayed_image = result.first;
 
 	label->reset_transform();
 	this->set_zoom();
 
 	this->apply_zoom(true, 1);
-	return true;
+	return OpenResult::Success;
 }
 
 void MainWindow::display_filtered_image(const std::shared_ptr<LoadedGraphics> &graphics){

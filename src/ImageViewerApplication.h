@@ -142,7 +142,8 @@ public:
 	void about_to_quit();
 	void resolution_change(QScreen &);
 	void work_area_change(QScreen &);
-	std::unique_ptr<QIODevice> open_file(const QString &);
+	std::pair<std::unique_ptr<QIODevice>, bool> open_file(const QString &);
+	void report_temporary_failure(const std::shared_ptr<WindowState> &);
 
 public slots:
 	void window_closing(MainWindow *);

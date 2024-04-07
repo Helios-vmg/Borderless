@@ -45,6 +45,8 @@ DEFINE_JSON_STRING(resize_windows_on_monitor_change);
 DEFINE_JSON_STRING(computed_position);
 DEFINE_JSON_STRING(user_set_position);
 DEFINE_JSON_STRING(last_set_by_user);
+DEFINE_JSON_STRING(windows);
+DEFINE_JSON_STRING(temporary_failures);
 
 template <typename T>
 struct json_cast{
@@ -234,14 +236,45 @@ QJsonValue Shortcuts::serialize() const{
 }
 
 ApplicationState::ApplicationState(const QJsonValueRef &json){
-	for (const auto &val : json.toArray())
-		this->windows.emplace_back(std::make_shared<WindowState>(val));
+	if (json.isArray()){
+		for (const auto &val : json.toArray())
+			this->windows.emplace_back(std::make_shared<WindowState>(val));
+	}else if (json.isObject()){
+		auto obj = json.toObject();
+		auto it = obj.find(json_string_windows);
+		if (it != obj.end()){
+			for (const auto &val : it->toArray())
+				this->windows.emplace_back(std::make_shared<WindowState>(val));
+		}
+
+		it = obj.find(json_string_temporary_failures);
+		if (it != obj.end()){
+			for (const auto &val : it->toArray())
+				this->temporary_failures.emplace_back(std::make_shared<WindowState>(val));
+		}
+	}
+}
+
+void ApplicationState::reset_failures(){
+	for (auto &w : this->temporary_failures)
+		this->windows.emplace_back(w);
+	this->temporary_failures.clear();
 }
 
 QJsonValue ApplicationState::serialize() const{
-	QJsonArray ret;
-	for (auto &w : this->windows)
-		ret.push_back(w->serialize());
+	QJsonObject ret;
+	{
+		QJsonArray windows;
+		for (auto &w : this->windows)
+			windows.push_back(w->serialize());
+		ret[json_string_windows] = windows;
+	}
+	{
+		QJsonArray temporary_failures;
+		for (auto &w : this->temporary_failures)
+			temporary_failures.push_back(w->serialize());
+		ret[json_string_temporary_failures] = temporary_failures;
+	}
 	return ret;
 }
 
