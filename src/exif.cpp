@@ -44,24 +44,29 @@ std::string custom_to_string(const T &x){
 	return stream.str();
 }
 
+template <typename T>
+optstring custom_to_string_zero_is_null(const T &x){
+	if (!x)
+		return {};
+	return custom_to_string(x);
+}
+
 optstring get_width(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ImageWidth);
+	return custom_to_string_zero_is_null(info.ImageWidth);
 }
 
 optstring get_height(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ImageHeight);
+	return custom_to_string_zero_is_null(info.ImageHeight);
 }
 
 optstring get_related_width(const TinyEXIF::EXIFInfo &info){
-	if (!info.RelatedImageWidth)
-		return {};
-	return custom_to_string(info.RelatedImageWidth);
+	return custom_to_string_zero_is_null(info.RelatedImageWidth);
 }
 
 optstring get_related_height(const TinyEXIF::EXIFInfo &info){
 	if (!info.RelatedImageHeight)
 		return {};
-	return custom_to_string(info.RelatedImageHeight);
+	return custom_to_string_zero_is_null(info.RelatedImageHeight);
 }
 
 optstring get_description(const TinyEXIF::EXIFInfo &info){
@@ -92,10 +97,18 @@ optstring get_orientation(const TinyEXIF::EXIFInfo &info){
 	switch (info.Orientation){
 		case 1:
 			return "normal";
+		case 2:
+			return "normal (mirrored)";
 		case 3:
 			return "camera inverted";
+		case 4:
+			return "camera inverted (mirrored)";
+		case 5:
+			return "camera rotated 90\xc2\xb0 to the left (mirrored)";
 		case 6:
 			return "camera rotated 90\xc2\xb0 to the right";
+		case 7:
+			return "camera rotated 90\xc2\xb0 to the right (mirrored)";
 		case 8:
 			return "camera rotated 90\xc2\xb0 to the left";
 		default:
@@ -131,9 +144,7 @@ optstring get_y_resolution(const TinyEXIF::EXIFInfo &info){
 }
 
 optstring get_bits_per_sample(const TinyEXIF::EXIFInfo &info){
-	if (!info.BitsPerSample)
-		return {};
-	return custom_to_string(info.BitsPerSample);
+	return custom_to_string_zero_is_null(info.BitsPerSample);
 }
 
 optstring get_software(const TinyEXIF::EXIFInfo &info){
@@ -172,11 +183,11 @@ optstring get_copyright(const TinyEXIF::EXIFInfo &info){
 }
 
 optstring get_exposure(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ExposureTime);
+	return custom_to_string_zero_is_null(info.ExposureTime);
 }
 
 optstring get_fstop(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.FNumber);
+	return custom_to_string_zero_is_null(info.FNumber);
 }
 
 optstring get_exposure_program(const TinyEXIF::EXIFInfo &info){
@@ -203,30 +214,34 @@ optstring get_exposure_program(const TinyEXIF::EXIFInfo &info){
 }
 
 optstring get_iso_speed(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ISOSpeedRatings);
+	return custom_to_string_zero_is_null(info.ISOSpeedRatings);
 }
 
 optstring get_shutter_speed(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ShutterSpeedValue);
+	return custom_to_string_zero_is_null(info.ShutterSpeedValue);
 }
 
 optstring get_aperture(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ApertureValue);
+	return custom_to_string_zero_is_null(info.ApertureValue);
 }
 
 optstring get_brightness(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.BrightnessValue);
+	return custom_to_string_zero_is_null(info.BrightnessValue);
 }
 
 optstring get_exposure_bias(const TinyEXIF::EXIFInfo &info){
-	return custom_to_string(info.ExposureBiasValue);
+	return custom_to_string_zero_is_null(info.ExposureBiasValue);
 }
 
 optstring get_focal_plane(const TinyEXIF::EXIFInfo &info){
+	if (!info.SubjectDistance)
+		return {};
 	return custom_to_string(info.SubjectDistance) + " m";
 }
 
 optstring get_focal_length(const TinyEXIF::EXIFInfo &info){
+	if (!info.FocalLength)
+		return {};
 	return custom_to_string(info.FocalLength) + " mm";
 }
 
@@ -480,4 +495,26 @@ ImageMetadata::ImageMetadata(const QString &path){
 
 ImageMetadata::ImageMetadata(std::unique_ptr<QIODevice> &&dev){
 	this->human_metadata = set_exif(this->machine_metadata, std::move(dev));
+}
+
+std::pair<int, bool> ImageMetadata::get_orientation() const{
+	auto o = this->machine_metadata.Orientation;
+	if (o < 2 || o > 8)
+		return { 0, false };
+
+	static const signed char values[] = {
+		-1, // 2
+		 3, // 3
+		-3, // 4
+		-2, // 5
+		 2, // 6
+		-4, // 7
+		 4, // 8
+	};
+	auto value = values[o - 2];
+	bool flipped = value < 0;
+	if (flipped)
+		value = (signed char)-value;
+	value--;
+	return { value, flipped };
 }

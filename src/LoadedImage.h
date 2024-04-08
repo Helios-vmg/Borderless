@@ -40,8 +40,8 @@ public:
 	}
 	virtual void assign_to_QLabel(QLabel &) = 0;
 	virtual QImage get_QImage() const = 0;
-	virtual std::optional<ImageMetadata> get_metadata() const{
-		return {};
+	virtual const ImageMetadata *get_metadata() const{
+		return nullptr;
 	}
 	typedef std::pair<std::shared_ptr<LoadedGraphics>, bool> create_result;
 	static create_result create(ImageViewerApplication &app, const QString &path);
@@ -73,8 +73,8 @@ public:
 	}
 	void assign_to_QLabel(QLabel &) override;
 	QImage get_QImage() const override;
-	std::optional<ImageMetadata> get_metadata() const override{
-		return this->info;
+	const ImageMetadata *get_metadata() const override{
+		return &this->info;
 	}
 };
 

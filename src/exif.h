@@ -26,9 +26,13 @@ public:
 	ImageMetadata &operator=(const ImageMetadata &) = default;
 	ImageMetadata(ImageMetadata &&) = default;
 	ImageMetadata &operator=(ImageMetadata &&) = default;
+	const auto &get_machine() const{
+		return this->machine_metadata;
+	}
 	const auto &get_human() const{
 		return this->human_metadata;
 	}
+	std::pair<int, bool> get_orientation() const;
 };
 
 #endif

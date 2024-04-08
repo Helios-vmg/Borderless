@@ -470,7 +470,7 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFu
 	this->setWindowTitle(window_title);
 	this->displayed_image = result.first;
 
-	label->reset_transform();
+	label->set_transform_by_metadata(this->displayed_image->get_metadata());
 	this->set_zoom();
 
 	this->apply_zoom(true, 1);

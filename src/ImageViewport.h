@@ -15,6 +15,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QTransform>
 
 class LoadedGraphics;
+class ImageMetadata;
 
 class ImageViewport : public QLabel
 {
@@ -48,9 +49,6 @@ class ImageViewport : public QLabel
 	void transform_changed();
 public:
 	explicit ImageViewport(QWidget *parent = 0);
-	void reset_transform(){
-		this->transform.reset();
-	}
 	void set_zoom(double x){
 		this->zoom = x;
 	}
@@ -89,6 +87,7 @@ public:
 
 	void paintEvent(QPaintEvent *) override;
 	void set_image(LoadedGraphics &li);
+	void set_transform_by_metadata(const ImageMetadata *);
 
 signals:
 	void transform_updated();
