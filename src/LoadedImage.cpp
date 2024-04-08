@@ -105,9 +105,12 @@ LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app
 	auto [dev, permanent_error] = app.open_file(path);
 	if (app.is_svg(path))
 #ifdef ENABLE_SVG
-		return std::make_unique<SvgImage>(app, std::move(dev), path);
+		return {
+			std::make_unique<SvgImage>(app, std::move(dev), path),
+			permanent_error
+		};
 #else
-		return {};
+		return { nullptr, true };
 #endif
 	auto is_animation = app.is_animation(path);
 	if (is_animation){
