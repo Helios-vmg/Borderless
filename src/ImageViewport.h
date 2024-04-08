@@ -87,7 +87,7 @@ public:
 
 	void paintEvent(QPaintEvent *) override;
 	void set_image(LoadedGraphics &li);
-	void set_transform_by_metadata(const ImageMetadata *);
+	void set_transform_by_metadata(const ImageMetadata *, bool use_metadata = true);
 
 signals:
 	void transform_updated();

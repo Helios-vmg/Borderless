@@ -156,7 +156,7 @@ void MainWindow::reset_zoom_slot(){
 		return;
 	int zoom = this->get_current_zoom();
 	this->set_current_zoom_mode(ZoomMode::Normal);
-	this->ui->label->set_transform_by_metadata(this->displayed_image->get_metadata());
+	this->ui->label->set_transform_by_metadata(this->displayed_image->get_metadata(), this->rotate_by_metadata);
 	this->set_zoom();
 	this->apply_zoom(false, zoom);
 }

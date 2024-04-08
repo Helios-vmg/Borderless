@@ -65,6 +65,7 @@ protected:
 	bool color_calculated;
 	std::vector<QMetaObject::Connection> connections;
 	bool last_set_by_user = true;
+	bool rotate_by_metadata = true;
 
 	enum class ResizeMode{
 		None        = 0,
@@ -225,6 +226,7 @@ public slots:
 	void show_rotate_dialog();
 	void show_options_dialog();
 	void show_info_dialog();
+	void toggle_rotate_by_metadata();
 
 signals:
 	void closing(MainWindow *);

@@ -94,9 +94,9 @@ void ImageViewport::set_image(LoadedGraphics &li){
 	li.assign_to_QLabel(*this);
 }
 
-void ImageViewport::set_transform_by_metadata(const ImageMetadata *metadata){
+void ImageViewport::set_transform_by_metadata(const ImageMetadata *metadata, bool use_metadata){
 	this->transform.reset();
-	if (!metadata)
+	if (!metadata || !use_metadata)
 		return;
 	auto [turn, flip] = metadata->get_orientation();
 	if (turn)

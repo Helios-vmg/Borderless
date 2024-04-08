@@ -470,7 +470,7 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFu
 	this->setWindowTitle(window_title);
 	this->displayed_image = result.first;
 
-	label->set_transform_by_metadata(this->displayed_image->get_metadata());
+	label->set_transform_by_metadata(this->displayed_image->get_metadata(), this->rotate_by_metadata);
 	this->set_zoom();
 
 	this->apply_zoom(true, 1);
@@ -527,7 +527,11 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 }
 
 void MainWindow::build_context_menu(QMenu &main_menu){
+	main_menu.addAction("View info...", this, SLOT(show_info_dialog()), this->app->get_shortcuts().get_current_sequence(show_info_command));
 	main_menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
+	auto rotate = main_menu.addAction("Rotate by metadata", this, SLOT(toggle_rotate_by_metadata()));
+	rotate->setCheckable(true);
+	rotate->setChecked(this->rotate_by_metadata);
 	main_menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
@@ -676,4 +680,8 @@ void TransparentMainWindow::set_background(bool force){
 void TransparentMainWindow::transparent_background(){
 	this->app->turn_transparent(*this, false);
 	this->close();
+}
+
+void MainWindow::toggle_rotate_by_metadata(){
+	this->rotate_by_metadata = !this->rotate_by_metadata;
 }
