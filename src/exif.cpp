@@ -2,6 +2,8 @@
 #include <sstream>
 #include <QFile>
 
+#include "ImageViewerApplication.h"
+
 class QIODeviceExifStream : public TinyEXIF::EXIFStream{
 	std::unique_ptr<QIODevice> dev;
 	std::vector<std::uint8_t> internal_buffer;
@@ -487,9 +489,13 @@ std::vector<std::pair<std::string, std::string>> set_exif(TinyEXIF::EXIFInfo &ds
 	return ret;
 }
 
-ImageMetadata::ImageMetadata(const QString &path){
+ImageMetadata::ImageMetadata(QImage &image, const QString &path){
 	auto dev = std::make_unique<QFile>(path);
 	dev->open(QFile::ReadOnly);
+	this->name = QString::fromStdString(dev->filesystemFileName().filename().u8string());
+	this->path = path;
+	this->size = dev->size();
+	this->dimensions = std::make_pair(image.size(), 1);
 	this->human_metadata = set_exif(this->machine_metadata, std::move(dev));
 }
 

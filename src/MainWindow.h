@@ -130,6 +130,7 @@ protected:
 	};
 	
 	ZoomResult compute_zoom(int override_rotation = -1);
+	std::pair<std::uint64_t, std::uint64_t> count_colors();
 
 protected:
 	void mousePressEvent(QMouseEvent *ev) override;

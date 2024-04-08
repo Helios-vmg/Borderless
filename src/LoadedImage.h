@@ -43,6 +43,9 @@ public:
 	virtual const ImageMetadata *get_metadata() const{
 		return nullptr;
 	}
+	virtual ImageMetadata *get_metadata(){
+		return nullptr;
+	}
 	typedef std::pair<std::shared_ptr<LoadedGraphics>, bool> create_result;
 	static create_result create(ImageViewerApplication &app, const QString &path);
 };
@@ -74,6 +77,9 @@ public:
 	void assign_to_QLabel(QLabel &) override;
 	QImage get_QImage() const override;
 	const ImageMetadata *get_metadata() const override{
+		return &this->info;
+	}
+	ImageMetadata *get_metadata() override{
 		return &this->info;
 	}
 };

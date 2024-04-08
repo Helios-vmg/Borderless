@@ -18,6 +18,8 @@ class InfoDialog : public QDialog{
 
 	std::unique_ptr<Ui::InfoDialog> ui;
 
+	void initialize_exif(const ImageMetadata &metadata);
+	void initialize_size(const std::pair<QSize, int> &);
 public:
 	InfoDialog(QWidget &parent, const ImageMetadata &metadata);
 	

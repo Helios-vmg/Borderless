@@ -602,7 +602,7 @@ void ImageViewerApplication::report_temporary_failure(const std::shared_ptr<Wind
 
 ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path): image(std::move(image)){
 	if (!this->image.isNull())
-		this->meta = ImageMetadata(path);
+		this->meta = ImageMetadata(this->image, path);
 }
 
 ImageWithMetadata::ImageWithMetadata(QImage &&image, std::unique_ptr<QIODevice> &&dev): image(std::move(image)){
