@@ -436,9 +436,10 @@ void ImageViewerApplication::load_custom_file_protocols(){
 	this->protocol_handler.reset(new CustomProtocolHandler(this->get_config_location()));
 }
 
-QImage ImageViewerApplication::load_image(std::unique_ptr<QIODevice> &&dev, const QString &path){
+ImageWithMetadata ImageViewerApplication::load_image(std::unique_ptr<QIODevice> &&dev, const QString &path){
 	if (!dev)
-		return QImage(path);
+		return { QImage(path), path };
+
 	QImage ret;
 	auto client = this->protocol_handler->get_client(path);
 	auto filename = client->get_filename(path);
@@ -452,7 +453,7 @@ QImage ImageViewerApplication::load_image(std::unique_ptr<QIODevice> &&dev, cons
 	}
 	auto t1 = clock();
 	qDebug() << "Load " << path << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC;
-	return ret;
+	return { std::move(ret), std::move(dev) };
 }
 
 QString generate_random_string(){
@@ -597,4 +598,14 @@ void ImageViewerApplication::about_to_quit(){
 
 void ImageViewerApplication::report_temporary_failure(const std::shared_ptr<WindowState> &state){
 	this->app_state->get_temporary_failures().push_back(state);
+}
+
+ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path): image(std::move(image)){
+	if (!this->image.isNull())
+		this->meta = ImageMetadata(path);
+}
+
+ImageWithMetadata::ImageWithMetadata(QImage &&image, std::unique_ptr<QIODevice> &&dev): image(std::move(image)){
+	if (!this->image.isNull())
+		this->meta = ImageMetadata(std::move(dev));
 }

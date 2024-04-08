@@ -224,6 +224,7 @@ public slots:
 	void flip_v();
 	void show_rotate_dialog();
 	void show_options_dialog();
+	void show_info_dialog();
 
 signals:
 	void closing(MainWindow *);

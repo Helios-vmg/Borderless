@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "InfoDialog.h"
 
 void MainWindow::setup_shortcuts(){
 	static struct Pair{
@@ -46,6 +47,7 @@ void MainWindow::setup_shortcuts(){
 		SETUP_SHORTCUT(minimize_all_command, minimize_all_slot())
 		SETUP_SHORTCUT(show_options_command, show_options_dialog())
 		SETUP_SHORTCUT(show_transparent_background_command, transparent_background())
+		SETUP_SHORTCUT(show_info_command, show_info_dialog())
 	};
 
 	for (auto &c : this->connections)
@@ -290,4 +292,12 @@ void MainWindow::flip_v(){
 
 void MainWindow::show_options_dialog(){
 	this->app->show_options();
+}
+
+void MainWindow::show_info_dialog(){
+	auto metadata = this->displayed_image->get_metadata();
+	if (!metadata)
+		return;
+	InfoDialog info(*this, *metadata);
+	info.exec();
 }

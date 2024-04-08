@@ -16,13 +16,15 @@ Distributed under a permissive license. See COPYING.txt for details.
 extern const char *supported_extensions[];
 
 LoadedImage::LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
-	auto img = app.load_image(std::move(dev), path);
+	auto image_with_metadata = app.load_image(std::move(dev), path);
+	auto img = image_with_metadata.get_image();
 	if ((this->null = img.isNull()))
 		return;
 	this->compute_average_color(img);
 	this->image = QtConcurrent::run([](QImage img){ return QPixmap::fromImage(img); }, img);
 	this->size = img.size();
 	this->alpha = img.hasAlphaChannel();
+	this->info = std::move(image_with_metadata.get_metadata());
 }
 
 LoadedImage::LoadedImage(const QImage &image){

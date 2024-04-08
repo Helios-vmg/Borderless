@@ -35,8 +35,9 @@ DEFINE_COMMAND_INTERNAL_NAME(rotate_left);
 DEFINE_COMMAND_INTERNAL_NAME(rotate_left_fine);
 DEFINE_COMMAND_INTERNAL_NAME(rotate_right);
 DEFINE_COMMAND_INTERNAL_NAME(rotate_right_fine);
-DEFINE_COMMAND_INTERNAL_NAME(show_transparent_background);
+DEFINE_COMMAND_INTERNAL_NAME(show_info);
 DEFINE_COMMAND_INTERNAL_NAME(show_options);
+DEFINE_COMMAND_INTERNAL_NAME(show_transparent_background);
 DEFINE_COMMAND_INTERNAL_NAME(toggle_fullscreen);
 DEFINE_COMMAND_INTERNAL_NAME(toggle_lock_zoom);
 DEFINE_COMMAND_INTERNAL_NAME(up);
@@ -79,6 +80,7 @@ std::map<QString, ShortcutInfo> get_default_shortcuts() {
 	SETUP_DEFAULT_SHORTCUT1("Rotate left", rotate_left_command, "L");
 	SETUP_DEFAULT_SHORTCUT1("Rotate right", rotate_right_command, "R");
 	SETUP_DEFAULT_SHORTCUT1("Show transparent background", show_transparent_background_command, "F12");
+	SETUP_DEFAULT_SHORTCUT1("Show image information", show_info_command, "I");
 	return ret;
 }
 

@@ -13,6 +13,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "Shortcuts.h"
 #include "Streams.h"
 #include "Enums.h"
+#include "exif.h"
 #include <QMenu>
 #include <memory>
 #include <exception>
@@ -37,6 +38,27 @@ public:
 public slots:
 	void resolution_change(const QRect &geometry);
 	void work_area_change(const QRect &geometry);
+};
+
+class ImageWithMetadata{
+	QImage image;
+	ImageMetadata meta;
+public:
+	ImageWithMetadata(QImage &&, const QString &);
+	ImageWithMetadata(QImage &&, std::unique_ptr<QIODevice> &&);
+	ImageWithMetadata(const ImageWithMetadata &) = delete;
+	ImageWithMetadata &operator=(const ImageWithMetadata &) = delete;
+	ImageWithMetadata(ImageWithMetadata &&) = default;
+	ImageWithMetadata &operator=(ImageWithMetadata &&) = default;
+	QImage get_image(){
+		return this->image;
+	}
+	ImageMetadata &get_metadata(){
+		return this->meta;
+	}
+	const ImageMetadata &get_metadata() const{
+		return this->meta;
+	}
 };
 
 class ImageViewerApplication : public SingleInstanceApplication{
@@ -132,7 +154,7 @@ public:
 	}
 	void set_option_values(MainSettings &settings);
 	void load_custom_file_protocols();
-	QImage load_image(std::unique_ptr<QIODevice> &&dev, const QString &);
+	ImageWithMetadata load_image(std::unique_ptr<QIODevice> &&dev, const QString &);
 	std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path);
 	bool is_animation(const QString &);
 	bool is_svg(const QString &);

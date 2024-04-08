@@ -40,6 +40,9 @@ public:
 	}
 	virtual void assign_to_QLabel(QLabel &) = 0;
 	virtual QImage get_QImage() const = 0;
+	virtual std::optional<ImageMetadata> get_metadata() const{
+		return {};
+	}
 	typedef std::pair<std::shared_ptr<LoadedGraphics>, bool> create_result;
 	static create_result create(ImageViewerApplication &app, const QString &path);
 };
@@ -55,6 +58,7 @@ public:
 class LoadedImage : public RasterGraphics{
 	QFuture<QPixmap> image;
 	QFuture<QColor> background_color;
+	ImageMetadata info;
 
 	void compute_average_color(QImage);
 public:
@@ -69,6 +73,9 @@ public:
 	}
 	void assign_to_QLabel(QLabel &) override;
 	QImage get_QImage() const override;
+	std::optional<ImageMetadata> get_metadata() const override{
+		return this->info;
+	}
 };
 
 class LoadedAnimation : public RasterGraphics{
