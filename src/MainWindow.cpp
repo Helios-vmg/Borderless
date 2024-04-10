@@ -697,34 +697,3 @@ std::unordered_set<QRgb> get_unique_colors(LoadedGraphics &image, int begin, int
 			ret.insert(src.pixel(x, y));
 	return ret;
 }
-
-std::pair<std::uint64_t, std::uint64_t> MainWindow::count_colors(){
-	QElapsedTimer timer;
-	timer.start();
-
-	auto partitions = QThread::idealThreadCount();
-	auto partition_size = this->displayed_image->get_size().height() / partitions;
-	int max = 0;
-	std::vector<QFuture<std::unordered_set<QRgb>>> futures;
-	futures.reserve(partitions);
-	for (int id = 0; id < partitions; id++){
-		int begin = max;
-		int end = begin + partition_size;
-		max = end;
-		futures.emplace_back(QtConcurrent::run([begin, end, &image = *this->displayed_image](){
-			return get_unique_colors(image, begin, end);
-		}));
-	}
-
-	std::unordered_set<QRgb> final_colors;
-	for (auto &future : futures){
-		if (final_colors.empty()){
-			final_colors = future.result();
-			continue;
-		}
-		for (auto &c : future.result())
-			final_colors.insert(c);
-	}
-
-	return { final_colors.size(), timer.elapsed() };
-}

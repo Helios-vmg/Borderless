@@ -11,6 +11,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "config.hpp"
 #include "ImageViewerApplication.h"
 #include "resvg.hpp"
+#include "exif.h"
 #include <QString>
 #include <QPixmap>
 #include <QMovie>
@@ -18,6 +19,27 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <memory>
 
 class QLabel;
+
+class ImageWithMetadata{
+	QImage image;
+	ImageMetadata meta;
+public:
+	ImageWithMetadata(QImage &&, const QString &);
+	ImageWithMetadata(QImage &&, const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
+	ImageWithMetadata(const ImageWithMetadata &) = delete;
+	ImageWithMetadata &operator=(const ImageWithMetadata &) = delete;
+	ImageWithMetadata(ImageWithMetadata &&) = default;
+	ImageWithMetadata &operator=(ImageWithMetadata &&) = default;
+	QImage get_image(){
+		return this->image;
+	}
+	ImageMetadata &get_metadata(){
+		return this->meta;
+	}
+	const ImageMetadata &get_metadata() const{
+		return this->meta;
+	}
+};
 
 class LoadedGraphics{
 protected:

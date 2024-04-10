@@ -184,3 +184,17 @@ QImage SvgImage::get_QImage() const{
 }
 
 #endif
+
+ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path)
+	: image(std::move(image))
+{
+	if (!this->image.isNull())
+		this->meta = ImageMetadata::create_from_still(this->image, path);
+}
+
+ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, std::unique_ptr<QIODevice> &&dev)
+	: image(std::move(image))
+{
+	if (!this->image.isNull())
+		this->meta = ImageMetadata::create_from_still(this->image, path, client, std::move(dev));
+}

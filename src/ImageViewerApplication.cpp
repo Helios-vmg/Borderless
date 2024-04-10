@@ -22,6 +22,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <random>
 #include <QJsonDocument>
 #include <memory>
+#include <QProcess>
 #include <QtConcurrent/QtConcurrentRun>
 
 template <typename T>
@@ -453,7 +454,7 @@ ImageWithMetadata ImageViewerApplication::load_image(std::unique_ptr<QIODevice> 
 	}
 	auto t1 = clock();
 	qDebug() << "Load " << path << " took " << (t1 - t0) / (double)CLOCKS_PER_SEC;
-	return { std::move(ret), std::move(dev) };
+	return { std::move(ret), path, client, std::move(dev) };
 }
 
 QString generate_random_string(){
@@ -600,12 +601,18 @@ void ImageViewerApplication::report_temporary_failure(const std::shared_ptr<Wind
 	this->app_state->get_temporary_failures().push_back(state);
 }
 
-ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path): image(std::move(image)){
-	if (!this->image.isNull())
-		this->meta = ImageMetadata(this->image, path);
-}
+void ImageViewerApplication::show_file_in_folder(QWidget *parent, const QString &path){
+	auto client = this->protocol_handler->get_client(path);
+	if (!client->is_dummy()){
+		client->show_file_in_folder(path);
+		return;
+	}
 
-ImageWithMetadata::ImageWithMetadata(QImage &&image, std::unique_ptr<QIODevice> &&dev): image(std::move(image)){
-	if (!this->image.isNull())
-		this->meta = ImageMetadata(std::move(dev));
+#if defined WIN32
+	QStringList args;
+	args << "/select," << QDir::toNativeSeparators(path);
+	QProcess::startDetached("explorer", args);
+#else
+	QMessageBox::critical(parent, "Feature unavailable", "Sorry! This feature is not implemented for your system yet.", QMessageBox::Ok);
+#endif
 }

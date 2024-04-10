@@ -166,6 +166,9 @@
     <ClCompile Include="..\src\exif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\lazy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -258,6 +261,9 @@
       <Filter>TinyEXIF</Filter>
     </ClInclude>
     <ClInclude Include="..\src\exif.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lazy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

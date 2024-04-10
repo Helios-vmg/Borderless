@@ -10,11 +10,11 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
+#include <qtimezone.h>
 #ifdef WIN32
 #include <Windows.h>
 #endif
 
-#define INIT_FUNCTION(x) this->x##_p = nullptr
 #define RESOLVE_FUNCTION(x) {                   \
 	this->x##_p = (x##_f)this->lib.resolve(#x); \
 	if (!this->x##_p)                           \
@@ -30,29 +30,6 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	this->lib.load();
 	if (!this->lib.isLoaded())
 		return;
-
-	INIT_FUNCTION(get_protocol);
-	INIT_FUNCTION(initialize_module);
-	INIT_FUNCTION(terminate_module);
-	INIT_FUNCTION(initialize_client);
-	INIT_FUNCTION(terminate_client);
-	INIT_FUNCTION(open_file_utf8);
-	INIT_FUNCTION(open_file_utf16);
-	INIT_FUNCTION(close_file);
-	INIT_FUNCTION(read_file);
-	INIT_FUNCTION(create_sibling_enumerator);
-	INIT_FUNCTION(sibling_enumerator_next);
-	INIT_FUNCTION(sibling_enumerator_find);
-	INIT_FUNCTION(destroy_sibling_enumerator);
-	INIT_FUNCTION(release_returned_string);
-	INIT_FUNCTION(get_parent_directory);
-	INIT_FUNCTION(paths_in_same_directory);
-	INIT_FUNCTION(get_filename_from_url);
-	INIT_FUNCTION(get_unique_filename_from_url);
-	INIT_FUNCTION(seek_file);
-	INIT_FUNCTION(file_length);
-	INIT_FUNCTION(begin_restore);
-	INIT_FUNCTION(end_restore);
 
 	RESOLVE_FUNCTION(get_protocol);
 	RESOLVE_FUNCTION(initialize_module);
@@ -76,6 +53,9 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION(file_length);
 	RESOLVE_FUNCTION_OPT(begin_restore);
 	RESOLVE_FUNCTION_OPT(end_restore);
+	RESOLVE_FUNCTION(get_date);
+	RESOLVE_FUNCTION(show_file_in_folder);
+
 	if (!this->open_file_utf8_p && !this->open_file_utf16_p)
 		return;
 	if (!!this->begin_restore_p != !!this->end_restore_p)
@@ -186,6 +166,26 @@ QString ProtocolModule::Client::get_unique_filename(const QString &path){
 	if (!this->mod->get_unique_filename_from_url_p)
 		return this->get_unique_filename(path);
 	return this->get_filename(this->mod->get_unique_filename_from_url_p, path);
+}
+
+QDateTime ProtocolModule::Client::get_date(const QString &path){
+	auto temp = path.toStdWString();
+	auto datetime = this->mod->get_date_p(this->client, temp.c_str());
+	if (!datetime.valid)
+		return {};
+	QDate date(datetime.year, datetime.month, datetime.day);
+	QTime time(datetime.hour, datetime.minute, datetime.second, datetime.millisecond);
+	QDateTime ret;
+	if (datetime.has_timezone){
+		QTimeZone tz(datetime.tz_minutes * 60);
+		ret = QDateTime(date, time, tz);
+	}else
+		ret = QDateTime(date, time);
+	return ret;
+}
+
+void ProtocolModule::Client::show_file_in_folder(const QString &path){
+	//TODO
 }
 
 ProtocolFileEnumerator ProtocolModule::DummyClient::enumerate_siblings(const QString &){

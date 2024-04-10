@@ -164,6 +164,7 @@
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp" />
     <ClCompile Include="..\src\exif.cpp" />
     <ClCompile Include="..\src\InfoDialog.cpp" />
+    <ClCompile Include="..\src\lazy.cpp" />
     <ClCompile Include="..\src\ProtocolModule.cpp" />
     <ClCompile Include="..\src\resvg.cpp" />
     <ClCompile Include="..\src\Settings.cpp" />
@@ -251,6 +252,7 @@
     <ClInclude Include="..\src\config.hpp" />
     <QtMoc Include="..\src\InfoDialog.h" />
     <ClInclude Include="..\src\exif.h" />
+    <ClInclude Include="..\src\lazy.h" />
     <ClInclude Include="..\src\resvg.hpp" />
     <ClInclude Include="..\src\Settings.h" />
     <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">

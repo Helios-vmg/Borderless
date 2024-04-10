@@ -298,13 +298,6 @@ void MainWindow::show_info_dialog(){
 	auto metadata = this->displayed_image->get_metadata();
 	if (!metadata)
 		return;
-	if (!metadata->get_color_count().first){
-#ifdef _DEBUG
-		metadata->set_color_count({ 1, 0 });
-#else
-		metadata->set_color_count(this->count_colors());
-#endif
-	}
-	InfoDialog info(*this, *metadata);
+	InfoDialog info(*this, *this->app, *metadata);
 	info.exec();
 }

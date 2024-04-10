@@ -25,6 +25,7 @@ class QAction;
 class CustomProtocolHandler;
 struct lua_State;
 class ImageViewerApplication;
+class ImageWithMetadata;
 
 class NoWindowsException : public std::exception{};
 
@@ -38,27 +39,6 @@ public:
 public slots:
 	void resolution_change(const QRect &geometry);
 	void work_area_change(const QRect &geometry);
-};
-
-class ImageWithMetadata{
-	QImage image;
-	ImageMetadata meta;
-public:
-	ImageWithMetadata(QImage &&, const QString &);
-	ImageWithMetadata(QImage &&, std::unique_ptr<QIODevice> &&);
-	ImageWithMetadata(const ImageWithMetadata &) = delete;
-	ImageWithMetadata &operator=(const ImageWithMetadata &) = delete;
-	ImageWithMetadata(ImageWithMetadata &&) = default;
-	ImageWithMetadata &operator=(ImageWithMetadata &&) = default;
-	QImage get_image(){
-		return this->image;
-	}
-	ImageMetadata &get_metadata(){
-		return this->meta;
-	}
-	const ImageMetadata &get_metadata() const{
-		return this->meta;
-	}
 };
 
 class ImageViewerApplication : public SingleInstanceApplication{
@@ -166,6 +146,7 @@ public:
 	void work_area_change(QScreen &);
 	std::pair<std::unique_ptr<QIODevice>, bool> open_file(const QString &);
 	void report_temporary_failure(const std::shared_ptr<WindowState> &);
+	void show_file_in_folder(QWidget *parent, const QString &path);
 
 public slots:
 	void window_closing(MainWindow *);

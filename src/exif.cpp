@@ -1,8 +1,10 @@
 #include "exif.h"
+#include "ImageViewerApplication.h"
 #include <sstream>
 #include <QFile>
-
-#include "ImageViewerApplication.h"
+#include <QFileInfo>
+#include <unordered_set>
+#include <QtConcurrent/QtConcurrent>
 
 class QIODeviceExifStream : public TinyEXIF::EXIFStream{
 	std::unique_ptr<QIODevice> dev;
@@ -489,18 +491,90 @@ std::vector<std::pair<std::string, std::string>> set_exif(TinyEXIF::EXIFInfo &ds
 	return ret;
 }
 
-ImageMetadata::ImageMetadata(QImage &image, const QString &path){
+ImageMetadata ImageMetadata::create_from_still(QImage &image, const QString &path){
+	ImageMetadata ret;
+	ret.init_from_file(path);
+	ret.init_still(image);
+	return ret;
+}
+
+ImageMetadata ImageMetadata::create_from_still(QImage &image, const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, std::unique_ptr<QIODevice> &&dev){
+	ImageMetadata ret;
+	ret.init_from_file(path, client, std::move(dev));
+	ret.init_still(image);
+	return ret;
+}
+
+std::unordered_set<QRgb> get_unique_colors(const QImage &image, int begin, int end){
+	std::unordered_set<QRgb> ret;
+	for (int y = begin; y < end; y++)
+		for (int x = 0; x < image.width(); x++)
+			ret.insert(image.pixel(x, y));
+	return ret;
+}
+
+std::pair<std::uint64_t, std::uint64_t> count_colors(const QImage &image){
+	QElapsedTimer timer;
+	timer.start();
+
+	auto partitions = QThread::idealThreadCount();
+	auto partition_size = image.height() / partitions;
+	int max = 0;
+	std::vector<QFuture<std::unordered_set<QRgb>>> futures;
+	futures.reserve(partitions);
+	for (int id = 0; id < partitions; id++){
+		int begin = max;
+		int end = begin + partition_size;
+		max = end;
+		futures.emplace_back(QtConcurrent::run([begin, end, &image](){
+			return get_unique_colors(image, begin, end);
+		}));
+	}
+
+	std::unordered_set<QRgb> final_colors;
+	for (auto &future : futures){
+		if (final_colors.empty()){
+			final_colors = future.result();
+			continue;
+		}
+		for (auto &c : future.result())
+			final_colors.insert(c);
+	}
+
+	return { final_colors.size(), timer.elapsed() };
+}
+
+void ImageMetadata::init_from_file(const QString &path){
 	auto dev = std::make_unique<QFile>(path);
 	dev->open(QFile::ReadOnly);
+	QFileInfo info(*dev);
 	this->name = QString::fromStdString(dev->filesystemFileName().filename().u8string());
 	this->path = path;
 	this->size = dev->size();
-	this->dimensions = std::make_pair(image.size(), 1);
+	this->date = std::make_unique<Eager<QDateTime>>(info.lastModified());
 	this->human_metadata = set_exif(this->machine_metadata, std::move(dev));
 }
 
-ImageMetadata::ImageMetadata(std::unique_ptr<QIODevice> &&dev){
+void ImageMetadata::init_from_file(const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, std::unique_ptr<QIODevice> &&dev){
+	this->name = client->get_filename(path);
+	this->path = path;
+	this->size = dev->size();
+	this->date = std::make_unique<Lazy<QDateTime>>([path, client](){
+		return client->get_date(path);
+	});
 	this->human_metadata = set_exif(this->machine_metadata, std::move(dev));
+	this->is_local = false;
+}
+
+void ImageMetadata::init_still(QImage &image){
+	this->dimensions = std::make_pair(image.size(), 1);
+	this->color_count = std::make_unique<Lazy<color_count_t>>([image](){
+#ifndef _DEBUG
+		return count_colors(image);
+#else
+		return color_count_t(1, 0);
+#endif
+	});
 }
 
 std::pair<int, bool> ImageMetadata::get_orientation() const{

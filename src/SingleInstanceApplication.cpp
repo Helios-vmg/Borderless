@@ -96,13 +96,10 @@ bool SingleInstanceApplication::communicate_with_server(QLocalSocket &socket, qi
 	if (!this->communicate_with_server(socket, response, to_QByteArray(list)))
 		return false;
 	server_pid = 0;
-	union{
-		unsigned char buf[sizeof(qint64)];
-		qint64 pid;
-	} u;
-	for (int i = 0; i < response.size(); i++)
-		u.buf[i] = response[i];
-	server_pid = u.pid;
+	unsigned char buf[sizeof(server_pid)];
+	for (int i = (int)std::min<size_t>(response.size(), sizeof(buf)); i--;)
+		buf[i] = response[i];
+	memcpy(&server_pid, buf, sizeof(server_pid));
 	return true;
 }
 

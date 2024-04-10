@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "InfoDialog.h"
 #include <sstream>
+#include <QLocale>
 
 static QString to_string(std::uint64_t n){
 	std::stringstream stream;
@@ -14,19 +15,97 @@ static QString to_string(std::uint64_t n){
 	return QString::fromStdString(stream.str());
 }
 
-InfoDialog::InfoDialog(QWidget &parent, const ImageMetadata &metadata)
+QString format_size(std::uint64_t size){
+	std::array<char, 32> ret;
+	int ret_size = 0;
+
+	int prefix = 0;
+	while (size > 1 << 30){
+		size /= 1024;
+		prefix++;
+	}
+	auto dsize = (double)size;
+	while (dsize >= 1024)
+	{
+		dsize /= 1024;
+		prefix++;
+	}
+	dsize = floor(dsize * 10);
+
+	{
+		auto integer_part = (int)(dsize / 10);
+		bool written = false;
+		for (int power = 1000; power; power /= 10){
+			if (written || integer_part >= power){
+				ret[ret_size++] = '0' + integer_part / power;
+				integer_part %= power;
+				written = true;
+			}
+		}
+		if (!written)
+			ret[ret_size++] = '0';
+	}
+
+	size = (int)dsize % 10;
+	if (size){
+		ret[ret_size++] = '.';
+		ret[ret_size++] = '0' + (int)size;
+	}
+	ret[ret_size++] = ' ';
+
+	static const char *const size_prefixes[] = {
+		"",
+		"Ki",
+		"Mi",
+		"Gi",
+		"Ti",
+		"Pi",
+		"Ei",
+		"Zi",
+		"Yi",
+		"Xi",
+		"Wi",
+		"Vi",
+		"Ui",
+	};
+
+	for (auto p = size_prefixes[prefix]; *p; p++)
+		ret[ret_size++] = *p;
+	ret[ret_size++] = 'B';
+
+	ret[ret_size] = 0;
+	return QString::fromUtf8(ret.data());
+}
+
+InfoDialog::InfoDialog(QWidget &parent, ImageViewerApplication &app, const ImageMetadata &metadata)
 		: QDialog(&parent)
 		, ui(std::make_unique<Ui::InfoDialog>())
+		, app(&app)
 {
 	this->ui->setupUi(this);
+	this->path = metadata.get_full_path();
+
 	this->ui->filename_box->setText(metadata.get_filename());
-	this->ui->path_box->setText(metadata.get_full_path());
+	this->ui->path_box->setText(this->path);
 	this->initialize_size(metadata.get_size());
 	this->ui->colors_box->setText(to_string(metadata.get_color_count().first) + " (counted in " + to_string(metadata.get_color_count().second) + " ms)");
-	this->ui->filesize_box->setText(to_string(metadata.get_filesize()));
+	auto size = metadata.get_filesize();
+	this->ui->filesize_box->setText(format_size(size) + " (" + to_string(size) + " bytes)");
+	{
+		auto &date = metadata.get_date();
+		QString date_string;
+		if (date.isValid())
+			date_string = QLocale::system().toString(date.toLocalTime());
+		else
+			date_string = "Unknown";
+		this->ui->date_box->setText(date_string);
+	}
 	this->initialize_exif(metadata);
+	if (!metadata.get_is_local())
+		this->ui->show_folder_btn->setEnabled(false);
 
 	connect(this->ui->close_btn, SIGNAL(clicked(bool)), this, SLOT(close()));
+	connect(this->ui->show_folder_btn, SIGNAL(clicked(bool)), this, SLOT(show_in_folder()));
 }
 
 template <typename T>
@@ -84,4 +163,8 @@ void InfoDialog::initialize_exif(const ImageMetadata &metadata){
 	auto size = exif_box.size();
 	size.setWidth(exif_box.columnWidth(0) + exif_box.columnWidth(1) + 32);
 	exif_box.setMinimumSize(size);
+}
+
+void InfoDialog::show_in_folder(){
+	this->app->show_file_in_folder(this, this->path);
 }

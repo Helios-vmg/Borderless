@@ -12,6 +12,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QLibrary>
 #include <QIODevice>
 #include <QtCore5Compat/QRegExp>
+#include <QDateTime>
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -37,6 +38,18 @@ class ProtocolModule : public std::enable_shared_from_this<ProtocolModule>{
 		unknown_stream_t *stream;
 		int permanent_error;
 	};
+	struct get_date_result{
+		bool valid;
+		std::uint16_t year;
+		std::uint16_t month;
+		std::uint16_t day;
+		std::uint16_t hour;
+		std::uint16_t minute;
+		std::uint16_t second;
+		std::uint16_t millisecond;
+		bool has_timezone;
+		std::int16_t tz_minutes;
+	};
 
 	typedef const char *(*get_protocol_f)();
 	typedef protocol_module_t *(*initialize_module_f)(const wchar_t *, const wchar_t *);
@@ -61,8 +74,10 @@ class ProtocolModule : public std::enable_shared_from_this<ProtocolModule>{
 	typedef const wchar_t *(*get_filename_from_url_f)(protocol_client_t *, const wchar_t *);
 	typedef const wchar_t *(*begin_restore_f)(protocol_module_t *);
 	typedef const wchar_t *(*end_restore_f)(protocol_module_t *);
+	typedef get_date_result (*get_date_f)(protocol_client_t *, const wchar_t *);
+	typedef int (*show_file_in_folder_f)(protocol_client_t *, const wchar_t *);
 	typedef get_filename_from_url_f get_unique_filename_from_url_f;
-#define DECLARE_FUNCTION_POINTER(x) x##_f x##_p
+#define DECLARE_FUNCTION_POINTER(x) x##_f x##_p = nullptr
 	DECLARE_FUNCTION_POINTER(get_protocol);
 	DECLARE_FUNCTION_POINTER(initialize_module);
 	DECLARE_FUNCTION_POINTER(terminate_module);
@@ -85,6 +100,8 @@ class ProtocolModule : public std::enable_shared_from_this<ProtocolModule>{
 	DECLARE_FUNCTION_POINTER(get_unique_filename_from_url);
 	DECLARE_FUNCTION_POINTER(begin_restore);
 	DECLARE_FUNCTION_POINTER(end_restore);
+	DECLARE_FUNCTION_POINTER(get_date);
+	DECLARE_FUNCTION_POINTER(show_file_in_folder);
 	protocol_module_t *module;
 
 	class Stream : public QIODevice{
@@ -144,6 +161,11 @@ public:
 		virtual bool are_paths_in_same_directory(const QString &, const QString &);
 		virtual QString get_filename(const QString &);
 		virtual QString get_unique_filename(const QString &);
+		virtual QDateTime get_date(const QString &);
+		virtual bool show_file_in_folder(const QString &);
+		virtual bool is_dummy() const{
+			return false;
+		}
 	};
 	class DummyClient : public Client{
 	public:
@@ -162,6 +184,15 @@ public:
 		}
 		QString get_unique_filename(const QString &) override{
 			return {};
+		}
+		QDateTime get_date(const QString &) override{
+			return {};
+		}
+		bool show_file_in_folder(const QString &) override{
+			return false;
+		}
+		bool is_dummy() const override{
+			return true;
 		}
 	};
 	
