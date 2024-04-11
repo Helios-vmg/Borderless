@@ -54,7 +54,7 @@ ProtocolModule::ProtocolModule(const QString &filename, const QString &config_lo
 	RESOLVE_FUNCTION_OPT(begin_restore);
 	RESOLVE_FUNCTION_OPT(end_restore);
 	RESOLVE_FUNCTION(get_date);
-	RESOLVE_FUNCTION(show_file_in_folder);
+	RESOLVE_FUNCTION_OPT(show_file_in_folder);
 
 	if (!this->open_file_utf8_p && !this->open_file_utf16_p)
 		return;
@@ -184,8 +184,11 @@ QDateTime ProtocolModule::Client::get_date(const QString &path){
 	return ret;
 }
 
-void ProtocolModule::Client::show_file_in_folder(const QString &path){
-	//TODO
+bool ProtocolModule::Client::show_file_in_folder(const QString &path){
+	if (!this->mod->show_file_in_folder_p)
+		return false;
+	auto temp = path.toStdWString();
+	return !!this->mod->show_file_in_folder_p(this->client, temp.c_str());
 }
 
 ProtocolFileEnumerator ProtocolModule::DummyClient::enumerate_siblings(const QString &){

@@ -101,8 +101,6 @@ InfoDialog::InfoDialog(QWidget &parent, ImageViewerApplication &app, const Image
 		this->ui->date_box->setText(date_string);
 	}
 	this->initialize_exif(metadata);
-	if (!metadata.get_is_local())
-		this->ui->show_folder_btn->setEnabled(false);
 
 	connect(this->ui->close_btn, SIGNAL(clicked(bool)), this, SLOT(close()));
 	connect(this->ui->show_folder_btn, SIGNAL(clicked(bool)), this, SLOT(show_in_folder()));
