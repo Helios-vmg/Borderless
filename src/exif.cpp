@@ -1,5 +1,6 @@
 #include "exif.h"
 #include "ImageViewerApplication.h"
+#include "ProtocolModule.h"
 #include <sstream>
 #include <QFile>
 #include <QFileInfo>
@@ -505,6 +506,33 @@ ImageMetadata ImageMetadata::create_from_still(QImage &image, const QString &pat
 	return ret;
 }
 
+ImageMetadata ImageMetadata::create_from_animation(QMovie &movie, const QString &path){
+	ImageMetadata ret;
+	ret.init_from_file(path);
+	ret.init_animation(movie);
+	return ret;
+}
+
+ImageMetadata ImageMetadata::create_from_animation(QMovie &movie, const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, std::unique_ptr<QIODevice> &&dev){
+	ImageMetadata ret;
+	ret.init_from_file(path, client, std::move(dev));
+	ret.init_animation(movie);
+	return ret;
+}
+
+ImageMetadata ImageMetadata::create_from_vector(QImage &image, std::unique_ptr<QIODevice> &&dev, const QString &path){
+	ImageMetadata ret;
+	auto stream = dynamic_cast<ProtocolModule::Stream *>(dev.get());
+	if (!stream)
+		ret.init_from_file(path);
+	else{
+		auto client = stream->get_module()->create_client();
+		ret.init_from_file(path, std::move(client), std::move(dev));
+	}
+	ret.init_still(image);
+	return ret;
+}
+
 std::unordered_set<QRgb> get_unique_colors(const QImage &image, int begin, int end){
 	std::unordered_set<QRgb> ret;
 	for (int y = begin; y < end; y++)
@@ -574,6 +602,14 @@ void ImageMetadata::init_still(QImage &image){
 #else
 		return color_count_t(1, 0);
 #endif
+	});
+}
+
+void ImageMetadata::init_animation(QMovie &movie){
+	(void)movie.jumpToNextFrame();
+	this->dimensions = std::make_pair(movie.currentPixmap().size(), movie.frameCount());
+	this->color_count = std::make_unique<Lazy<color_count_t>>([](){
+		return color_count_t(1, 0);
 	});
 }
 

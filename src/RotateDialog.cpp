@@ -12,12 +12,11 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 const double log_125 = log(1.25);
 
-RotateDialog::RotateDialog(MainWindow &parent) :
-		QDialog(parent.centralWidget()),
-		ui(new Ui_RotateDialog),
-		main_window(parent),
-		result(false),
-		in_do_transform(false){
+RotateDialog::RotateDialog(MainWindow &parent)
+	: QDialog(parent.centralWidget())
+	, ui(new Ui_RotateDialog)
+	, main_window(parent)
+{
 	this->setModal(true);
 	this->ui->setupUi(this);
 	this->transform = parent.get_image_transform();
@@ -53,15 +52,27 @@ void RotateDialog::resizeEvent(QResizeEvent *e){
 	this->updateGeometry();
 }
 
+class AutoReset{
+	bool *b;
+	bool old;
+public:
+	AutoReset(bool &b, bool new_value): b(&b){
+		this->old = *this->b;
+		*this->b = new_value;
+	}
+	~AutoReset(){
+		*this->b = this->old;
+	}
+};
+
 void RotateDialog::do_transform(bool set_zoom){
 	auto scale = this->main_window.set_image_transform(this->transform * QTransform().rotate(this->rotation));
 	if (!this->main_window.current_zoom_mode_is_auto() || set_zoom && !this->in_do_transform)
 		this->main_window.set_image_zoom(this->scale);
 	else{
-		this->in_do_transform = true;
+		AutoReset reset(this->in_do_transform, true);
 		this->scale = scale;
 		this->set_scale();
-		this->in_do_transform = false;
 	}
 }
 

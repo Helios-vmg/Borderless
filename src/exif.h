@@ -18,6 +18,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QIODevice>
 #include <QSize>
 #include <QDateTime>
+#include <QMovie>
 
 class ImageMetadata{
 	std::vector<std::pair<std::string, std::string>> human_metadata;
@@ -34,10 +35,14 @@ class ImageMetadata{
 	void init_from_file(const QString &);
 	void init_from_file(const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
 	void init_still(QImage &image);
+	void init_animation(QMovie &movie);
 public:
 	ImageMetadata() = default;
-	static ImageMetadata create_from_still(QImage &image, const QString &);
-	static ImageMetadata create_from_still(QImage &image, const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
+	static ImageMetadata create_from_still(QImage &, const QString &);
+	static ImageMetadata create_from_still(QImage &, const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
+	static ImageMetadata create_from_animation(QMovie &, const QString &);
+	static ImageMetadata create_from_animation(QMovie &, const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
+	static ImageMetadata create_from_vector(QImage &, std::unique_ptr<QIODevice> &&, const QString &);
 
 	ImageMetadata(const ImageMetadata &) = default;
 	ImageMetadata &operator=(const ImageMetadata &) = default;

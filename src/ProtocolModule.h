@@ -103,13 +103,15 @@ class ProtocolModule : public std::enable_shared_from_this<ProtocolModule>{
 	DECLARE_FUNCTION_POINTER(get_date);
 	DECLARE_FUNCTION_POINTER(show_file_in_folder);
 	protocol_module_t *module;
-
+public:
+	
 	class Stream : public QIODevice{
+		std::shared_ptr<ProtocolModule> mod;
 		qint64 length;
 		std::unique_ptr<char[]> data;
 	public:
-		Stream(ProtocolModule &module, unknown_stream_t *stream);
-		~Stream();
+		Stream(std::shared_ptr<ProtocolModule> mod, unknown_stream_t *stream);
+		~Stream() override;
 		qint64 readData(char *data, qint64 maxSize) override;
 		bool isSequential() const override{
 			return false;
@@ -123,9 +125,11 @@ class ProtocolModule : public std::enable_shared_from_this<ProtocolModule>{
 		bool atEnd() const override{
 			return this->pos() >= this->length;
 		}
+		std::shared_ptr<ProtocolModule> get_module() const{
+			return this->mod;
+		}
 	};
 
-public:
 	ProtocolModule(const QString &filename, const QString &config_location, const QString &plugins_location);
 	~ProtocolModule();
 	ProtocolModule(const ProtocolModule &) = delete;

@@ -91,11 +91,13 @@ ProtocolModule::Client::~Client(){
 		this->mod->terminate_client_p(this->client);
 }
 
-ProtocolModule::Stream::Stream(ProtocolModule &module, unknown_stream_t *stream){
-	this->length = module.file_length_p(stream);
+ProtocolModule::Stream::Stream(std::shared_ptr<ProtocolModule> mod, unknown_stream_t *stream)
+	: mod(std::move(mod))
+{
+	this->length = this->mod->file_length_p(stream);
 	this->data.reset(new char[this->length]);
-	module.read_file_p(stream, this->data.get(), this->length);
-	module.close_file_p(stream);
+	this->mod->read_file_p(stream, this->data.get(), this->length);
+	this->mod->close_file_p(stream);
 }
 
 ProtocolModule::Stream::~Stream(){}
@@ -121,7 +123,7 @@ std::pair<std::unique_ptr<QIODevice>, bool> ProtocolModule::Client::open(const Q
 	}
 	if (!result.stream)
 		return { std::unique_ptr<QIODevice>(), result.permanent_error };
-	auto ret = std::make_unique<Stream>(*this->mod, result.stream);
+	auto ret = std::make_unique<Stream>(this->mod, result.stream);
 	ret->open(QIODeviceBase::ReadOnly);
 	return { std::move(ret), false };
 }

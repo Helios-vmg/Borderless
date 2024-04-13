@@ -476,7 +476,7 @@ std::pair<std::unique_ptr<QIODevice>, bool> ImageViewerApplication::open_file(co
 	return this->protocol_handler->get_client(path)->open(path);
 }
 
-std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> ImageViewerApplication::load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path){
+MovieWithMetadata ImageViewerApplication::load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path){
 	std::unique_ptr<QMovie> mov;
 	if (!dev)
 		mov = std::make_unique<QMovie>(path);
@@ -484,7 +484,7 @@ std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> ImageViewerApplic
 		mov = std::make_unique<QMovie>(dev.get());
 	if (mov->frameCount() == 1)
 		mov.reset();
-	return {std::move(dev), std::move(mov)};
+	return { std::move(dev), std::move(mov), path };
 }
 
 bool ImageViewerApplication::is_animation(const QString &path){

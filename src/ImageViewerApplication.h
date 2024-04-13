@@ -26,6 +26,7 @@ class CustomProtocolHandler;
 struct lua_State;
 class ImageViewerApplication;
 class ImageWithMetadata;
+class MovieWithMetadata;
 
 class NoWindowsException : public std::exception{};
 
@@ -135,7 +136,7 @@ public:
 	void set_option_values(MainSettings &settings);
 	void load_custom_file_protocols();
 	ImageWithMetadata load_image(std::unique_ptr<QIODevice> &&dev, const QString &);
-	std::pair<std::unique_ptr<QIODevice>, std::unique_ptr<QMovie>> load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path);
+	MovieWithMetadata load_animation(std::unique_ptr<QIODevice> &&dev, const QString &path);
 	bool is_animation(const QString &);
 	bool is_svg(const QString &);
 	QString get_filename_from_url(const QString &);

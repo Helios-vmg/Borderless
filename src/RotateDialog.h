@@ -18,12 +18,12 @@ class RotateDialog : public QDialog{
 	std::shared_ptr<Ui_RotateDialog> ui;
 	MainWindow &main_window;
 	QTransform transform;
-	bool result;
+	bool result = false;
 	double rotation,
 		original_scale,
 		last_scale,
 		scale;
-	bool in_do_transform;
+	bool in_do_transform = false;
 	bool geometry_set;
 
 	void do_transform(bool = false);

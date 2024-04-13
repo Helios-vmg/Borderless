@@ -88,7 +88,10 @@ InfoDialog::InfoDialog(QWidget &parent, ImageViewerApplication &app, const Image
 	this->ui->filename_box->setText(metadata.get_filename());
 	this->ui->path_box->setText(this->path);
 	this->initialize_size(metadata.get_size());
-	this->ui->colors_box->setText(to_string(metadata.get_color_count().first) + " (counted in " + to_string(metadata.get_color_count().second) + " ms)");
+	if (metadata.get_size().second < 2)
+		this->ui->colors_box->setText(to_string(metadata.get_color_count().first) + " (counted in " + to_string(metadata.get_color_count().second) + " ms)");
+	else
+		this->ui->colors_box->setText("Not counted for animations.");
 	auto size = metadata.get_filesize();
 	this->ui->filesize_box->setText(format_size(size) + " (" + to_string(size) + " bytes)");
 	{

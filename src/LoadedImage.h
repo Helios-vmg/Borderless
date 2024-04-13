@@ -41,11 +41,36 @@ public:
 	}
 };
 
+class MovieWithMetadata{
+	std::unique_ptr<QIODevice> device;
+	std::unique_ptr<QMovie> movie;
+	ImageMetadata meta;
+public:
+	MovieWithMetadata(std::unique_ptr<QIODevice> &&, std::unique_ptr<QMovie> &&, const QString &);
+	MovieWithMetadata(const MovieWithMetadata &) = delete;
+	MovieWithMetadata &operator=(const MovieWithMetadata &) = delete;
+	MovieWithMetadata(MovieWithMetadata &&) = default;
+	MovieWithMetadata &operator=(MovieWithMetadata &&) = default;
+	auto &&get_device(){
+		return std::move(this->device);
+	}
+	auto &&get_movie(){
+		return std::move(this->movie);
+	}
+	ImageMetadata &get_metadata(){
+		return this->meta;
+	}
+	const ImageMetadata &get_metadata() const{
+		return this->meta;
+	}
+};
+
 class LoadedGraphics{
 protected:
 	QSize size;
 	bool alpha;
 	bool null;
+	ImageMetadata info;
 public:
 	virtual ~LoadedGraphics(){}
 	virtual bool is_animation() const = 0;
@@ -78,12 +103,14 @@ public:
 	bool is_vector() const override{
 		return false;
 	}
+	ImageMetadata *get_metadata() override{
+		return &this->info;
+	}
 };
 
 class LoadedImage : public RasterGraphics{
 	QFuture<QPixmap> image;
 	QFuture<QColor> background_color;
-	ImageMetadata info;
 
 	void compute_average_color(QImage);
 public:
@@ -145,12 +172,14 @@ class SvgImage : public VectorGraphics{
 	ReSvgRenderTree tree;
 public:
 	SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path);
-	~SvgImage();
+	~SvgImage() override;
 	QColor get_background_color() override{
 		return this->background_color.result();
 	}
 	void assign_to_QLabel(QLabel &) override;
 	QImage get_QImage() const override;
+	const ImageMetadata * get_metadata() const override;
+	ImageMetadata * get_metadata() override;
 };
 
 #endif

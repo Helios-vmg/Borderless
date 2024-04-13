@@ -7,6 +7,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 
 #include "LoadedImage.h"
 #include "DirectoryListing.h"
+#include "ProtocolModule.h"
 #include <QImage>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QLabel>
@@ -85,13 +86,15 @@ QImage LoadedImage::get_QImage() const{
 }
 
 LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
-	std::tie(this->device, this->animation) = app.load_animation(std::move(dev), path);
+	auto animation = app.load_animation(std::move(dev), path);
+	this->animation = animation.get_movie();
+	this->device = animation.get_device();
 	this->null = !this->animation || !this->animation->isValid();
-	if (!this->null){
-		(void)this->animation->jumpToNextFrame();
-		this->size = this->animation->currentPixmap().size();
-		this->alpha = true;
-	}
+	if (this->null)
+		return;
+	this->size = animation.get_metadata().get_size().first;
+	this->alpha = true;
+	this->info = std::move(animation.get_metadata());
 }
 
 void LoadedAnimation::assign_to_QLabel(QLabel &label){
@@ -139,6 +142,12 @@ QByteArray read_file(const std::unique_ptr<QIODevice> &dev, const QString &path)
 	return file.readAll();
 }
 
+class HorribleThing{
+public:
+	std::unique_ptr<QIODevice> dev;
+	HorribleThing(std::unique_ptr<QIODevice> &&dev): dev(std::move(dev)){}
+};
+
 SvgImage::SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
 	this->null = true;
 	this->alpha = true;
@@ -152,10 +161,13 @@ SvgImage::SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev
 		return;
 	auto [w, h] = this->tree.get_size_int();
 	this->size = { w, h };
-	this->image = QtConcurrent::run([this](){
+	auto horrible = std::make_unique<HorribleThing>(std::move(dev));
+	this->image = QtConcurrent::run([this, horrible = std::move(horrible), path](){
 		QImage dst(this->size, QImage::Format_RGBA8888_Premultiplied);
 		memset(dst.bits(), 0, this->size.width() * this->size.height() * 4);
 		this->tree.render(dst.bits());
+		auto dev = std::move(horrible->dev);
+		this->info = ImageMetadata::create_from_vector(dst, std::move(dev), path);
 		return dst;
 	});
 	this->pixmap = QtConcurrent::run([this](){
@@ -183,6 +195,18 @@ QImage SvgImage::get_QImage() const{
 	return this->image.result();
 }
 
+const ImageMetadata *SvgImage::get_metadata() const{
+	//Wait for task to complete.
+	(void)this->image.result();
+	return &this->info;
+}
+
+ImageMetadata *SvgImage::get_metadata(){
+	//Wait for task to complete.
+	(void)this->image.result();
+	return &this->info;
+}
+
 #endif
 
 ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path)
@@ -197,4 +221,19 @@ ImageWithMetadata::ImageWithMetadata(QImage &&image, const QString &path, const 
 {
 	if (!this->image.isNull())
 		this->meta = ImageMetadata::create_from_still(this->image, path, client, std::move(dev));
+}
+
+MovieWithMetadata::MovieWithMetadata(std::unique_ptr<QIODevice> &&device, std::unique_ptr<QMovie> &&movie, const QString &path)
+	: device(std::move(device))
+	, movie(std::move(movie))
+{
+	if (!this->movie)
+		return;
+	auto dev = dynamic_cast<ProtocolModule::Stream *>(this->device.get());
+	if (!dev)
+		this->meta = ImageMetadata::create_from_animation(*this->movie, path);
+	else{
+		auto client = dev->get_module()->create_client();
+		this->meta = ImageMetadata::create_from_animation(*this->movie, path, std::move(client), std::move(this->device));
+	}
 }
