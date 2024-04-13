@@ -85,6 +85,12 @@ QImage LoadedImage::get_QImage() const{
 	return this->image.result().toImage();
 }
 
+QImage LoadedImage::scale(double zoom){
+	auto image = this->get_QImage();
+	auto size = image.size() * zoom;
+	return image.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+}
+
 LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
 	auto animation = app.load_animation(std::move(dev), path);
 	this->animation = animation.get_movie();
@@ -205,6 +211,16 @@ ImageMetadata *SvgImage::get_metadata(){
 	//Wait for task to complete.
 	(void)this->image.result();
 	return &this->info;
+}
+
+QImage SvgImage::scale(double zoom){
+	auto [w, h] = this->tree.get_size_int();
+	w = (int)floor((double)w * zoom + 0.5);
+	h = (int)floor((double)h * zoom + 0.5);
+	QImage ret(QSize(w, h), QImage::Format_RGBA8888_Premultiplied);
+	memset(ret.bits(), 0, w * h * 4);
+	this->tree.render(ret.bits(), w, h, zoom);
+	return ret;
 }
 
 #endif

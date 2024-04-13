@@ -18,6 +18,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QShortcut>
 #include <vector>
 #include <memory>
+#include <QTimer>
 #include "Misc.h"
 #include "Settings.h"
 
@@ -66,6 +67,8 @@ protected:
 	std::vector<QMetaObject::Connection> connections;
 	bool last_set_by_user = true;
 	bool rotate_by_metadata = true;
+	QTimer zoom_timer;
+	QFuture<QPixmap> zoomed_image;
 
 	enum class ResizeMode{
 		None        = 0,
@@ -158,7 +161,6 @@ public:
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> &future, QWidget *parent = 0);
 	virtual ~MainWindow();
 	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
-	void display_filtered_image(const std::shared_ptr<LoadedGraphics> &);
 	std::shared_ptr<WindowState> save_state() const;
 	bool is_null() const{
 		return !this->displayed_image || this->displayed_image->is_null();
@@ -227,9 +229,12 @@ public slots:
 	void show_options_dialog();
 	void show_info_dialog();
 	void toggle_rotate_by_metadata();
+	void zoom_timer_triggered();
+	void zoom_complete();
 
 signals:
 	void closing(MainWindow *);
+	void zoom_complete_signal();
 
 };
 

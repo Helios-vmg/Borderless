@@ -239,7 +239,18 @@ std::tuple<int, int, std::vector<std::uint8_t>> ReSvgRenderTree::render() const{
 
 void ReSvgRenderTree::render(void *dst) const{
 	auto [w, h] = this->get_size_int();
-	resvg_render(this->tree, { RESVG_FIT_TO_TYPE_ORIGINAL, 1 }, resvg_transform_identity(), w, h, (char *)dst);
+	this->render(dst, w, h, 1);
+}
+
+void ReSvgRenderTree::render(void *dst, int w, int h, double zoom) const{
+	resvg_transform t = resvg_transform_identity();
+	t.a = zoom;
+	t.b = 0;
+	t.c = 0;
+	t.d = zoom;
+	t.b = 0;
+	t.e = 0;
+	resvg_render(this->tree, { RESVG_FIT_TO_TYPE_ORIGINAL, 1 }, /*resvg_transform_identity()*/t, w, h, (char *)dst);
 }
 
 #endif

@@ -91,6 +91,9 @@ void MainWindow::init(bool restoring){
 	this->setup_shortcuts();
 
 	connect(this->ui->label, SIGNAL(transform_updated()), this, SLOT(label_transform_updated()));
+	connect(&this->zoom_timer, SIGNAL(timeout()), this, SLOT(zoom_timer_triggered()));
+	connect(this, SIGNAL(zoom_complete_signal()), this, SLOT(zoom_complete()));
+	this->zoom_timer.setSingleShot(true);
 }
 
 void MainWindow::set_current_desktop_and_fix_positions_by_window_position(std::string old_desktop){
@@ -207,6 +210,7 @@ void MainWindow::set_zoom(){
 }
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){
+	this->zoom_timer.stop();
 	auto label_pos = this->ui->label->pos();
 #ifdef _DEBUG
 	qDebug() << "MainWindow::apply_zoom(): label_pos = " << label_pos;
@@ -242,6 +246,10 @@ void MainWindow::apply_zoom(bool first_display, double old_zoom){
 		}
 
 		this->move_image(new_location);
+	}
+	if (zoom < 1){
+		this->zoom_timer.setInterval(1000);
+		this->zoom_timer.start();
 	}
 }
 
@@ -480,11 +488,6 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFu
 	return OpenResult::Success;
 }
 
-void MainWindow::display_filtered_image(const std::shared_ptr<LoadedGraphics> &graphics){
-	this->displayed_image = graphics;
-	this->display_image_in_label(graphics, false);
-}
-
 void MainWindow::display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display){
 	auto zoom = this->get_current_zoom();
 	auto &label = this->ui->label;
@@ -530,8 +533,8 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 }
 
 void MainWindow::build_context_menu(QMenu &main_menu){
-	main_menu.addAction("View info...", this, SLOT(show_info_dialog()), this->app->get_shortcuts().get_current_sequence(show_info_command));
 	main_menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
+	main_menu.addAction("View info...", this, SLOT(show_info_dialog()), this->app->get_shortcuts().get_current_sequence(show_info_command));
 	auto rotate = main_menu.addAction("Rotate by metadata", this, SLOT(toggle_rotate_by_metadata()));
 	rotate->setCheckable(true);
 	rotate->setChecked(this->rotate_by_metadata);
@@ -571,13 +574,12 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *ev){
 	menu->exec();
 }
 
-//bool MainWindow::event(QEvent *event){
-//
-//}
-
 void MainWindow::cleanup(){
 	this->app->release_directory(this->directory_iterator);
 	this->directory_iterator.reset();
+	//Wait for thread to finish.
+	if (this->zoomed_image.isValid())
+		(void)this->zoomed_image.result();
 }
 
 void MainWindow::resolution_change(QScreen &screen){
@@ -696,4 +698,20 @@ std::unordered_set<QRgb> get_unique_colors(LoadedGraphics &image, int begin, int
 		for (int x = 0; x < src.width(); x++)
 			ret.insert(src.pixel(x, y));
 	return ret;
+}
+
+void MainWindow::zoom_timer_triggered(){
+	if (this->displayed_image->is_animation())
+		return;
+	auto image = this->displayed_image;
+	auto zoom = this->get_current_zoom();
+	this->zoomed_image = QtConcurrent::run([this, image, zoom](){
+		auto ret = QPixmap::fromImage(image->scale(zoom));
+		emit this->zoom_complete_signal();
+		return ret;
+	});
+}
+
+void MainWindow::zoom_complete(){
+	this->ui->label->set_override_pixmap(this->zoomed_image.result());
 }

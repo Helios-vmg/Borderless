@@ -59,15 +59,24 @@ void ImageViewport::paintEvent(QPaintEvent *){
 	painter.setRenderHint(or_flags(QPainter::SmoothPixmapTransform, QPainter::Antialiasing));
 	painter.setClipping(false);
 
-	auto transform = this->get_final_transform();
-	auto src_quad = this->compute_quad();
-	auto offset = src_quad.move_to_origin();
-	transform = translate(transform, offset);
-	painter.setTransform(transform);
-	if (!!this->pixmap())
-		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->pixmap());
-	else
-		painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
+	if (this->override_pixmap.isNull()){
+		auto transform = this->get_final_transform();
+		auto src_quad = this->compute_quad();
+		auto offset = src_quad.move_to_origin();
+		transform = translate(transform, offset);
+		painter.setTransform(transform);
+		if (!!this->pixmap())
+			painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->pixmap());
+		else
+			painter.drawPixmap(QRect(QPoint(0, 0), this->image_size), this->movie()->currentPixmap());
+	}else{
+		auto src_quad = this->compute_quad();
+		auto offset = src_quad.move_to_origin();
+		auto transform = translate(this->transform, offset);
+		painter.setTransform(transform);
+		if (!!this->pixmap())
+			painter.drawPixmap(QRect(QPoint(0, 0), this->override_pixmap.size()), this->override_pixmap);
+	}
 }
 
 void ImageViewport::save_state(WindowState &state) const{
@@ -90,6 +99,7 @@ void ImageViewport::set_transform(const QTransform &m){
 }
 
 void ImageViewport::set_image(LoadedGraphics &li){
+	this->override_pixmap = {};
 	this->image_size = li.get_size();
 	li.assign_to_QLabel(*this);
 }
@@ -103,4 +113,9 @@ void ImageViewport::set_transform_by_metadata(const ImageMetadata *metadata, boo
 		this->rotate(90 * turn);
 	if (flip)
 		this->flip(true);
+}
+
+void ImageViewport::set_override_pixmap(QPixmap pixmap){
+	this->override_pixmap = std::move(pixmap);
+	this->repaint();
 }

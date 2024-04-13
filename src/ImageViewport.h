@@ -23,6 +23,7 @@ class ImageViewport : public QLabel
 	QTransform transform;
 	double zoom;
 	QSize image_size;
+	QPixmap override_pixmap;
 
 	QTransform get_final_transform() const{
 		auto ret = this->transform;
@@ -44,7 +45,9 @@ class ImageViewport : public QLabel
 		return Quadrangular(size) * this->transform;
 	}
 	Quadrangular compute_quad() const{
-		return this->compute_quad(this->image_size);
+		if (this->override_pixmap.isNull())
+			return this->compute_quad(this->image_size);
+		return this->compute_quad(this->override_pixmap.size());
 	}
 	void transform_changed();
 public:
@@ -88,6 +91,7 @@ public:
 	void paintEvent(QPaintEvent *) override;
 	void set_image(LoadedGraphics &li);
 	void set_transform_by_metadata(const ImageMetadata *, bool use_metadata = true);
+	void set_override_pixmap(QPixmap);
 
 signals:
 	void transform_updated();

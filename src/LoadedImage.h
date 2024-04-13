@@ -93,6 +93,7 @@ public:
 	virtual ImageMetadata *get_metadata(){
 		return nullptr;
 	}
+	virtual QImage scale(double zoom) = 0;
 	typedef std::pair<std::shared_ptr<LoadedGraphics>, bool> create_result;
 	static create_result create(ImageViewerApplication &app, const QString &path);
 };
@@ -131,6 +132,7 @@ public:
 	ImageMetadata *get_metadata() override{
 		return &this->info;
 	}
+	QImage scale(double zoom) override;
 };
 
 class LoadedAnimation : public RasterGraphics{
@@ -149,6 +151,9 @@ public:
 	QImage get_QImage() const override;
 	std::unique_ptr<QIODevice> get_device(){
 		return std::move(this->device);
+	}
+	QImage scale(double zoom) override{
+		return {};
 	}
 };
 
@@ -180,6 +185,7 @@ public:
 	QImage get_QImage() const override;
 	const ImageMetadata * get_metadata() const override;
 	ImageMetadata * get_metadata() override;
+	QImage scale(double zoom) override;
 };
 
 #endif
