@@ -110,6 +110,7 @@ public:
 	//dst MUST point to a portion of writeable memory >= w * h * 4, where [w, h] = get_size_int().
 	void render(void *dst) const;
 	void render(void *dst, int w, int h, double zoom) const;
+	void render(void *dst, int w, int h, int x0, int y0, double zoom) const;
 };
 
 #endif

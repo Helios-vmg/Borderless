@@ -243,14 +243,19 @@ void ReSvgRenderTree::render(void *dst) const{
 }
 
 void ReSvgRenderTree::render(void *dst, int w, int h, double zoom) const{
-	resvg_transform t = resvg_transform_identity();
+	this->render(dst, w, h, 0, 0, zoom);
+}
+
+void ReSvgRenderTree::render(void *dst, int w, int h, int x0, int y0, double zoom) const{
+	ENSURE_VALID_TREE;
+	resvg_transform t;
 	t.a = zoom;
 	t.b = 0;
 	t.c = 0;
 	t.d = zoom;
-	t.b = 0;
-	t.e = 0;
-	resvg_render(this->tree, { RESVG_FIT_TO_TYPE_ORIGINAL, 1 }, /*resvg_transform_identity()*/t, w, h, (char *)dst);
+	t.e = -x0;
+	t.f = -y0;
+	resvg_render(this->tree, { RESVG_FIT_TO_TYPE_ORIGINAL, 1 }, t, w, h, (char *)dst);
 }
 
 #endif
