@@ -47,7 +47,7 @@ class ImageViewport : public QLabel
 	Quadrangular compute_quad() const{
 		if (this->override_pixmap.isNull())
 			return this->compute_quad(this->image_size);
-		return this->compute_quad(this->override_pixmap.size());
+		return Quadrangular(this->override_pixmap.size()) * this->transform;
 	}
 	void transform_changed();
 public:
