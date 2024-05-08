@@ -164,7 +164,6 @@
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp" />
     <ClCompile Include="..\src\exif.cpp" />
     <ClCompile Include="..\src\InfoDialog.cpp" />
-    <ClCompile Include="..\src\lazy.cpp" />
     <ClCompile Include="..\src\ProtocolModule.cpp" />
     <ClCompile Include="..\src\resvg.cpp" />
     <ClCompile Include="..\src\Settings.cpp" />
