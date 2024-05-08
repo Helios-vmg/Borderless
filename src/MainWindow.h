@@ -39,6 +39,32 @@ public:
 	MouseEvent &operator=(const MouseEvent &) = default;
 };
 
+template <typename T>
+class OptionalFuture{
+public:
+	virtual T result() = 0;
+};
+
+template <typename T>
+class ActualFuture : public OptionalFuture<T>{
+	QFuture<T> future;
+public:
+	ActualFuture(QFuture<T> &&future): future(std::move(future)){}
+	T result() override{
+		return this->future.result();
+	}
+};
+
+template <typename T>
+class NonFuture : public OptionalFuture<T>{
+	T value;
+public:
+	NonFuture(T &&value): value(std::move(value)){}
+	T result() override{
+		return this->value;
+	}
+};
+
 class MainWindow : public QMainWindow{
 	Q_OBJECT
 
@@ -147,18 +173,18 @@ protected:
 	void closeEvent(QCloseEvent *event) override;
 	void contextMenuEvent(QContextMenuEvent *) override;
 	//bool event(QEvent *) override;
-	void restore_state(const std::shared_ptr<WindowState> &, QFuture<LoadedGraphics::create_result> *future = nullptr);
+	void restore_state(const std::shared_ptr<WindowState> &, OptionalFuture<LoadedGraphics::create_result> *future = nullptr);
 	enum class OpenResult{
 		Success,
 		TemporaryFail,
 		PermanentFail,
 	};
-	OpenResult open_path_and_display_image(QString path, QFuture<LoadedGraphics::create_result> *future = nullptr);
+	OpenResult open_path_and_display_image(QString path, OptionalFuture<LoadedGraphics::create_result> *future = nullptr);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
 	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent = 0);
-	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> &future, QWidget *parent = 0);
+	explicit MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, OptionalFuture<LoadedGraphics::create_result> &future, QWidget *parent = 0);
 	virtual ~MainWindow();
 	void display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display);
 	std::shared_ptr<WindowState> save_state() const;

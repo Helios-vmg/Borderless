@@ -9,7 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ui_MainWindow.h"
 #include <QDir>
 
-void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> *future){
+void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, OptionalFuture<LoadedGraphics::create_result> *future){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
 	this->last_set_by_user = state->get_last_set_by_user();

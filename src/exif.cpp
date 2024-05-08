@@ -8,10 +8,10 @@
 #include <QtConcurrent/QtConcurrent>
 
 class QIODeviceExifStream : public TinyEXIF::EXIFStream{
-	std::unique_ptr<QIODevice> dev;
+	QIODevice *dev;
 	std::vector<std::uint8_t> internal_buffer;
 public:
-	QIODeviceExifStream(std::unique_ptr<QIODevice> &&dev): dev(std::move(dev)){
+	QIODeviceExifStream(QIODevice &dev): dev(&dev){
 		this->dev->reset();
 	}
 	bool IsValid() const override{
@@ -475,9 +475,9 @@ static const Deparser deparsers[] = {
 	DEFINE_GETTER(gps_time),
 };
 
-std::vector<std::pair<std::string, std::string>> set_exif(TinyEXIF::EXIFInfo &dst, std::unique_ptr<QIODevice> &&dev){
+std::vector<std::pair<std::string, std::string>> set_exif(TinyEXIF::EXIFInfo &dst, QIODevice &dev){
 	std::vector<std::pair<std::string, std::string>> ret;
-	QIODeviceExifStream stream(std::move(dev));
+	QIODeviceExifStream stream(dev);
 	auto result = dst.parseFrom(stream);
 	if (result != TinyEXIF::PARSE_SUCCESS)
 		return ret;
@@ -513,9 +513,9 @@ ImageMetadata ImageMetadata::create_from_animation(QMovie &movie, const QString 
 	return ret;
 }
 
-ImageMetadata ImageMetadata::create_from_animation(QMovie &movie, const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, std::unique_ptr<QIODevice> &&dev){
+ImageMetadata ImageMetadata::create_from_animation(QMovie &movie, const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, QIODevice &dev){
 	ImageMetadata ret;
-	ret.init_from_file(path, client, std::move(dev));
+	ret.init_from_file(path, client, dev);
 	ret.init_animation(movie);
 	return ret;
 }
@@ -573,24 +573,29 @@ std::pair<std::uint64_t, std::uint64_t> count_colors(const QImage &image){
 }
 
 void ImageMetadata::init_from_file(const QString &path){
-	auto dev = std::make_unique<QFile>(path);
-	dev->open(QFile::ReadOnly);
-	QFileInfo info(*dev);
-	this->name = QString::fromStdString(dev->filesystemFileName().filename().u8string());
+	QFile dev(path);
+	dev.open(QFile::ReadOnly);
+	QFileInfo info(dev);
+	this->name = QString::fromStdString(dev.filesystemFileName().filename().u8string());
 	this->path = path;
-	this->size = dev->size();
+	this->size = dev.size();
 	this->date = std::make_unique<Eager<QDateTime>>(info.lastModified());
-	this->human_metadata = set_exif(this->machine_metadata, std::move(dev));
+	this->human_metadata = set_exif(this->machine_metadata, dev);
 }
 
 void ImageMetadata::init_from_file(const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, std::unique_ptr<QIODevice> &&dev){
+	this->init_from_file(path, client, *dev);
+}
+
+void ImageMetadata::init_from_file(const QString &path, const std::shared_ptr<ProtocolModule::Client> &client, QIODevice &dev){
 	this->name = client->get_filename(path);
 	this->path = path;
-	this->size = dev->size();
+	this->size = dev.size();
 	this->date = std::make_unique<Lazy<QDateTime>>([path, client](){
 		return client->get_date(path);
 	});
-	this->human_metadata = set_exif(this->machine_metadata, std::move(dev));
+	this->human_metadata = set_exif(this->machine_metadata, dev);
+	dev.reset();
 	this->is_local = false;
 }
 

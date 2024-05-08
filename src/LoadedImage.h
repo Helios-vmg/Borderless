@@ -94,8 +94,24 @@ public:
 		return nullptr;
 	}
 	virtual QImage scale(double zoom) = 0;
-	typedef std::pair<std::shared_ptr<LoadedGraphics>, bool> create_result;
-	static create_result create(ImageViewerApplication &app, const QString &path);
+	class create_result{
+	public:
+		std::shared_ptr<LoadedGraphics> loaded_graphics;
+		bool permanent_error = false;
+		bool retry_in_main = false;
+
+		create_result() = default;
+		create_result(std::shared_ptr<LoadedGraphics> loaded_graphics, bool permanent_error, bool retry_in_main = false)
+			: loaded_graphics(loaded_graphics)
+			, permanent_error(permanent_error)
+			, retry_in_main(retry_in_main)
+		{}
+		create_result(const create_result &) = default;
+		create_result &operator=(const create_result &) = default;
+		create_result(create_result &&) = default;
+		create_result &operator=(create_result &&) = default;
+	};
+	static create_result create(ImageViewerApplication &app, const QString &path, bool calling_from_main);
 };
 
 class RasterGraphics : public LoadedGraphics{

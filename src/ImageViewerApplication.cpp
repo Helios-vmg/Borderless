@@ -82,10 +82,12 @@ void ImageViewerApplication::new_instance(const QStringList &args){
 		this->app_state = std::make_shared<ApplicationState>();
 		this->state_is_empty = false;
 	}
-	
-	auto p = std::make_shared<MainWindow>(*this, args);
-	if (!p->is_null())
-		this->add_window(p);
+
+	if (args.length() > 1){
+		auto p = std::make_shared<MainWindow>(*this, args);
+		if (!p->is_null())
+			this->add_window(p);
+	}
 	this->save_settings();
 }
 
@@ -253,11 +255,12 @@ void ImageViewerApplication::restore_current_state(const ApplicationState &windo
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
-	std::vector<QFuture<LoadedGraphics::create_result>> futures;
+#if 1
+	std::vector<ActualFuture<LoadedGraphics::create_result>> futures;
 	futures.reserve(window_states.size());
 	for (auto &state : window_states){
 		futures.emplace_back(QtConcurrent::run([this, state]() -> LoadedGraphics::create_result{
-			return LoadedGraphics::create(*this, state->get_path());
+			return LoadedGraphics::create(*this, state->get_path(), false);
 		}));
 	}
 
@@ -266,6 +269,15 @@ void ImageViewerApplication::restore_current_windows(const std::vector<std::shar
 
 	for (size_t i = 0; i < n; i++)
 		this->add_window(std::make_shared<MainWindow>(*this, window_states[i], futures[i]));
+#else
+	std::vector<QFuture<LoadedGraphics::create_result>> futures;
+	futures.reserve(window_states.size());
+	for (auto &state : window_states){
+		NonFuture<LoadedGraphics::create_result> f = LoadedGraphics::create(*this, state->get_path());
+		this->add_window(std::make_shared<MainWindow>(*this, state, f));
+	}
+
+#endif
 }
 
 std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *caller){

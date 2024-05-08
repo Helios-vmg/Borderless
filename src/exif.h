@@ -34,6 +34,7 @@ class ImageMetadata{
 
 	void init_from_file(const QString &);
 	void init_from_file(const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
+	void init_from_file(const QString &, const std::shared_ptr<ProtocolModule::Client> &, QIODevice &);
 	void init_still(QImage &image);
 	void init_animation(QMovie &movie);
 public:
@@ -41,7 +42,7 @@ public:
 	static ImageMetadata create_from_still(QImage &, const QString &);
 	static ImageMetadata create_from_still(QImage &, const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
 	static ImageMetadata create_from_animation(QMovie &, const QString &);
-	static ImageMetadata create_from_animation(QMovie &, const QString &, const std::shared_ptr<ProtocolModule::Client> &, std::unique_ptr<QIODevice> &&);
+	static ImageMetadata create_from_animation(QMovie &, const QString &, const std::shared_ptr<ProtocolModule::Client> &, QIODevice &);
 	static ImageMetadata create_from_vector(QImage &, std::unique_ptr<QIODevice> &&, const QString &);
 
 	ImageMetadata(const ImageMetadata &) = default;

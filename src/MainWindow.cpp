@@ -46,7 +46,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<Window
 	this->set_background();
 }
 
-MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QFuture<LoadedGraphics::create_result> &future, QWidget *parent):
+MainWindow::MainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, OptionalFuture<LoadedGraphics::create_result> &future, QWidget *parent):
 		QMainWindow(parent),
 		ui(new Ui::MainWindow),
 		app(&app){
@@ -413,7 +413,7 @@ public:
 	}
 };
 
-MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFuture<LoadedGraphics::create_result> *future){
+MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, OptionalFuture<LoadedGraphics::create_result> *future){
 	ElapsedTimer et((QString)"open_path_and_display_image(" + path + ")");
 	LoadedGraphics::create_result result;
 	size_t i = 0;
@@ -424,10 +424,12 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFu
 		if (future){
 			result = future->result();
 			future = nullptr;
+			if (result.retry_in_main)
+				continue;
 		}else
-			result = LoadedGraphics::create(*this->app, path);
+			result = LoadedGraphics::create(*this->app, path, true);
 		qDebug() << path;
-		if (result.first && !result.first->is_null())
+		if (result.loaded_graphics && !result.loaded_graphics->is_null())
 			break;
 		if (!!this->directory_iterator){
 			this->advance();
@@ -472,14 +474,14 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, QFu
 			this->directory_iterator = this->app->request_local_directory_iterator(current_directory);
 	}
 
-	if (!result.first || result.first->is_null()){
+	if (!result.loaded_graphics || result.loaded_graphics->is_null()){
 		this->show_nothing();
-		return result.second ? OpenResult::PermanentFail : OpenResult::TemporaryFail;
+		return result.permanent_error ? OpenResult::PermanentFail : OpenResult::TemporaryFail;
 	}
 	this->color_calculated = false;
 	label->move(0, 0);
 	this->setWindowTitle(window_title);
-	this->displayed_image = result.first;
+	this->displayed_image = result.loaded_graphics;
 
 	label->set_transform_by_metadata(this->displayed_image->get_metadata(), this->rotate_by_metadata);
 	this->set_zoom();

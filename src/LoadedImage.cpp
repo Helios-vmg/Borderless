@@ -112,7 +112,7 @@ QImage LoadedAnimation::get_QImage() const{
 	return this->animation->currentImage();
 }
 
-LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app, const QString &path){
+LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app, const QString &path, bool calling_from_main){
 	auto [dev, permanent_error] = app.open_file(path);
 	if (app.is_svg(path))
 #ifdef ENABLE_SVG
@@ -125,6 +125,8 @@ LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app
 #endif
 	auto is_animation = app.is_animation(path);
 	if (is_animation){
+		if (!calling_from_main)
+			return { {}, false, true };
 		auto animation = std::make_unique<LoadedAnimation>(app, std::move(dev), path);
 		if (!animation->is_null())
 			return { std::move(animation), permanent_error };
@@ -250,6 +252,6 @@ MovieWithMetadata::MovieWithMetadata(std::unique_ptr<QIODevice> &&device, std::u
 		this->meta = ImageMetadata::create_from_animation(*this->movie, path);
 	else{
 		auto client = dev->get_module()->create_client();
-		this->meta = ImageMetadata::create_from_animation(*this->movie, path, std::move(client), std::move(this->device));
+		this->meta = ImageMetadata::create_from_animation(*this->movie, path, std::move(client), *this->device);
 	}
 }
