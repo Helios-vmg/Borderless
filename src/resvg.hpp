@@ -104,7 +104,6 @@ public:
 	bool is_empty() const;
 	std::pair<double, double> get_size() const;
 	std::pair<int, int> get_size_int() const;
-	std::tuple<double, double, double, double> get_viewbox() const;
 	std::optional<std::tuple<double, double, double, double>> get_bounding_box() const;
 	std::tuple<int, int, std::vector<std::uint8_t>> render() const;
 	//dst MUST point to a portion of writeable memory >= w * h * 4, where [w, h] = get_size_int().

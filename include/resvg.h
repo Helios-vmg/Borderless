@@ -17,9 +17,9 @@
 #include <stdint.h>
 
 #define RESVG_MAJOR_VERSION 0
-#define RESVG_MINOR_VERSION 31
+#define RESVG_MINOR_VERSION 41
 #define RESVG_PATCH_VERSION 0
-#define RESVG_VERSION "0.31.0"
+#define RESVG_VERSION "0.41.0"
 
 /**
  * @brief List of possible errors.
@@ -58,30 +58,6 @@ typedef enum {
      */
     RESVG_ERROR_PARSING_FAILED,
 } resvg_error;
-
-/**
- * @brief A "fit to" type.
- *
- * All types produce proportional scaling.
- */
-typedef enum {
-    /**
-     * Use an original image size.
-     */
-    RESVG_FIT_TO_TYPE_ORIGINAL,
-    /**
-     * Fit an image to a specified width.
-     */
-    RESVG_FIT_TO_TYPE_WIDTH,
-    /**
-     * Fit an image to a specified height.
-     */
-    RESVG_FIT_TO_TYPE_HEIGHT,
-    /**
-     * Zoom an image using scaling factor.
-     */
-    RESVG_FIT_TO_TYPE_ZOOM,
-} resvg_fit_to_type;
 
 /**
  * @brief A image rendering method.
@@ -126,65 +102,31 @@ typedef struct resvg_render_tree resvg_render_tree;
  * @brief A 2D transform representation.
  */
 typedef struct {
-    double a;
-    double b;
-    double c;
-    double d;
-    double e;
-    double f;
+    float a;
+    float b;
+    float c;
+    float d;
+    float e;
+    float f;
 } resvg_transform;
 
 /**
  * @brief A size representation.
- *
- * Width and height are guarantee to be > 0.
  */
 typedef struct {
-    double width;
-    double height;
+    float width;
+    float height;
 } resvg_size;
 
 /**
  * @brief A rectangle representation.
- *
- * Width *and* height are guarantee to be > 0.
  */
 typedef struct {
-    double x;
-    double y;
-    double width;
-    double height;
+    float x;
+    float y;
+    float width;
+    float height;
 } resvg_rect;
-
-/**
- * @brief A path bbox representation.
- *
- * Width *or* height are guarantee to be > 0.
- */
-typedef struct {
-    double x;
-    double y;
-    double width;
-    double height;
-} resvg_path_bbox;
-
-/**
- * @brief A "fit to" property.
- */
-typedef struct {
-    /**
-     * A fit type.
-     */
-    resvg_fit_to_type type;
-    /**
-     * @brief Fit to value
-     *
-     * Not used by RESVG_FIT_TO_ORIGINAL.
-     * Must be >= 1 for RESVG_FIT_TO_WIDTH and RESVG_FIT_TO_HEIGHT.
-     * Must be > 0 for RESVG_FIT_TO_ZOOM.
-     */
-    float value;
-} resvg_fit_to;
 
 #ifdef __cplusplus
 extern "C" {
@@ -232,7 +174,7 @@ void resvg_options_set_resources_dir(resvg_options *opt, const char *path);
  *
  * Default: 96
  */
-void resvg_options_set_dpi(resvg_options *opt, double dpi);
+void resvg_options_set_dpi(resvg_options *opt, float dpi);
 
 /**
  * @brief Sets the default font family.
@@ -252,7 +194,7 @@ void resvg_options_set_font_family(resvg_options *opt, const char *family);
  *
  * Default: 12
  */
-void resvg_options_set_font_size(resvg_options *opt, double size);
+void resvg_options_set_font_size(resvg_options *opt, float size);
 
 /**
  * @brief Sets the `serif` font family.
@@ -443,16 +385,6 @@ bool resvg_is_image_empty(const resvg_render_tree *tree);
 resvg_size resvg_get_image_size(const resvg_render_tree *tree);
 
 /**
- * @brief Returns an image viewbox.
- *
- * The `viewBox` attribute in SVG.
- *
- * @param tree Render tree.
- * @return Image viewbox.
- */
-resvg_rect resvg_get_image_viewbox(const resvg_render_tree *tree);
-
-/**
  * @brief Returns an image bounding box.
  *
  * Can be smaller or bigger than a `viewbox`.
@@ -489,7 +421,7 @@ bool resvg_get_node_transform(const resvg_render_tree *tree,
                               resvg_transform *transform);
 
 /**
- * @brief Returns node's bounding box by ID.
+ * @brief Returns node's bounding box in canvas coordinates by ID.
  *
  * @param tree Render tree.
  * @param id Node's ID. Must not be NULL.
@@ -498,7 +430,19 @@ bool resvg_get_node_transform(const resvg_render_tree *tree,
  * @return `false` if ID isn't a UTF-8 string.
  * @return `false` if ID is an empty string
  */
-bool resvg_get_node_bbox(const resvg_render_tree *tree, const char *id, resvg_path_bbox *bbox);
+bool resvg_get_node_bbox(const resvg_render_tree *tree, const char *id, resvg_rect *bbox);
+
+/**
+ * @brief Returns node's bounding box, including stroke, in canvas coordinates by ID.
+ *
+ * @param tree Render tree.
+ * @param id Node's ID. Must not be NULL.
+ * @param bbox Node's bounding box.
+ * @return `false` if a node with such an ID does not exist
+ * @return `false` if ID isn't a UTF-8 string.
+ * @return `false` if ID is an empty string
+ */
+bool resvg_get_node_stroke_bbox(const resvg_render_tree *tree, const char *id, resvg_rect *bbox);
 
 /**
  * @brief Destroys the #resvg_render_tree.
@@ -509,7 +453,6 @@ void resvg_tree_destroy(resvg_render_tree *tree);
  * @brief Renders the #resvg_render_tree onto the pixmap.
  *
  * @param tree A render tree.
- * @param fit_to Specifies into which region SVG should be fit.
  * @param transform A root SVG transform. Can be used to position SVG inside the `pixmap`.
  * @param width Pixmap width.
  * @param height Pixmap height.
@@ -517,7 +460,6 @@ void resvg_tree_destroy(resvg_render_tree *tree);
  *               premultiplied RGBA8888 pixels.
  */
 void resvg_render(const resvg_render_tree *tree,
-                  resvg_fit_to fit_to,
                   resvg_transform transform,
                   uint32_t width,
                   uint32_t height,
@@ -528,7 +470,6 @@ void resvg_render(const resvg_render_tree *tree,
  *
  * @param tree A render tree.
  * @param id Node's ID. Must not be NULL.
- * @param fit_to Specifies into which region the image should be fit.
  * @param transform A root SVG transform. Can be used to position SVG inside the `pixmap`.
  * @param width Pixmap width.
  * @param height Pixmap height.
@@ -540,7 +481,6 @@ void resvg_render(const resvg_render_tree *tree,
  */
 bool resvg_render_node(const resvg_render_tree *tree,
                        const char *id,
-                       resvg_fit_to fit_to,
                        resvg_transform transform,
                        uint32_t width,
                        uint32_t height,

@@ -24,41 +24,25 @@ Building the project should generate the final executable.
 
 Building with SVG support
 
-You will need to build resvg (https://github.com/RazrFalcon/resvg). Version
-0.31.0 of the library is provided under opt/resvg for convenience, but newer
-versions should work, as well. To build, move into the c-api subdirectory and
-run
+You will need to build resvg. Version 0.41.0 of the library has been tested, but
+newer versions should work, as well. The suggested steps to build are as
+follows, starting from the project's root directory:
 
-cargo build --release
+Windows
 
-This will build the C FFI which Borderless depends on. The output goes into the
-target/release subdirectory of resvg.
+Move to the opt directory and run both windows_resvg_debug.bat and
+windows_resvg_release.bat
 
-Windows:
-    The build process generates these files:
-     * resvg.dll
-     * resvg.lib
-     * resvg.dll.lib
-    resvg.dll.lib is a static interface library. If Borderless links against
-    this, resvg.dll will be needed to run. resvg.lib is a static library, which
-    includes all the code for resvg. If Borderless links against this, resvg.dll
-    will *NOT* be needed to run. If using Visual Studio to build and debug, I
-    recommend using resvg.dll.lib for debug builds. I've encountered an issue
-    where VS 2019 takes an abnormal amount of time (in the order of at least
-    several minutes) to start debugging when linking against the static library.
-    In all other cases, prefer resvg.lib.
-    Pick whichever one you like and move it into Borderless' lib64 subdirectory,
-    renaming the file to resvg.lib (resvgd.lib is building for debug). If
-    needed, move the DLL to somewhere in the PATH where it can be found.
-UNIX:
-    Copy resvg/target/release/libresvg.a into Borderless/lib. In
-    Borderless/Borderless.pro, uncomment these lines:
-     #INCLUDEPATH += $$PWD/include
-     #LIBS += -L $$PWD/lib -lresvg -ldl
+UNIX
 
-If you've opted to download a newer version of resvg, copy the header in
-c-api/resvg.h into Borderless/include, replacing the existing file.
-Go into Borderless/src/config.hpp and uncomment the line
+Move to the opt directory and run both unix_resvg_debug.sh and
+unix_resvg_release.sh
+Then, in /Borderless.pro, uncomment these lines:
+    #INCLUDEPATH += $$PWD/include
+    #LIBS += -L $$PWD/lib -lresvg -ldl
+
+
+After doing the above, go into Borderless/src/config.hpp and uncomment the line
 
 //#define ENABLE_SVG
 

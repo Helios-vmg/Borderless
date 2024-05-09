@@ -19,6 +19,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Bcrypt.lib")
 #pragma comment(lib, "Userenv.lib")
+#pragma comment(lib, "ntdll.lib")
 #endif
 
 ReSvgOptions::ReSvgOptions(){
@@ -214,12 +215,6 @@ std::pair<int, int> ReSvgRenderTree::get_size_int() const{
 	};
 }
 
-std::tuple<double, double, double, double> ReSvgRenderTree::get_viewbox() const{
-	ENSURE_VALID_TREE;
-	auto [x, y, w, h] = resvg_get_image_viewbox(this->tree);
-	return { x, y, w, h };
-}
-
 std::optional<std::tuple<double, double, double, double>> ReSvgRenderTree::get_bounding_box() const{
 	ENSURE_VALID_TREE;
 	resvg_rect ret;
@@ -255,7 +250,7 @@ void ReSvgRenderTree::render(void *dst, int w, int h, int x0, int y0, double zoo
 	t.d = zoom;
 	t.e = -x0;
 	t.f = -y0;
-	resvg_render(this->tree, { RESVG_FIT_TO_TYPE_ORIGINAL, 1 }, t, w, h, (char *)dst);
+	resvg_render(this->tree, t, w, h, (char *)dst);
 }
 
 #endif
