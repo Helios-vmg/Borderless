@@ -112,8 +112,8 @@ protected:
 	std::shared_ptr<WindowState> window_state;
 
 	bool move_image(const QPoint &new_position);
-	QPoint compute_movement(const QPoint &new_position, const QPoint &mouse_position);
-	bool compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
+	std::optional<QPoint> compute_movement(const QPoint &new_position, const QPoint &mouse_position);
+	int compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
 	void move_window(const QPoint &new_position, const QPoint &mouse_position);
 	void reset_settings();
 	void compute_average_color(QImage img);

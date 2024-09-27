@@ -114,14 +114,15 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 		else{
 			QPoint pos;
 			QRect rect;
-			if (!this->compute_resize(pos, rect, mouse_pos - this->first_mouse_pos, mouse_pos)){
+			auto result = this->compute_resize(pos, rect, mouse_pos - this->first_mouse_pos, mouse_pos);
+			if (!result){
 				this->reset_zoom_slot();
 				
 				auto copy = mme;
 				copy.relative = mme.absolute - this->pos();
 				this->reset_left_mouse(copy);
 				this->set_cursor_flags(copy);
-			}else{
+			}else if (result > 0){
 				this->set_window_rect(rect);
 				this->ui->label->move(pos);
 				FTEMP(x, X, width, Width);
@@ -139,8 +140,11 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 
 #undef FTEMP
 
-bool MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
-	auto ds = this->app->screenAt(mouse_position)->availableGeometry();
+int MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
+	auto screen = this->app->screenAt(mouse_position);
+	if (!screen)
+		return -1;
+	auto ds = screen->availableGeometry();
 	int left = 0,
 		top = 0,
 		right = 0,
@@ -226,16 +230,18 @@ bool MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, Q
 		pos.setY(rect.height() - label_rect.height());
 
 	if (rect.height() <= 0 || rect.width() <= 0)
-		return false;
+		return 0;
 
 	out_label_pos = pos;
 	out_window_rect = rect;
-	return true;
+	return 1;
 }
 
 void MainWindow::move_window(const QPoint &requested_position, const QPoint &mouse_position){
 	auto computed_position = this->compute_movement(requested_position, mouse_position);
-	this->move_window_rect(computed_position);
+	if (!computed_position)
+		return;
+	this->move_window_rect(*computed_position);
 }
 
 bool MainWindow::move_image(const QPoint &_new_position){
@@ -283,10 +289,13 @@ bool MainWindow::force_keep_window_in_desktop(){
 	return this->perform_clamping();
 }
 
-QPoint MainWindow::compute_movement(const QPoint &_new_position, const QPoint &mouse_position){
+std::optional<QPoint> MainWindow::compute_movement(const QPoint &_new_position, const QPoint &mouse_position){
 	auto new_position = _new_position;
 	if (this->perform_clamping()){
-		auto ds = this->app->screenAt(mouse_position)->availableGeometry();
+		auto screen = this->app->screenAt(mouse_position);
+		if (!screen)
+			return {};
+		auto ds = screen->availableGeometry();
 		int x[] = {
 			ds.x(),
 			ds.x() + ds.width() - this->size().width(),
