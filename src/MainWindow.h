@@ -215,6 +215,7 @@ public:
 	bool is_loaded() const{
 		return !!this->displayed_image;
 	}
+	bool always_on_top_enabled() const;
 
 public slots:
 	void label_transform_updated();
@@ -257,6 +258,7 @@ public slots:
 	void toggle_rotate_by_metadata();
 	void zoom_timer_triggered();
 	void zoom_complete();
+	void toggle_always_on_top();
 
 signals:
 	void closing(MainWindow *);

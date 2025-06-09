@@ -537,9 +537,16 @@ void MainWindow::show_context_menu(QMouseEvent *ev){
 void MainWindow::build_context_menu(QMenu &main_menu){
 	main_menu.addAction("Transform...", this, SLOT(show_rotate_dialog()));
 	main_menu.addAction("View info...", this, SLOT(show_info_dialog()), this->app->get_shortcuts().get_current_sequence(show_info_command));
-	auto rotate = main_menu.addAction("Rotate by metadata", this, SLOT(toggle_rotate_by_metadata()));
-	rotate->setCheckable(true);
-	rotate->setChecked(this->rotate_by_metadata);
+	{
+		auto rotate = main_menu.addAction("Rotate by metadata", this, SLOT(toggle_rotate_by_metadata()));
+		rotate->setCheckable(true);
+		rotate->setChecked(this->rotate_by_metadata);
+	}
+	{
+		auto always_on_top = main_menu.addAction("Always on top", this, SLOT(toggle_always_on_top()));
+		always_on_top->setCheckable(true);
+		always_on_top->setChecked(this->always_on_top_enabled());
+	}
 	main_menu.addAction("Close", this, SLOT(close_slot()), this->app->get_shortcuts().get_current_sequence(close_command));
 }
 
@@ -716,4 +723,14 @@ void MainWindow::zoom_timer_triggered(){
 
 void MainWindow::zoom_complete(){
 	this->ui->label->set_override_pixmap(this->zoomed_image.result());
+}
+
+bool MainWindow::always_on_top_enabled() const{
+	return (this->windowFlags() & Qt::WindowStaysOnTopHint) == Qt::WindowStaysOnTopHint;
+}
+
+void MainWindow::toggle_always_on_top(){
+	auto top = this->always_on_top_enabled();
+	this->setWindowFlag(Qt::WindowStaysOnTopHint, !top);
+	this->show();
 }
