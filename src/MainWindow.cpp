@@ -248,7 +248,7 @@ void MainWindow::apply_zoom(bool first_display, double old_zoom){
 		this->move_image(new_location);
 	}
 	if (zoom < 1){
-		this->zoom_timer.setInterval(1000);
+		this->zoom_timer.setInterval(125);
 		this->zoom_timer.start();
 	}
 }
