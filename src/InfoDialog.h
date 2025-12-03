@@ -14,6 +14,12 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QDialog>
 #include <memory>
 
+enum class PreferredPositionState{
+	DoesntHave,
+	HasButNotInUse,
+	InUse,
+};
+
 class InfoDialog : public QDialog{
 	Q_OBJECT
 
@@ -24,7 +30,7 @@ class InfoDialog : public QDialog{
 	void initialize_exif(const ImageMetadata &metadata);
 	void initialize_size(const std::pair<QSize, int> &);
 public:
-	InfoDialog(QWidget &parent, ImageViewerApplication &app, const ImageMetadata &metadata);
+	InfoDialog(QWidget &parent, ImageViewerApplication &app, const ImageMetadata &metadata, PreferredPositionState pps);
 
 public slots:
 	void show_in_folder();

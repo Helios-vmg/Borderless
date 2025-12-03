@@ -51,6 +51,10 @@ DECLARE_COMMAND_INTERNAL_NAME(up);
 DECLARE_COMMAND_INTERNAL_NAME(up_big);
 DECLARE_COMMAND_INTERNAL_NAME(zoom_in);
 DECLARE_COMMAND_INTERNAL_NAME(zoom_out);
+DECLARE_COMMAND_INTERNAL_NAME(save_preferred_position);
+DECLARE_COMMAND_INTERNAL_NAME(save_all_preferred_positions);
+DECLARE_COMMAND_INTERNAL_NAME(restore_preferred_position);
+DECLARE_COMMAND_INTERNAL_NAME(restore_all_preferred_positions);
 
 struct ShortcutSetting{
 	QString command;

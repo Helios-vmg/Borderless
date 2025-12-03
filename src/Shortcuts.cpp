@@ -14,7 +14,6 @@ ApplicationShortcuts::ApplicationShortcuts(){
 	this->reset_settings();
 }
 
-
 void ApplicationShortcuts::restore_settings(const Shortcuts &shortcuts){
 	this->current_shortcuts.clear();
 	for (auto &s : shortcuts.shortcuts){

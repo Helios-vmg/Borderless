@@ -14,6 +14,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "Streams.h"
 #include "Enums.h"
 #include "exif.h"
+#include "PersistentSettingsStore.h"
 #include <QMenu>
 #include <memory>
 #include <exception>
@@ -61,6 +62,7 @@ class ImageViewerApplication : public SingleInstanceApplication{
 
 	std::shared_ptr<MainSettings> settings;
 	std::shared_ptr<ApplicationState> app_state;
+	std::shared_ptr<PersistentSettingsStore> persistent_settings;
 
 	QSystemTrayIcon tray_icon;
 	std::shared_ptr<QMenu> tray_context_menu,
@@ -148,6 +150,9 @@ public:
 	std::pair<std::unique_ptr<QIODevice>, bool> open_file(const QString &);
 	void report_temporary_failure(const std::shared_ptr<WindowState> &);
 	void show_file_in_folder(QWidget *parent, const QString &path);
+	std::shared_ptr<PersistentSettingsStore> get_persistent_settings(bool required = false);
+	void save_all_preferred_positions();
+	void restore_all_preferred_positions();
 
 public slots:
 	void window_closing(MainWindow *);

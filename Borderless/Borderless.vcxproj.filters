@@ -44,6 +44,9 @@
     <Filter Include="TinyEXIF">
       <UniqueIdentifier>{a3394ab4-4ecf-4c05-abdc-1f899c6f5c10}</UniqueIdentifier>
     </Filter>
+    <Filter Include="sqlite">
+      <UniqueIdentifier>{487ba47c-4f3c-4ead-9994-48784952e467}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(SolutionDir)\src\DirectoryListing.cpp">
@@ -166,6 +169,15 @@
     <ClCompile Include="..\src\exif.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\PersistentSettingsStore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sqlite\sqlite3.c">
+      <Filter>sqlite</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\sqlite\sqlitepp.cpp">
+      <Filter>sqlite</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -262,6 +274,18 @@
     </ClInclude>
     <ClInclude Include="..\src\lazy.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PersistentSettingsStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sqlite\sqlite3.h">
+      <Filter>sqlite</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sqlite\sqlite3ext.h">
+      <Filter>sqlite</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sqlite\sqlitepp.hpp">
+      <Filter>sqlite</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

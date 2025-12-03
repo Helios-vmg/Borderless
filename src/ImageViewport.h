@@ -49,7 +49,6 @@ class ImageViewport : public QLabel
 			return this->compute_quad(this->image_size);
 		return Quadrangular(this->override_pixmap.size()) * this->transform;
 	}
-	void transform_changed();
 public:
 	explicit ImageViewport(QWidget *parent = 0);
 	void set_zoom(double x){
@@ -92,6 +91,7 @@ public:
 	void set_image(LoadedGraphics &li);
 	void set_transform_by_metadata(const ImageMetadata *, bool use_metadata = true);
 	void set_override_pixmap(QPixmap);
+	void transform_changed();
 
 signals:
 	void transform_updated();

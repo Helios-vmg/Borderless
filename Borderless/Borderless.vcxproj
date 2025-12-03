@@ -164,10 +164,13 @@
     <ClCompile Include="$(SolutionDir)\src\Streams.cpp" />
     <ClCompile Include="..\src\exif.cpp" />
     <ClCompile Include="..\src\InfoDialog.cpp" />
+    <ClCompile Include="..\src\PersistentSettingsStore.cpp" />
     <ClCompile Include="..\src\ProtocolModule.cpp" />
     <ClCompile Include="..\src\resvg.cpp" />
     <ClCompile Include="..\src\Settings.cpp" />
     <ClCompile Include="..\src\ShortcutsSettings.cpp" />
+    <ClCompile Include="..\src\sqlite\sqlite3.c" />
+    <ClCompile Include="..\src\sqlite\sqlitepp.cpp" />
     <ClCompile Include="..\src\TinyEXIF\TinyEXIF.cpp" />
     <ClCompile Include="..\src\tinyxml2\tinyxml2.cpp" />
     <ClCompile Include="GeneratedFiles\DebugRelease\moc_ImageViewerApplication.cpp">
@@ -252,6 +255,7 @@
     <QtMoc Include="..\src\InfoDialog.h" />
     <ClInclude Include="..\src\exif.h" />
     <ClInclude Include="..\src\lazy.h" />
+    <ClInclude Include="..\src\PersistentSettingsStore.h" />
     <ClInclude Include="..\src\resvg.hpp" />
     <ClInclude Include="..\src\Settings.h" />
     <QtMoc Include="$(SolutionDir)\src\OptionsDialog.h">
@@ -264,6 +268,9 @@
       <DynamicSource Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</DynamicSource>
     </QtMoc>
     <ClInclude Include="$(SolutionDir)\src\Shortcuts.h" />
+    <ClInclude Include="..\src\sqlite\sqlite3.h" />
+    <ClInclude Include="..\src\sqlite\sqlite3ext.h" />
+    <ClInclude Include="..\src\sqlite\sqlitepp.hpp" />
     <ClInclude Include="..\src\TinyEXIF\TinyEXIF.h" />
     <ClInclude Include="..\src\tinyxml2\tinyxml2.h" />
     <ClInclude Include="GeneratedFiles\ui_MainWindow.h" />

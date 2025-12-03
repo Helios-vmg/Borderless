@@ -13,19 +13,27 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include <QLabel>
 #include <tuple>
 #include <QFile>
+#include <QCryptographicHash>
 
 extern const char *supported_extensions[];
 
-LoadedImage::LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
+std::string hash_image(QImage src);
+
+LoadedImage::LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path, bool will_need_hash){
 	auto image_with_metadata = app.load_image(std::move(dev), path);
 	auto img = image_with_metadata.get_image();
 	if ((this->null = img.isNull()))
 		return;
-	this->compute_average_color(img);
+	auto for_processing = img;
+	if (will_need_hash)
+		for_processing = for_processing.convertToFormat(QImage::Format_RGBA8888);
+	this->compute_average_color(for_processing);
 	this->image = QtConcurrent::run([](QImage img){ return QPixmap::fromImage(img); }, img);
 	this->size = img.size();
 	this->alpha = img.hasAlphaChannel();
 	this->info = std::move(image_with_metadata.get_metadata());
+	if (will_need_hash)
+		this->hash = hash_image(for_processing);
 }
 
 LoadedImage::LoadedImage(const QImage &image){
@@ -39,23 +47,32 @@ LoadedImage::~LoadedImage(){
 	this->background_color.cancel();
 }
 
+std::string hash_image(QImage src){
+	quint64 avg[3] = {0};
+	QCryptographicHash hash(QCryptographicHash::Md5);
+	auto pitch = src.width() * 4;
+	for (auto y = src.height() * 0; y < src.height(); y++)
+		hash.addData((const char *)src.constScanLine(y), pitch);
+	return hash.result().toHex().toStdString();
+}
+
 QColor get_average_color(QImage src){
 	if (src.depth() < 32)
-		src = src.convertToFormat(QImage::Format_ARGB32);
+		src = src.convertToFormat(QImage::Format_RGBA8888);
 	quint64 avg[3] = {0};
-	unsigned pixel_count=0;
+	unsigned pixel_count = 0;
 	for (auto y = src.height() * 0; y < src.height(); y++){
-		const uchar *p = src.constScanLine(y);
+		auto p = src.constScanLine(y);
 		for (auto x = src.width() * 0; x < src.width(); x++){
-			avg[0] += quint64(p[2]) * quint64(p[3]) / 255;
-			avg[1] += quint64(p[1]) * quint64(p[3]) / 255;
-			avg[2] += quint64(p[0]) * quint64(p[3]) / 255;
+			avg[0] += quint64(p[0]) * quint64(p[3]);
+			avg[1] += quint64(p[1]) * quint64(p[3]);
+			avg[2] += quint64(p[2]) * quint64(p[3]);
 			p += 4;
 			pixel_count++;
 		}
 	}
 	for (int a = 0; a < 3; a++)
-		avg[a] /= pixel_count;
+		avg[a] /= pixel_count * 255;
 	return QColor(avg[0], avg[1], avg[2]);
 }
 
@@ -91,7 +108,7 @@ QImage LoadedImage::scale(double zoom){
 	return image.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
 }
 
-LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
+LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path, bool will_need_hash){
 	auto animation = app.load_animation(std::move(dev), path);
 	this->animation = animation.get_movie();
 	this->device = animation.get_device();
@@ -101,6 +118,7 @@ LoadedAnimation::LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QI
 	this->size = animation.get_metadata().get_size().first;
 	this->alpha = true;
 	this->info = std::move(animation.get_metadata());
+	this->hash.emplace();
 }
 
 void LoadedAnimation::assign_to_QLabel(QLabel &label){
@@ -112,12 +130,12 @@ QImage LoadedAnimation::get_QImage() const{
 	return this->animation->currentImage();
 }
 
-LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app, const QString &path, bool calling_from_main){
+LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app, const QString &path, bool calling_from_main, bool will_need_hash){
 	auto [dev, permanent_error] = app.open_file(path);
 	if (app.is_svg(path))
 #ifdef ENABLE_SVG
 		return {
-			std::make_unique<SvgImage>(app, std::move(dev), path),
+			std::make_unique<SvgImage>(app, std::move(dev), path, will_need_hash),
 			permanent_error
 		};
 #else
@@ -127,7 +145,7 @@ LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app
 	if (is_animation){
 		if (!calling_from_main)
 			return { {}, false, true };
-		auto animation = std::make_unique<LoadedAnimation>(app, std::move(dev), path);
+		auto animation = std::make_unique<LoadedAnimation>(app, std::move(dev), path, will_need_hash);
 		if (!animation->is_null())
 			return { std::move(animation), permanent_error };
 		dev = animation->get_device();
@@ -135,7 +153,7 @@ LoadedGraphics::create_result LoadedGraphics::create(ImageViewerApplication &app
 	if (dev)
 		dev->reset();
 	return {
-		std::make_unique<LoadedImage>(app, std::move(dev), path),
+		std::make_unique<LoadedImage>(app, std::move(dev), path, will_need_hash),
 		permanent_error
 	};
 }
@@ -156,11 +174,13 @@ public:
 	HorribleThing(std::unique_ptr<QIODevice> &&dev): dev(std::move(dev)){}
 };
 
-SvgImage::SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path){
+SvgImage::SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path, bool will_need_hash){
 	this->null = true;
 	this->alpha = true;
-	auto data = read_file(dev, path);
-	auto [error, tree] = ReSvgRenderTree::create_from_data(data.data(), data.size(), {});
+	this->raw_data = read_file(dev, path);
+	if (will_need_hash)
+		this->SvgImage::compute_hash();
+	auto [error, tree] = ReSvgRenderTree::create_from_data(this->raw_data.data(), this->raw_data.size(), {});
 	if (error != ReSvgRenderTree::Error::NoError)
 		return;
 	this->tree = std::move(tree);
@@ -254,4 +274,18 @@ MovieWithMetadata::MovieWithMetadata(std::unique_ptr<QIODevice> &&device, std::u
 		auto client = dev->get_module()->create_client();
 		this->meta = ImageMetadata::create_from_animation(*this->movie, path, std::move(client), *this->device);
 	}
+}
+
+std::string LoadedGraphics::get_hash(){
+	if (!this->hash)
+		this->compute_hash();
+	return *this->hash;
+}
+
+void LoadedImage::compute_hash(){
+	this->hash = hash_image(this->get_QImage().convertToFormat(QImage::Format_RGBA8888));
+}
+
+void SvgImage::compute_hash(){
+	this->hash = QCryptographicHash::hash(this->raw_data, QCryptographicHash::Md5).toHex().toStdString();
 }

@@ -77,7 +77,18 @@ QString format_size(std::uint64_t size){
 	return QString::fromUtf8(ret.data());
 }
 
-InfoDialog::InfoDialog(QWidget &parent, ImageViewerApplication &app, const ImageMetadata &metadata)
+const char *to_string(PreferredPositionState s){
+	switch (s){
+		case PreferredPositionState::DoesntHave:
+			return "This image doesn't have a preferred position.";
+		case PreferredPositionState::HasButNotInUse:
+			return "This image has a preferred position, but it's not in use.";
+		case PreferredPositionState::InUse:
+			return "This image is using its preferred position.";
+	}
+}
+
+InfoDialog::InfoDialog(QWidget &parent, ImageViewerApplication &app, const ImageMetadata &metadata, PreferredPositionState pps)
 		: QDialog(&parent)
 		, ui(std::make_unique<Ui::InfoDialog>())
 		, app(&app)
@@ -104,6 +115,8 @@ InfoDialog::InfoDialog(QWidget &parent, ImageViewerApplication &app, const Image
 		this->ui->date_box->setText(date_string);
 	}
 	this->initialize_exif(metadata);
+
+	this->ui->preferred_position_label->setText(to_string(pps));
 
 	connect(this->ui->close_btn, SIGNAL(clicked(bool)), this, SLOT(close()));
 	connect(this->ui->show_folder_btn, SIGNAL(clicked(bool)), this, SLOT(show_in_folder()));

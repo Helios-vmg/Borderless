@@ -12,36 +12,38 @@ Distributed under a permissive license. See COPYING.txt for details.
 void MainWindow::restore_state(const std::shared_ptr<WindowState> &state, OptionalFuture<LoadedGraphics::create_result> *future){
 	this->window_state = state;
 	this->window_state->set_using_checkerboard_pattern_updated(true);
-	this->last_set_by_user = state->get_last_set_by_user();
-	auto temp_zoom_mode = this->window_state->get_zoom_mode();
 	this->window_state->set_zoom_mode(ZoomMode::Locked);
-	auto result = this->open_path_and_display_image(this->window_state->get_path(), future);
+	auto will_need_hash = this->window_state->get_loaded_preferred_position() && !!this->app->get_persistent_settings();
+	auto pos = this->window_state->get_pos();
+	auto size = this->window_state->get_size();
+	auto result = this->open_path_and_display_image(this->window_state->get_path(), will_need_hash, future);
 	this->ui->label->load_state(*this->window_state);
-	this->window_state->set_zoom_mode(temp_zoom_mode);
+	this->window_state->set_zoom_mode(this->window_state->get_zoom_mode());
 
-	auto pos = this->window_state->get_pos_u();
-	if (!(this->last_set_by_user = !!this->screen()->virtualSiblingAt(pos)))
-		pos = this->window_state->get_pos();
-	else
-		this->window_state->override_computed();
 	this->ui->label->move(this->window_state->get_label_pos());
+	if (result.preferred_position)
+		pos = result.preferred_position->get_pos();
 	this->move(pos);
-	this->current_desktop = unique_identifier(*this->screen());
 	this->window_rect.moveTopLeft(pos);
-	switch (result){
-		case OpenResult::Success:
-			this->resize(this->window_state->get_size());
-			this->fix_positions_and_zoom(true);
+	this->current_desktop = unique_identifier(*this->screen());
+	switch (result.status){
+		case OpenResult::Status::Success:
+			if (!result.preferred_position){
+				this->resize(size);
+				this->fix_positions_and_zoom(true);
+			}else{
+				this->resize(result.preferred_position->get_size());
+				this->ensure_border_sizes_are_reasonable();
+			}
 			break;
-		case OpenResult::TemporaryFail:
+		case OpenResult::Status::TemporaryFail:
 			this->app->report_temporary_failure(state);
-		case OpenResult::PermanentFail:
+		case OpenResult::Status::PermanentFail:
 			break;
 	}
 }
 
 std::shared_ptr<WindowState> MainWindow::save_state() const{
-	this->window_state->set_last_set_by_user(this->last_set_by_user);
 	this->window_state->set_pos(this->pos());
 	this->window_state->set_size(this->size());
 	this->window_state->set_label_pos(this->ui->label->pos());

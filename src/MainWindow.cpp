@@ -27,7 +27,7 @@ MainWindow::MainWindow(ImageViewerApplication &app, const QStringList &arguments
 		app(&app){
 	this->init(false);
 	if (arguments.size() >= 2)
-		this->open_path_and_display_image(arguments[1]);
+		this->open_path_and_display_image(arguments[1], false);
 }
 
 TransparentMainWindow::TransparentMainWindow(ImageViewerApplication &app, const std::shared_ptr<WindowState> &state, QWidget *parent):
@@ -98,8 +98,10 @@ void MainWindow::init(bool restoring){
 
 void MainWindow::set_current_desktop_and_fix_positions_by_window_position(std::string old_desktop){
 	this->current_desktop = unique_identifier(*this->screen());
-	if (this->current_desktop != old_desktop)
+	if (this->current_desktop != old_desktop){
 		this->fix_positions_and_zoom();
+		this->set_background_sizes();
+	}
 }
 
 void MainWindow::set_desktop_size(){
@@ -205,8 +207,23 @@ MainWindow::ZoomResult MainWindow::compute_zoom(int override_rotation){
 	return { zoom, label_size };
 }
 
+void MainWindow::ensure_border_sizes_are_reasonable(){
+	auto rect = this->geometry();
+	auto size = rect.size();
+	auto min = std::min(size.width(), size.height());
+	if (WindowState::max_border_size * 3 < min){
+		this->window_state->reset_border_size();
+		return;
+	}
+	if (WindowState::min_border_size * 3 >= min){
+		this->window_state->set_border_size(WindowState::min_border_size);
+		return;
+	}
+	this->window_state->set_border_size(min / 3);
+}
+
 void MainWindow::set_zoom(){
-	this->set_current_zoom(this->compute_zoom().zoom);
+	this->set_current_zoom_and_save_settings(this->compute_zoom().zoom);
 }
 
 void MainWindow::apply_zoom(bool first_display, double old_zoom){
@@ -257,10 +274,10 @@ void MainWindow::change_zoom(bool in){
 	auto zoom = this->get_current_zoom();
 	auto old_zoom = zoom;
 	zoom *= in ? 1.25 : (1.0 / 1.25);
-	this->set_current_zoom(zoom);
+	this->set_current_zoom_and_save_settings(zoom);
 	this->apply_zoom(false, old_zoom);
 	if (this->current_zoom_mode_is_auto())
-		this->set_current_zoom_mode(ZoomMode::Normal);
+		this->set_current_zoom_mode_and_save_settings(ZoomMode::Normal);
 }
 
 void MainWindow::setup_backgrounds(){
@@ -345,6 +362,8 @@ void MainWindow::resize_to_max(bool do_not_enlarge){
 	}else
 		rect.setSize(label_size);
 	this->set_window_rect(rect);
+	this->window_state->set_pos(rect.topLeft());
+	this->window_state->set_size(rect.size());
 }
 
 void MainWindow::advance(){
@@ -369,6 +388,10 @@ void MainWindow::set_current_zoom(double value){
 		this->window_state->set_fullscreen_zoom(value);
 	else
 		this->window_state->set_zoom(value);
+}
+
+void MainWindow::set_current_zoom_and_save_settings(double value){
+	this->set_current_zoom(value);
 	this->app->save_settings();
 }
 
@@ -377,6 +400,11 @@ void MainWindow::set_current_zoom_mode(const ZoomMode &mode){
 		this->window_state->set_zoom_mode(mode);
 	else
 		this->window_state->set_fullscreen_zoom_mode(mode);
+}
+
+
+void MainWindow::set_current_zoom_mode_and_save_settings(const ZoomMode &mode){
+	this->set_current_zoom_mode(mode);
 	this->app->save_settings();
 }
 
@@ -393,9 +421,9 @@ void MainWindow::move_in_direction(bool forward){
 	this->advance();
 	if (this->directory_iterator->pos() == old_pos)
 		return;
+	this->window_state->reset_loaded_preferred_position();
 	this->clear_image_pos();
-	this->open_path_and_display_image(**this->directory_iterator);
-	this->last_set_by_user = true;
+	this->open_path_and_display_image(**this->directory_iterator, false);
 	this->app->save_settings();
 }
 
@@ -413,7 +441,7 @@ public:
 	}
 };
 
-MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, OptionalFuture<LoadedGraphics::create_result> *future){
+MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, bool will_need_hash, OptionalFuture<LoadedGraphics::create_result> *future){
 	ElapsedTimer et((QString)"open_path_and_display_image(" + path + ")");
 	LoadedGraphics::create_result result;
 	size_t i = 0;
@@ -427,7 +455,7 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, Opt
 			if (result.retry_in_main)
 				continue;
 		}else
-			result = LoadedGraphics::create(*this->app, path, true);
+			result = LoadedGraphics::create(*this->app, path, true, will_need_hash);
 		qDebug() << path;
 		if (result.loaded_graphics && !result.loaded_graphics->is_null())
 			break;
@@ -476,18 +504,31 @@ MainWindow::OpenResult MainWindow::open_path_and_display_image(QString path, Opt
 
 	if (!result.loaded_graphics || result.loaded_graphics->is_null()){
 		this->show_nothing();
-		return result.permanent_error ? OpenResult::PermanentFail : OpenResult::TemporaryFail;
+		return result.permanent_error ? OpenResult::Status::PermanentFail : OpenResult::Status::TemporaryFail;
 	}
 	this->color_calculated = false;
 	label->move(0, 0);
 	this->setWindowTitle(window_title);
 	this->displayed_image = result.loaded_graphics;
 
-	label->set_transform_by_metadata(this->displayed_image->get_metadata(), this->rotate_by_metadata);
-	this->set_zoom();
+	bool position_set = false;
+	std::optional<PreferredWindowPosition> pwp;
+	if (this->window_state->get_loaded_preferred_position()){
+		if (auto ps = this->app->get_persistent_settings()){
+			if (pwp = ps->get_preferred_position(this->displayed_image->get_hash())){
+				this->window_state->set_to_preferred_position(*pwp);
+				position_set = true;
+			}
+		}
+	}
 
+	if (!position_set){
+		label->set_transform_by_metadata(this->displayed_image->get_metadata(), this->rotate_by_metadata);
+		this->set_zoom();
+	}
 	this->apply_zoom(true, 1);
-	return OpenResult::Success;
+
+	return { OpenResult::Status::Success, pwp };
 }
 
 void MainWindow::display_image_in_label(const std::shared_ptr<LoadedGraphics> &graphics, bool first_display){
@@ -617,9 +658,8 @@ void MainWindow::work_area_change(QScreen &screen){
 	this->set_desktop_size(screen);
 	//if (screen.serialNumber() != this->screen()->serialNumber())
 	//	return;
-	auto pos = this->window_state->get_pos_u();
-	if ((this->last_set_by_user = !!this->screen()->virtualSiblingAt(pos))){
-		this->window_state->override_computed();
+	auto pos = this->window_state->get_pos();
+	if (!!this->screen()->virtualSiblingAt(pos)){
 		this->ui->label->move(this->window_state->get_label_pos());
 		this->move(pos);
 		this->current_desktop = unique_identifier(*this->screen());
@@ -646,8 +686,10 @@ void MainWindow::move_window_rect(const QPoint &p){
 
 void MainWindow::set_window_rect(const QRect &r){
 	this->window_rect = r;
-	if (!this->window_state->get_fullscreen())
+	if (!this->window_state->get_fullscreen()){
 		this->setGeometry(r);
+		this->ensure_border_sizes_are_reasonable();
+	}
 	this->set_current_desktop_and_fix_positions_by_window_position(this->current_desktop);
 }
 
@@ -677,11 +719,11 @@ double MainWindow::get_image_zoom() const{
 void MainWindow::set_image_zoom(double x){
 	//double &zoom = this->get_current_zoom();
 	double last = this->get_current_zoom();
-	this->set_current_zoom(x);
+	this->set_current_zoom_and_save_settings(x);
 	this->apply_zoom(false, last);
 	this->window_state->set_zoom(x);
 	this->ui->label->set_zoom(x);
-	this->set_current_zoom_mode(ZoomMode::Normal);
+	this->set_current_zoom_mode_and_save_settings(ZoomMode::Normal);
 }
 
 QImage MainWindow::get_image() const{
@@ -733,4 +775,56 @@ void MainWindow::toggle_always_on_top(){
 	auto top = this->always_on_top_enabled();
 	this->setWindowFlag(Qt::WindowStaysOnTopHint, !top);
 	this->show();
+}
+
+std::pair<std::string, PreferredWindowPosition> MainWindow::get_hash_and_current_position(){
+	auto hash = this->displayed_image->get_hash();
+	if (hash.empty())
+		return {};
+	auto pos = this->window_state->get_preferred_position();
+	this->window_state->set_to_preferred_position(pos);
+	return { std::move(hash), pos };
+}
+
+void MainWindow::save_preferred_position(){
+	auto persistent = this->app->get_persistent_settings(true);
+	if (!persistent)
+		return;
+	auto [hash, pos] = this->get_hash_and_current_position();
+	if (hash.empty())
+		return;
+	persistent->set_preferred_position(hash, pos);
+}
+
+void MainWindow::save_all_preferred_positions(){
+	this->app->save_all_preferred_positions();
+}
+
+std::optional<PreferredWindowPosition> MainWindow::get_preferred_position(){
+	auto persistent = this->app->get_persistent_settings(true);
+	if (!persistent)
+		return {};
+	auto hash = this->displayed_image->get_hash();
+	if (hash.empty())
+		return {};
+	return persistent->get_preferred_position(hash);
+}
+
+void MainWindow::restore_preferred_position(){
+	auto preferred = this->get_preferred_position();
+	if (!preferred)
+		return;
+
+	auto old_zoom = this->get_current_zoom();
+	this->window_state->set_to_preferred_position(*preferred);
+	this->ui->label->load_state(*this->window_state);
+	this->apply_zoom(false, old_zoom);
+	this->move(preferred->get_pos());
+	this->ui->label->move(this->window_state->get_label_pos());
+	this->current_desktop = unique_identifier(*this->screen());
+	this->set_window_rect(QRect(preferred->get_pos(), preferred->get_size()));
+}
+
+void MainWindow::restore_all_preferred_positions(){
+	this->app->restore_all_preferred_positions();
 }

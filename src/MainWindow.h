@@ -91,7 +91,6 @@ protected:
 	bool not_moved;
 	bool color_calculated;
 	std::vector<QMetaObject::Connection> connections;
-	bool last_set_by_user = true;
 	bool rotate_by_metadata = true;
 	QTimer zoom_timer;
 	QFuture<QPixmap> zoomed_image;
@@ -111,10 +110,11 @@ protected:
 
 	std::shared_ptr<WindowState> window_state;
 
-	bool move_image(const QPoint &new_position);
+	bool move_image(QPoint new_position);
 	std::optional<QPoint> compute_movement(const QPoint &new_position, const QPoint &mouse_position);
-	int compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position);
+	std::optional<std::tuple<bool, QPoint, QRect>> compute_resize(QPoint mouse_offset, const QPoint &mouse_position);
 	void move_window(const QPoint &new_position, const QPoint &mouse_position);
+	void resize_window(const QPoint &requested_size, const QPoint &mouse_position, const MouseEvent &);
 	void reset_settings();
 	void compute_average_color(QImage img);
 	virtual void set_background(bool force = false);
@@ -142,7 +142,9 @@ protected:
 	void set_iterator();
 	double get_current_zoom() const;
 	void set_current_zoom(double);
+	void set_current_zoom_and_save_settings(double);
 	void set_current_zoom_mode(const ZoomMode &);
+	void set_current_zoom_mode_and_save_settings(const ZoomMode &);
 	ZoomMode get_current_zoom_mode() const;
 	void resolution_to_window_size();
 	void reposition_window(bool do_not_enlarge = false);
@@ -159,6 +161,7 @@ protected:
 	};
 	
 	ZoomResult compute_zoom(int override_rotation = -1);
+	void ensure_border_sizes_are_reasonable();
 
 protected:
 	void mousePressEvent(QMouseEvent *ev) override;
@@ -174,12 +177,24 @@ protected:
 	void contextMenuEvent(QContextMenuEvent *) override;
 	//bool event(QEvent *) override;
 	void restore_state(const std::shared_ptr<WindowState> &, OptionalFuture<LoadedGraphics::create_result> *future = nullptr);
-	enum class OpenResult{
-		Success,
-		TemporaryFail,
-		PermanentFail,
+	class OpenResult{
+	public:
+		enum class Status{
+			Success,
+			TemporaryFail,
+			PermanentFail,
+		};
+		Status status = Status::Success;
+		std::optional<PreferredWindowPosition> preferred_position;
+
+		OpenResult() = default;
+		OpenResult(Status status): status(status){}
+		OpenResult(Status status, std::optional<PreferredWindowPosition> pwp): status(status), preferred_position(pwp){}
+		OpenResult(const OpenResult &) = default;
+		OpenResult &operator=(const OpenResult &) = default;
 	};
-	OpenResult open_path_and_display_image(QString path, OptionalFuture<LoadedGraphics::create_result> *future = nullptr);
+	
+	OpenResult open_path_and_display_image(QString path, bool will_need_hash, OptionalFuture<LoadedGraphics::create_result> *future = nullptr);
 
 public:
 	explicit MainWindow(ImageViewerApplication &app, const QStringList &arguments, QWidget *parent = 0);
@@ -216,6 +231,8 @@ public:
 		return !!this->displayed_image;
 	}
 	bool always_on_top_enabled() const;
+	std::pair<std::string, PreferredWindowPosition> get_hash_and_current_position();
+	std::optional<PreferredWindowPosition> get_preferred_position();
 
 public slots:
 	void label_transform_updated();
@@ -259,6 +276,10 @@ public slots:
 	void zoom_timer_triggered();
 	void zoom_complete();
 	void toggle_always_on_top();
+	void save_preferred_position();
+	void save_all_preferred_positions();
+	void restore_preferred_position();
+	void restore_all_preferred_positions();
 
 signals:
 	void closing(MainWindow *);

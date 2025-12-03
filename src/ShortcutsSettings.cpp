@@ -9,7 +9,7 @@ Distributed under a permissive license. See COPYING.txt for details.
 #include "ShortcutInfo.h"
 #include <QString>
 
-#define DEFINE_COMMAND_INTERNAL_NAME(x) const char *x##_command = #x
+#define DEFINE_COMMAND_INTERNAL_NAME(x) extern const char *x##_command = #x
 
 DEFINE_COMMAND_INTERNAL_NAME(back);
 DEFINE_COMMAND_INTERNAL_NAME(background_swap);
@@ -44,7 +44,12 @@ DEFINE_COMMAND_INTERNAL_NAME(up);
 DEFINE_COMMAND_INTERNAL_NAME(up_big);
 DEFINE_COMMAND_INTERNAL_NAME(zoom_in);
 DEFINE_COMMAND_INTERNAL_NAME(zoom_out);
+DEFINE_COMMAND_INTERNAL_NAME(save_preferred_position);
+DEFINE_COMMAND_INTERNAL_NAME(save_all_preferred_positions);
+DEFINE_COMMAND_INTERNAL_NAME(restore_preferred_position);
+DEFINE_COMMAND_INTERNAL_NAME(restore_all_preferred_positions);
 
+#define SETUP_DEFAULT_SHORTCUT0(x, y) ret[y] = ShortcutInfo(x, y)
 #define SETUP_DEFAULT_SHORTCUT1(x, y, z) ret[y] = ShortcutInfo(x, y, z)
 #define SETUP_DEFAULT_SHORTCUT2(x, y, z, z2) ret[y] = ShortcutInfo(x, y, z, z2)
 
@@ -81,6 +86,10 @@ std::map<QString, ShortcutInfo> get_default_shortcuts() {
 	SETUP_DEFAULT_SHORTCUT1("Rotate right", rotate_right_command, "R");
 	SETUP_DEFAULT_SHORTCUT1("Show transparent background", show_transparent_background_command, "F12");
 	SETUP_DEFAULT_SHORTCUT1("Show image information", show_info_command, "I");
+	SETUP_DEFAULT_SHORTCUT1("Save preferred position for current image", save_preferred_position_command, "F2");
+	SETUP_DEFAULT_SHORTCUT1("Save preferred positions for all images", save_all_preferred_positions_command, "Shift+F2");
+	SETUP_DEFAULT_SHORTCUT1("Restore preferred position for current image", restore_preferred_position_command, "F3");
+	SETUP_DEFAULT_SHORTCUT1("Restore preferred positions for all images", restore_all_preferred_positions_command, "Shift+F3");
 	return ret;
 }
 

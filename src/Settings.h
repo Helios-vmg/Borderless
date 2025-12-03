@@ -35,10 +35,12 @@ public:
 #define DEFINE_ENUM_INLINE_SETTER_GETTER(t, x) DEFINE_ENUM_INLINE_GETTER(t, x) DEFINE_ENUM_INLINE_SETTER(t, x)
 
 class WindowPosition : public Serializable{
+protected:
 	QPoint pos;
 	QSize size;
 	QPoint label_pos;
 	QTransform transform;
+	virtual QJsonObject internal_serialize() const;
 public:
 	WindowPosition() = default;
 	WindowPosition(const QJsonValueRef &);
@@ -50,6 +52,21 @@ public:
 	DEFINE_INLINE_SETTER_GETTER(size)
 	DEFINE_INLINE_SETTER_GETTER(label_pos)
 	DEFINE_INLINE_SETTER_GETTER(transform)
+};
+
+class PreferredWindowPosition : public WindowPosition{
+protected:
+	double zoom = 1;
+
+	QJsonObject internal_serialize() const override;
+public:
+	PreferredWindowPosition() = default;
+	PreferredWindowPosition(const WindowPosition &other): WindowPosition(other){}
+	PreferredWindowPosition(const QJsonValueRef &);
+	PreferredWindowPosition(const QJsonObject &);
+	PreferredWindowPosition(const PreferredWindowPosition &) = default;
+	PreferredWindowPosition &operator=(const PreferredWindowPosition &) = default;
+	DEFINE_INLINE_SETTER_GETTER(zoom)
 };
 
 class WindowState : public Serializable{
@@ -65,14 +82,12 @@ class WindowState : public Serializable{
 	int fullscreen_zoom_mode;
 	int border_size;
 	int movement_size;
-	WindowPosition computed_position;
-	WindowPosition user_set_position;
-	bool last_set_by_user = true;
+	WindowPosition position;
 	bool using_checkerboard_pattern_updated = false; //Not saved.
+	bool loaded_preferred_position = false;
 public:
 	WindowState();
 	WindowState(const QJsonValueRef &);
-	void override_computed();
 	DEFINE_INLINE_GETTER(using_checkerboard_pattern)
 	DEFINE_INLINE_SETTER_GETTER(file_is_url)
 	void set_using_checkerboard_pattern(bool);
@@ -91,10 +106,12 @@ public:
 	DEFINE_INLINE_SETTER_GETTER(movement_size)
 	DEFINE_INLINE_SETTER_GETTER(border_size)
 	static const decltype(border_size) default_border_size = 50;
+	static const decltype(border_size) max_border_size = default_border_size;
+	static const decltype(border_size) min_border_size = max_border_size / 10;
 	void reset_border_size(){
 		this->border_size = default_border_size;
 	}
-	DEFINE_INLINE_SETTER_GETTER(last_set_by_user);
+	void set_to_preferred_position(const PreferredWindowPosition &pos);
 	void set_pos(const QPoint &pos);
 	void set_size(const QSize &size);
 	void set_label_pos(const QPoint &label_pos);
@@ -103,10 +120,14 @@ public:
 	QSize get_size() const;
 	QPoint get_label_pos() const;
 	QTransform get_transform() const;
-	QPoint get_pos_u() const;
-	QSize get_size_u() const;
-	QPoint get_label_pos_u() const;
-	QTransform get_transform_u() const;
+	PreferredWindowPosition get_preferred_position() const;
+
+	void reset_loaded_preferred_position(){
+		this->loaded_preferred_position = false;
+	}
+	auto get_loaded_preferred_position() const{
+		return this->loaded_preferred_position;
+	}
 
 	QJsonValue serialize() const override;
 	QString get_path() const;

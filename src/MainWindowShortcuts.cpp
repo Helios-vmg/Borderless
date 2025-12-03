@@ -48,6 +48,10 @@ void MainWindow::setup_shortcuts(){
 		SETUP_SHORTCUT(show_options_command, show_options_dialog())
 		SETUP_SHORTCUT(show_transparent_background_command, transparent_background())
 		SETUP_SHORTCUT(show_info_command, show_info_dialog())
+		SETUP_SHORTCUT(save_preferred_position_command, save_preferred_position())
+		SETUP_SHORTCUT(save_all_preferred_positions_command, save_all_preferred_position())
+		SETUP_SHORTCUT(restore_preferred_position_command, restore_preferred_position())
+		SETUP_SHORTCUT(restore_all_preferred_positions_command, restore_all_preferred_positions())
 	};
 
 	for (auto &c : this->connections)
@@ -149,16 +153,18 @@ void MainWindow::right_big_slot(){
 
 void MainWindow::offset_image(const QPoint &offset){
 	this->move_image(this->ui->label->pos() + offset);
+	this->window_state->reset_loaded_preferred_position();
 }
 
 void MainWindow::reset_zoom_slot(){
 	if (!this->displayed_image)
 		return;
 	int zoom = this->get_current_zoom();
-	this->set_current_zoom_mode(ZoomMode::Normal);
+	this->set_current_zoom_mode_and_save_settings(ZoomMode::Normal);
 	this->ui->label->set_transform_by_metadata(this->displayed_image->get_metadata(), this->rotate_by_metadata);
 	this->set_zoom();
 	this->apply_zoom(false, zoom);
+	this->window_state->reset_loaded_preferred_position();
 }
 
 void cycle_zoom_mode(ZoomMode &mode){
@@ -184,10 +190,11 @@ void MainWindow::cycle_zoom_mode_slot(){
 	auto mode = this->get_current_zoom_mode();
 	cycle_zoom_mode(mode);
 	this->set_current_zoom_mode(mode);
-	auto zoom = this->get_current_zoom();
-	this->set_zoom();
-	this->apply_zoom(false, zoom);
+	auto old_zoom = this->get_current_zoom();
+	this->set_current_zoom(this->compute_zoom().zoom);
+	this->apply_zoom(false, old_zoom);
 	this->set_background_sizes();
+	this->app->save_settings();
 }
 
 void toggle_lock_zoom(ZoomMode &mode){
@@ -211,7 +218,7 @@ void MainWindow::go_to_start(){
 	if (this->directory_iterator->pos() == i)
 		return;
 	this->moving_forward = true;
-	this->open_path_and_display_image(**this->directory_iterator);
+	this->open_path_and_display_image(**this->directory_iterator, false);
 }
 
 void MainWindow::go_to_end(){
@@ -223,7 +230,7 @@ void MainWindow::go_to_end(){
 	if (this->directory_iterator->pos() == i)
 		return;
 	this->moving_forward = false;
-	this->open_path_and_display_image(**this->directory_iterator);
+	this->open_path_and_display_image(**this->directory_iterator, false);
 }
 
 void MainWindow::toggle_fullscreen(){
@@ -245,13 +252,15 @@ void MainWindow::toggle_fullscreen(){
 		//this->move_image(QPoint(0, 0));
 	}
 	this->set_background_sizes();
+	this->window_state->reset_loaded_preferred_position();
 }
 
 void MainWindow::rotate(bool right, bool fine){
 	if (this->current_zoom_mode_is_auto_rotation())
-		this->set_current_zoom_mode(disable_flag(this->get_current_zoom_mode(), ZoomMode::AutomaticRotation));
+		this->set_current_zoom_mode_and_save_settings(disable_flag(this->get_current_zoom_mode(), ZoomMode::AutomaticRotation));
 	this->ui->label->rotate((right ? 1 : -1) * (fine ? 1 : 90));
 	this->fix_positions_and_zoom();
+	this->window_state->reset_loaded_preferred_position();
 	//this->reposition_image();
 	//this->ui->label->repaint();
 }
@@ -283,11 +292,13 @@ void MainWindow::minimize_all_slot(){
 void MainWindow::flip_h(){
 	this->ui->label->flip(true);
 	this->ui->label->repaint();
+	this->window_state->reset_loaded_preferred_position();
 }
 
 void MainWindow::flip_v(){
 	this->ui->label->flip(false);
 	this->ui->label->repaint();
+	this->window_state->reset_loaded_preferred_position();
 }
 
 void MainWindow::show_options_dialog(){
@@ -298,6 +309,17 @@ void MainWindow::show_info_dialog(){
 	auto metadata = this->displayed_image->get_metadata();
 	if (!metadata)
 		return;
-	InfoDialog info(*this, *this->app, *metadata);
+
+	PreferredPositionState pps;
+	if (!this->app->get_persistent_settings())
+		pps = PreferredPositionState::DoesntHave;
+	else if (this->window_state->get_loaded_preferred_position())
+		pps = PreferredPositionState::InUse;
+	else if (!this->get_preferred_position())
+		pps = PreferredPositionState::DoesntHave;
+	else
+		pps = PreferredPositionState::HasButNotInUse;
+
+	InfoDialog info(*this, *this->app, *metadata, pps);
 	info.exec();
 }

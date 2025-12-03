@@ -71,6 +71,9 @@ protected:
 	bool alpha;
 	bool null;
 	ImageMetadata info;
+	std::optional<std::string> hash;
+
+	virtual void compute_hash(){}
 public:
 	virtual ~LoadedGraphics(){}
 	virtual bool is_animation() const = 0;
@@ -111,7 +114,8 @@ public:
 		create_result(create_result &&) = default;
 		create_result &operator=(create_result &&) = default;
 	};
-	static create_result create(ImageViewerApplication &app, const QString &path, bool calling_from_main);
+	static create_result create(ImageViewerApplication &app, const QString &path, bool calling_from_main, bool will_need_hash);
+	std::string get_hash();
 };
 
 class RasterGraphics : public LoadedGraphics{
@@ -130,8 +134,9 @@ class LoadedImage : public RasterGraphics{
 	QFuture<QColor> background_color;
 
 	void compute_average_color(QImage);
+	void compute_hash() override;
 public:
-	LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path);
+	LoadedImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path, bool will_need_hash);
 	LoadedImage(const QImage &image);
 	virtual ~LoadedImage();
 	QColor get_background_color() override{
@@ -156,7 +161,7 @@ class LoadedAnimation : public RasterGraphics{
 	std::unique_ptr<QMovie> animation;
 
 public:
-	LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path);
+	LoadedAnimation(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path, bool will_need_hash);
 	QColor get_background_color() override{
 		return QColor(0, 0, 0, 0);
 	}
@@ -191,8 +196,11 @@ class SvgImage : public VectorGraphics{
 	QFuture<QPixmap> pixmap;
 	QFuture<QColor> background_color;
 	ReSvgRenderTree tree;
+	QByteArray raw_data;
+
+	void compute_hash() override;
 public:
-	SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path);
+	SvgImage(ImageViewerApplication &app, std::unique_ptr<QIODevice> &&dev, const QString &path, bool will_need_hash);
 	~SvgImage() override;
 	QColor get_background_color() override{
 		return this->background_color.result();

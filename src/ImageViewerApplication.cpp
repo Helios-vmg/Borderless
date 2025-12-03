@@ -66,8 +66,9 @@ ImageViewerApplication::ImageViewerApplication(int &argc, char **argv, const QSt
 	this->reset_tray_menu();
 	this->conditional_tray_show();
 	this->setQuitOnLastWindowClosed(!this->settings->get_keep_application_in_background());
+	(void)this->get_persistent_settings();
 	ImageViewerApplication::new_instance(this->args);
-	if (!this->windows.size() && !this->settings->get_keep_application_in_background())
+	if (this->windows.empty() && !this->settings->get_keep_application_in_background())
 		throw NoWindowsException();
 	
 	this->setup_slots();
@@ -223,16 +224,6 @@ void ImageViewerApplication::save_state_only(){
 	if (path.isNull())
 		return;
 	this->save_current_state(*this->app_state);
-	std::optional<int> state;
-	for (auto &w : this->app_state->get_windows()){
-		auto x = (int)w->get_last_set_by_user();
-		if (!state)
-			state = x;
-		else if (x != *state){
-			state = -1;
-			break;
-		}
-	}
 	QJsonDocument doc;
 	StateFile sf;
 	sf.state = this->app_state;
@@ -255,12 +246,12 @@ void ImageViewerApplication::restore_current_state(const ApplicationState &windo
 }
 
 void ImageViewerApplication::restore_current_windows(const std::vector<std::shared_ptr<WindowState>> &window_states){
-#if 1
 	std::vector<ActualFuture<LoadedGraphics::create_result>> futures;
 	futures.reserve(window_states.size());
+	bool will_need_hash = !!this->persistent_settings;
 	for (auto &state : window_states){
-		futures.emplace_back(QtConcurrent::run([this, state]() -> LoadedGraphics::create_result{
-			return LoadedGraphics::create(*this, state->get_path(), false);
+		futures.emplace_back(QtConcurrent::run([this, state, will_need_hash]() -> LoadedGraphics::create_result{
+			return LoadedGraphics::create(*this, state->get_path(), false, will_need_hash);
 		}));
 	}
 
@@ -269,15 +260,6 @@ void ImageViewerApplication::restore_current_windows(const std::vector<std::shar
 
 	for (size_t i = 0; i < n; i++)
 		this->add_window(std::make_shared<MainWindow>(*this, window_states[i], futures[i]));
-#else
-	std::vector<QFuture<LoadedGraphics::create_result>> futures;
-	futures.reserve(window_states.size());
-	for (auto &state : window_states){
-		NonFuture<LoadedGraphics::create_result> f = LoadedGraphics::create(*this, state->get_path());
-		this->add_window(std::make_shared<MainWindow>(*this, state, f));
-	}
-
-#endif
 }
 
 std::shared_ptr<QMenu> ImageViewerApplication::build_context_menu(MainWindow *caller){
@@ -627,4 +609,33 @@ void ImageViewerApplication::show_file_in_folder(QWidget *parent, const QString 
 #else
 	QMessageBox::critical(parent, "Feature unavailable", "Sorry! This feature is not implemented for your system yet.", QMessageBox::Ok);
 #endif
+}
+
+std::shared_ptr<PersistentSettingsStore> ImageViewerApplication::get_persistent_settings(bool required){
+	if (!this->persistent_settings)
+		this->persistent_settings = PersistentSettingsStore::create_from_settings_directory(this->get_config_location(), required);
+	return this->persistent_settings;
+}
+
+void ImageViewerApplication::save_all_preferred_positions(){
+	auto persistent = this->get_persistent_settings(true);
+	if (!persistent)
+		return;
+	std::map<std::string, PreferredWindowPosition> positions;
+	for (auto &[k, window] : this->windows){
+		auto [hash, pos] = window->get_hash_and_current_position();
+		if (hash.empty())
+			continue;
+		positions[std::move(hash)] = pos;
+	}
+	persistent->set_preferred_positions(positions);
+	this->save_settings();
+}
+
+void ImageViewerApplication::restore_all_preferred_positions(){
+	auto persistent = this->get_persistent_settings(true);
+	if (!persistent)
+		return;
+	for (auto &[k, window] : this->windows)
+		window->restore_preferred_position();
 }

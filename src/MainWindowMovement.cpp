@@ -91,14 +91,6 @@ bool MainWindow::set_cursor_flags(const MouseEvent &ev){
 	return ev.button_sum >= 1;
 }
 
-#define FTEMP(a, A, b, B) \
-	if (this->first_label_pos.a() != this->ui->label->pos().a() || this->first_window_pos.a() != this->pos().a() || this->first_window_size.b() != this->size().b()){ \
-		this->first_label_pos.set##A(this->ui->label->pos().a()); \
-		this->first_mouse_pos.set##A(mouse_pos.a()); \
-		this->first_window_pos.set##A(this->pos().a()); \
-		this->first_window_size.set##B(this->size().b()); \
-	}
-
 void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 	MouseEvent mme(*ev);
 	if (!this->set_cursor_flags(mme))
@@ -111,39 +103,22 @@ void MainWindow::mouseMoveEvent(QMouseEvent *ev){
 			return;
 		if (this->resize_mode == ResizeMode::None)
 			this->move_window(this->first_window_pos + mouse_pos - this->first_mouse_pos, mouse_pos);
-		else{
-			QPoint pos;
-			QRect rect;
-			auto result = this->compute_resize(pos, rect, mouse_pos - this->first_mouse_pos, mouse_pos);
-			if (!result){
-				this->reset_zoom_slot();
-				
-				auto copy = mme;
-				copy.relative = mme.absolute - this->pos();
-				this->reset_left_mouse(copy);
-				this->set_cursor_flags(copy);
-			}else if (result > 0){
-				this->set_window_rect(rect);
-				this->ui->label->move(pos);
-				FTEMP(x, X, width, Width);
-				FTEMP(y, Y, height, Height);
-			}
-		}
+		else
+			this->resize_window(mouse_pos - this->first_mouse_pos, mouse_pos, mme);
 	}else if (mme.right){
 		auto new_position = this->first_label_pos + mouse_pos - this->first_mouse_pos;
 		if (this->move_image(new_position)){
 			this->first_mouse_pos = mouse_pos;
 			this->first_label_pos = this->ui->label->pos();
+			this->window_state->reset_loaded_preferred_position();
 		}
 	}
 }
 
-#undef FTEMP
-
-int MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QPoint mouse_offset, const QPoint &mouse_position){
+std::optional<std::tuple<bool, QPoint, QRect>> MainWindow::compute_resize(QPoint mouse_offset, const QPoint &mouse_position){
 	auto screen = this->app->screenAt(mouse_position);
 	if (!screen)
-		return -1;
+		return {};
 	auto ds = screen->availableGeometry();
 	int left = 0,
 		top = 0,
@@ -230,22 +205,51 @@ int MainWindow::compute_resize(QPoint &out_label_pos, QRect &out_window_rect, QP
 		pos.setY(rect.height() - label_rect.height());
 
 	if (rect.height() <= 0 || rect.width() <= 0)
-		return 0;
+		return { {false, pos, rect} };
 
-	out_label_pos = pos;
-	out_window_rect = rect;
-	return 1;
+	return { {true, pos, rect} };
 }
+
+#define FTEMP(a, A, b, B) \
+	if (this->first_label_pos.a() != this->ui->label->pos().a() || this->first_window_pos.a() != this->pos().a() || this->first_window_size.b() != this->size().b()){ \
+		this->first_label_pos.set##A(this->ui->label->pos().a()); \
+		this->first_mouse_pos.set##A(mouse_position.a()); \
+		this->first_window_pos.set##A(this->pos().a()); \
+		this->first_window_size.set##B(this->size().b()); \
+	}
+
+void MainWindow::resize_window(const QPoint &requested_size, const QPoint &mouse_position, const MouseEvent &mme){
+	auto opt = this->compute_resize(requested_size, mouse_position);
+	if (!opt)
+		return;
+	auto [valid, pos, rect] = *opt;
+
+	if (!valid){
+		this->reset_zoom_slot();
+		auto copy = mme;
+		copy.relative = mme.absolute - this->pos();
+		this->reset_left_mouse(copy);
+		this->set_cursor_flags(copy);
+	}else{
+		this->set_window_rect(rect);
+		this->ui->label->move(pos);
+		FTEMP(x, X, width, Width);
+		FTEMP(y, Y, height, Height);
+	}
+	this->window_state->reset_loaded_preferred_position();
+}
+
+#undef FTEMP
 
 void MainWindow::move_window(const QPoint &requested_position, const QPoint &mouse_position){
 	auto computed_position = this->compute_movement(requested_position, mouse_position);
 	if (!computed_position)
 		return;
 	this->move_window_rect(*computed_position);
+	this->window_state->reset_loaded_preferred_position();
 }
 
-bool MainWindow::move_image(const QPoint &_new_position){
-	auto new_position = _new_position;
+bool MainWindow::move_image(QPoint new_position){
 	auto label_size = this->ui->label->size();
 	auto window_size = this->size();
 	bool refresh = false;
